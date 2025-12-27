@@ -16,7 +16,8 @@ const DEFAULT_CONFIG = {
     staggerTime: 10,
     backgroundImage: null,
     symbolsBeforeStop: 200,
-    clusterSize: 3
+    clusterSize: 3,
+    timeBeforeProcessingGrid: 500,
 };
 
 export default class SlotsBase {
@@ -51,6 +52,7 @@ export default class SlotsBase {
     }
 
     createGrid() {
+        this.drawBackgroundCells();
         const totalWidth = (this.config.cols * this.config.symbolWidth) +
             ((this.config.cols - 1) * this.config.gapX);
 
@@ -65,7 +67,6 @@ export default class SlotsBase {
             this.reels.push(reel);
             this.reelContainer.addChild(reel.container);
         }
-
         const mask = new Graphics();
         mask.rect(
             this.reelContainer.x,
@@ -168,10 +169,7 @@ export default class SlotsBase {
         this.config.symbols.forEach(symbol => {
             const rawTex = Assets.get(symbol.name);
 
-            // Generate the composite texture
-            // Note: I removed the check for 'this.processSymbolTexture' because 
-            // the method creates the background logic is right here in this class.
-            symbol.texture = this.createSymbolWithBackground(rawTex);
+            symbol.texture = rawTex //this.createSymbolWithBackground(rawTex);
         });
 
         // 4. Finally, build the visual grid
@@ -181,7 +179,7 @@ export default class SlotsBase {
     findClusters(grid) {
         // 1. Handle edge cases
         if (!grid || grid.length === 0) return [];
-
+        console.log(grid)
         const rows = grid.length;
         const cols = grid[0].length;
 
@@ -234,7 +232,84 @@ export default class SlotsBase {
                 }
             }
         }
+        console.log(clusters & "found cluster")
+        return clusters
+            .filter(i => i.length >= this.config.clusterSize)
+            .flat().reduce((acc, { x, y }) => {
+                // Initialize the array at index x if it doesn't exist
+                if (!acc[x]) acc[x] = [];
 
-        return clusters;
+                // Push the value into the correct index bucket
+                acc[x].push(y);
+
+                return acc;
+            }, []);
+    }
+
+    generateRandomResult() {
+        return Array.from({ length: this.config.cols }, () =>
+            Array.from({ length: this.config.rows }, () =>
+                Math.floor(Math.random() * this.config.symbols.length)
+            )
+        );
+    }
+
+    generateReplacements(arr) {
+        console.log(arr)
+        return [...arr].map(item => {
+            if (item) {
+                return Array.from(
+                    { length: item.length },
+                    () => Math.floor(Math.random() * this.config.symbols.length))
+            }
+        })
+    }
+
+    async explodeAndCascade(grid, clusters, replacements) {
+
+
+        if (clusters.length === 0) {
+            return false
+        }
+        const reel_promises = []
+        for (let i = 0; i < this.reels.length; i++) {
+            if (clusters[i]) {
+                const res = this.reels[i].explodeAndCascade(clusters[i], replacements[i], grid[i])
+                reel_promises.push(res)
+            }
+            else {
+                reel_promises.push(grid[i])
+            }
+        }
+        return await Promise.all(reel_promises);
+    }
+
+    drawBackgroundCells() {
+        const bgContainer = new Container();
+
+        for (let i = 0; i < this.config.cols; i++) {
+            for (let j = 0; j < this.config.rows; j++) {
+                const bg = new Graphics();
+                const w = this.config.symbolWidth;
+                const h = this.config.symbolHeight;
+
+                // Calculate position exactly like the symbols
+                const x = i * (w + this.config.gapX);
+                const y = j * (h + this.config.gapY);
+
+                // Styling: Darker version of your symbol background
+                bg.roundRect(0, 0, w, h, 15);
+                bg.fill({ color: 0x1a110d, alpha: 0.5 }); // Dark semi-transparent fill
+                bg.stroke({ width: 2, color: 0xcfb972, alpha: 0.3 }); // Faint gold border
+
+                bg.x = x;
+                bg.y = y;
+
+                bgContainer.addChild(bg);
+            }
+        }
+
+        // Add to reelContainer so it centers automatically with the game
+        this.reelContainer.addChild(bgContainer);
     }
 }

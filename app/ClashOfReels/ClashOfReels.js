@@ -10,6 +10,19 @@ const SYMBOLS = [
     { id: 6, name: 'troop_giant', path: "/games/ClashOfReels/Troop_HV_Giant_1_grass.png" },
 ];
 
+const TownHallSymbol = [
+    "/games/ClashOfReels/Building_HV_Town_Hall_level_1.png",
+    "/games/ClashOfReels/Building_HV_Town_Hall_level_2.png",
+    "/games/ClashOfReels/Building_HV_Town_Hall_level_3.png",
+    "/games/ClashOfReels/Building_HV_Town_Hall_level_4.png",
+    "/games/ClashOfReels/Building_HV_Town_Hall_level_5.png",
+    "/games/ClashOfReels/Building_HV_Town_Hall_level_6.png",
+    "/games/ClashOfReels/Building_HV_Town_Hall_level_7.png",
+    "/games/ClashOfReels/Building_HV_Town_Hall_level_8.png",
+    "/games/ClashOfReels/Building_HV_Town_Hall_level_9.png",
+    "/games/ClashOfReels/Building_HV_Town_Hall_level_10.png",
+]
+
 export default class ClashOfReels extends SlotsBase {
     constructor(rootContainer, app) {
         const myConfig = {
@@ -28,7 +41,10 @@ export default class ClashOfReels extends SlotsBase {
             backgroundImage: "/games/ClashOfReels/background.jpg",
             symbolsBeforeStop: 0,
             symbols: SYMBOLS,
-            clusterSize: 4
+            clusterSize: 4,
+            timeBeforeProcessingGrid: 500,
+            delayBeforeCascading: 1000,
+            ghostTime: 700
         };
 
         super(rootContainer, app, myConfig);
@@ -36,70 +52,22 @@ export default class ClashOfReels extends SlotsBase {
     }
 
     async spin() {
+        if (this.processing) return;
+        this.processing = true;
 
-        if (this.processing) {
-            this.hasClusters = false;
-            return;
-        }
-        this.processing = true
+        let grid = this.generateRandomResult();
+        this.insertInGrid()
+        grid = await this.startSpin(grid);
 
-        let result = Array.from({ length: this.config.cols }, () =>
-            Array.from({ length: this.config.rows }, () =>
-                Math.floor(Math.random() * this.config.symbols.length)
-            )
-        );
+        while (true) {
+            await new Promise(resolve => setTimeout(resolve, this.config.timeBeforeProcessingGrid));
 
-        // result = [
-        //     [1, 1, 1],
-        //     [0, 0, 1],
-        //     [1, 1, 0]
-        // ]
-        console.log(result)
+            const clusters = this.findClusters(grid)
+            const replacements = this.generateReplacements(clusters)
+            grid = await this.explodeAndCascade(grid, clusters, replacements)
 
-        await this.startSpin(result)
 
-        this.hasClusters = true
-        while (this.hasClusters) {
-            await new Promise(resolve => setTimeout(resolve, 3000));
-            const clusters = this.findClusters(result).filter(i => i.length >= this.config.clusterSize)
-            const reelClusters = clusters.flat().reduce((acc, { x, y }) => {
-                // Initialize the array at index x if it doesn't exist
-                if (!acc[x]) acc[x] = [];
-
-                // Push the value into the correct index bucket
-                acc[x].push(y);
-
-                return acc;
-            }, [])
-            if (reelClusters.length === 0) {
-                console.log("BROKE")
-                this.hasClusters = false
-                break;
-            }
-            const reel_promises = []
-            for (let i = 0; i < this.reels.length; i++) {
-
-                // const res = this.reels[i].explodeAndCascade(reelClusters[i],
-                //     Array.from(
-                //         { length: reelClusters[i].length },
-                //         () => Math.floor(Math.random() * this.config.symbols.length)
-                //     ))
-                // reel_promises.push(res)
-                if (reelClusters[i]) {
-                    const replacements = Array.from(
-                        { length: reelClusters[i].length },
-                        () => Math.floor(Math.random() * this.config.symbols.length)
-                    )
-                    // console.log("replacements: " + replacements)
-                    const res = this.reels[i].explodeAndCascade(reelClusters[i], replacements, result[i])
-                    reel_promises.push(res)
-                }
-                else {
-                    reel_promises.push(result[i])
-                }
-            }
-            result = await Promise.all(reel_promises);
-            console.log(result)
+            if (!grid) break
         }
         this.processing = false
     }

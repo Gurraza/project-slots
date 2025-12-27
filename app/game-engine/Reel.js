@@ -22,7 +22,8 @@ export class Reel {
         this.explodedSymbols = []
 
         this.cascadeResolve = null;
-        this.ghosts = []
+        this.ghostContainer = new PIXI.Container();
+        this.container.addChild(this.ghostContainer)
     }
 
     initSymbols() {
@@ -63,9 +64,30 @@ export class Reel {
         this.state = "IDLE"
         this.targetsShown = 0
         this.symbolsRotated = 0
+        this.ghostContainer.removeChildren();
     }
 
     update(delta) {
+
+        for (let i = this.ghostContainer.children.length - 1; i >= 0; i--) {
+            const ghost = this.ghostContainer.children[i];
+
+            ghost.age += delta;
+            const progress = ghost.age / ghost.duration;
+            if (progress >= 1) {
+                this.ghostContainer.removeChild(ghost); // Remove from memory
+                continue;
+            }
+            console.log(progress)
+            const explosionFactor = 1 + (progress * 1);
+
+            // Multiply the base scale by the explosion factor
+            ghost.scale.set(ghost.startScale * explosionFactor);
+            // ghost.scale.set(targetScale); // <--- CORRECT SYNTAX
+
+            // Alpha: fade from 1.0 to 0.0
+            ghost.alpha = 1 - progress
+        }
         if (this.state === 'IDLE') return;
 
         const maxSpeed = this.config.spinSpeed;
@@ -103,29 +125,22 @@ export class Reel {
             }
         }
         else if (this.state === "CASCADING") {
-            // 1. Define a speed (pixels per frame)
             const speed = 20 * delta;
 
             let stillMoving = false;
 
             this.symbols.forEach((symbol) => {
-                // Only move if there is distance left to travel
                 if (symbol.yToMove > 0) {
                     stillMoving = true;
-
-                    // 2. Calculate how much to move this specific frame
-                    // We use Math.min to ensure we don't overshoot the target
                     const dist = Math.min(speed, symbol.yToMove);
 
-                    symbol.y += dist;       // Move the symbol visually
-                    symbol.yToMove -= dist; // Decrease the remaining distance
+                    symbol.y += dist;
+                    symbol.yToMove -= dist;
                 }
             });
 
-            // 3. If no symbols are "stillMoving", we are done
             if (!stillMoving) {
                 this.state = "IDLE";
-                // this.realignOnGrid(); // Optional: force exact integers here just in case
                 if (this.cascadeResolve) {
                     this.cascadeResolve();
                     this.cascadeResolve = null;
@@ -141,7 +156,6 @@ export class Reel {
             if (!this.symbols.some(symbol => Math.abs(symbol.y - symbol.yToMove) > 4)) {
                 this.state = "IDLE"
             }
-            // this.realignOnGrid()
             return;
         }
 
@@ -171,19 +185,13 @@ export class Reel {
                         } else {
                             newData = this.getRandomSymbolData();
                         }
-                        // const newSymbol = (this.targetsShown === this.config.rows ? this.getRandomTexture() : this.config.symbols[this.targetResult[this.targetsShown]].texture)
-
-                        // this.targetsShown++
-                        // s.texture = newSymbol
                         s.texture = newData.texture;
-                        s.symbolId = newData.id; // Update ID
+                        s.symbolId = newData.id;
                     }
                     else {
                         newData = this.getRandomSymbolData();
-
-
                         s.texture = newData.texture;
-                        s.symbolId = newData.id; // Update ID
+                        s.symbolId = newData.id;
                     }
                     if (this.symbolsRotated === this.config.symbolsBeforeStop + this.targetResult.length) {
                         this.state = "LANDING"
@@ -194,39 +202,22 @@ export class Reel {
         }
     }
 
+
     realignOnGrid() {
-        // 1. Sort symbols from Top to Bottom (Lowest Y first)
-        // This ensures symbols[0] is always the top-most symbol
         this.symbols.sort((a, b) => a.y - b.y);
 
         const h = this.config.symbolHeight;
         const slotHeight = this.slotHeight;
 
-        // 2. Find the ideal grid position for the top-most symbol (symbols[0])
         const firstSymbol = this.symbols[0];
         const currentY = firstSymbol.y;
 
-        // Calculate the nearest "snap" point for the first symbol
         const idealY = Math.round((currentY - h / 2) / slotHeight) * slotHeight + h / 2;
 
-        // 3. Force ALL symbols to align relative to that ideal top position
-        // This repairs any drift/gaps between symbols
         this.symbols.forEach((symbol, index) => {
             symbol.y = idealY + (index * slotHeight);
         });
     }
-
-    // realignOnGrid() {
-    //     const h = this.config.symbolHeight;
-    //     // Find the offset of the first symbol from its ideal grid position
-    //     const firstSymbol = this.symbols[0];
-    //     const currentY = firstSymbol.y;
-    //     const idealY = Math.round((currentY - h / 2) / this.slotHeight) * this.slotHeight + h / 2;
-    //     const diff = idealY - currentY;
-
-    //     // Shift all symbols by that tiny difference
-    //     this.symbols.forEach(s => s.y += diff);
-    // }
 
     getRandomTexture() {
         const randomTex = this.config.symbols[Math.floor(Math.random() * this.config.symbols.length)].texture;
@@ -250,7 +241,7 @@ export class Reel {
 
             setTimeout(() => {
                 this.state = "CASCADING"
-            }, 500);
+            }, this.config.delayBeforeCascading);
             for (let i = 0; i < indexExplode.length; i++) {
                 const symbolToExplode = this.symbols[indexExplode[i] + 1]
                 // remove current one
@@ -270,34 +261,24 @@ export class Reel {
                 this.sort()
                 const newId = idsReplace[i];
                 const newData = this.getSymbolDataById(newId);
-                explodedSymbol.texture = this.getRandomTexture(); // Or specific if you prefer
+                this.spawnGhost(explodedSymbol)
+                explodedSymbol.texture = this.getRandomTexture();
                 const topSymbol = this.symbols[this.symbols.length - 1];
                 topSymbol.texture = newData.texture;
-                topSymbol.symbolId = newData.id; // <--- CRITICAL: Update the ID!
-                // --- FIX END ---
-
+                topSymbol.symbolId = newData.id;
                 const offset = this.slotHeight / 2 - this.slotHeight * (i + 2)
                 explodedSymbol.y = offset
                 explodedSymbol.yToMove = this.slotHeight * this.explodedSymbols.length
-                //     explodedSymbol.texture = newData.texture;
-                //     explodedSymbol.symbolId = newData.id; // IMPORTANT: Update the ID!
-                //     this.symbols[this.symbols.length - 1].texture = this.config.symbols[idsReplace[i]].texture
-                //     const offset = this.slotHeight / 2 - this.slotHeight * (i + 2)
-                //     explodedSymbol.y = offset
-                //     explodedSymbol.yToMove = this.slotHeight * this.explodedSymbols.length
-
             })
         })
     }
-
-    // Helper
     sort() {
         this.symbols = this.symbols.sort((a, b) => a.y - b.y).reverse();
     }
 
     debugSquare(y) {
-        const w = this.config.symbolWidth;
-        const h = this.config.symbolHeight;
+        const w = this.config.symbolWidth / 3;
+        const h = this.config.symbolHeight / 3;
         const container = new PIXI.Container();
         container.x = 0
         container.y = y - this.slotHeight / 2
@@ -309,7 +290,6 @@ export class Reel {
         this.container.addChild(container)
     }
 
-    // --- HELPER TO GET ID AND TEXTURE ---
     getRandomSymbolData() {
         const id = Math.floor(Math.random() * this.config.symbols.length);
         return {
@@ -318,11 +298,27 @@ export class Reel {
         };
     }
 
-    // Helper to set specific symbol by ID
     getSymbolDataById(id) {
         return {
             id: id,
             texture: this.config.symbols[id].texture
         };
+    }
+
+    spawnGhost(originalSymbol) {
+        const ghost = new PIXI.Sprite(originalSymbol.texture);
+        ghost.anchor.set(0.5);
+        ghost.width = originalSymbol.width;
+        ghost.height = originalSymbol.height;
+        ghost.x = originalSymbol.x;
+        ghost.y = originalSymbol.y;
+        ghost.alpha = 1;
+        ghost.startScale = ghost.scale.x;
+        // ghost.scale.set(1);
+        ghost.age = 0;
+        ghost.duration = this.config.ghostTime / 16.66
+
+
+        this.ghostContainer.addChild(ghost);
     }
 }
