@@ -15,7 +15,8 @@ const DEFAULT_CONFIG = {
     spinDeacceleration: .15,
     staggerTime: 10,
     backgroundImage: null,
-    symbolsBeforeStop: 200
+    symbolsBeforeStop: 200,
+    clusterSize: 3
 };
 
 export default class SlotsBase {
@@ -77,7 +78,7 @@ export default class SlotsBase {
         this.stage.addChild(mask)
     }
 
-    startSpin(resultData) {
+    async startSpin(resultData) {
         // 1. Generate random data if none provided
         if (!resultData) {
             resultData = Array.from({ length: this.config.cols }, () =>
@@ -175,5 +176,65 @@ export default class SlotsBase {
 
         // 4. Finally, build the visual grid
         this.createGrid();
+    }
+
+    findClusters(grid) {
+        // 1. Handle edge cases
+        if (!grid || grid.length === 0) return [];
+
+        const rows = grid.length;
+        const cols = grid[0].length;
+
+        // 2. Create a 'visited' matrix to keep track of processed cells
+        // We initialize it with false.
+        const visited = Array.from({ length: rows }, () => Array(cols).fill(false));
+        const clusters = [];
+
+        // 3. Define the directions for neighbors (Up, Down, Left, Right)
+        // To include diagonals, add [1, 1], [-1, -1], etc. to this array.
+        const directions = [
+            [0, 1],  // Right
+            [0, -1], // Left
+            [1, 0],  // Down
+            [-1, 0]  // Up
+        ];
+
+        // 4. Helper function to perform Depth-First Search
+        function explore(r, c, targetValue, currentCluster) {
+            // Boundary checks
+            if (r < 0 || r >= rows || c < 0 || c >= cols) return;
+
+            // Check if already visited or if value doesn't match
+            if (visited[r][c] || grid[r][c] !== targetValue) return;
+
+            // Mark as visited
+            visited[r][c] = true;
+
+            // Add to current cluster (Note: x is column index, y is row index)
+            currentCluster.push({ x: r, y: c, value: targetValue });
+
+            // Visit neighbors
+            for (const [dr, dc] of directions) {
+                explore(r + dr, c + dc, targetValue, currentCluster);
+            }
+        }
+
+        // 5. Main loop to iterate over every cell
+        for (let y = 0; y < rows; y++) {
+            for (let x = 0; x < cols; x++) {
+                // If we haven't visited this cell yet, it starts a new cluster
+                if (!visited[y][x]) {
+                    const currentCluster = [];
+                    explore(y, x, grid[y][x], currentCluster);
+
+                    // Only push non-empty clusters (safety check)
+                    if (currentCluster.length > 0) {
+                        clusters.push(currentCluster);
+                    }
+                }
+            }
+        }
+
+        return clusters;
     }
 }
