@@ -63,7 +63,7 @@ export default class SlotsBase {
         this.reelContainer.y = (this.config.height - totalHeight) / 2;
 
         for (let i = 0; i < this.config.cols; i++) {
-            const reel = new Reel(this.app, i, this.config);
+            const reel = new Reel(this.app, i, this.config, this);
             this.reels.push(reel);
             this.reelContainer.addChild(reel.container);
         }
@@ -80,16 +80,6 @@ export default class SlotsBase {
     }
 
     async startSpin(resultData) {
-        // 1. Generate random data if none provided
-        if (!resultData) {
-            resultData = Array.from({ length: this.config.cols }, () =>
-                Array.from({ length: this.config.rows }, () =>
-                    Math.floor(Math.random() * this.config.symbols.length)
-                )
-            );
-        }
-
-        // 2. Validation
         if (resultData.length !== this.config.cols || resultData.some(i => i.length !== this.config.rows)) {
             throw Error("Wrong structure of result data");
         }
@@ -97,7 +87,6 @@ export default class SlotsBase {
         this.state = 'SPINNING';
         this.timeSinceStart = 0;
 
-        // 3. Create a Promise for each reel
         const spinPromises = this.reels.map((r, i) => {
             // Return a new wrapper Promise that handles both delay + spin
             return new Promise((resolve) => {
@@ -158,22 +147,63 @@ export default class SlotsBase {
         // 1. Register all assets with Pixi
         const aliases = [];
         this.config.symbols.forEach(symbol => {
-            Assets.add({ alias: symbol.name, src: symbol.path });
-            aliases.push(symbol.name);
+            if (symbol.textureAtLevel && Array.isArray(symbol.textureAtLevel)) {
+                symbol.textureAtLevel.forEach((path, index) => {
+                    const alias = `${symbol.name}_level_${index + 1}`;
+                    Assets.add({ alias: alias, src: path });
+                    aliases.push(alias);
+                });
+            }
+            else if (symbol.path) {
+                Assets.add({ alias: symbol.name, src: symbol.path });
+                aliases.push(symbol.name);
+            }
         });
 
         // 2. WAIT for all assets to finish downloading (Critical Step)
         await Assets.load(aliases);
 
         // 3. Now it is safe to retrieve and process them
-        this.config.symbols.forEach(symbol => {
-            const rawTex = Assets.get(symbol.name);
+        // this.config.symbols.forEach(symbol => {
+        //     const rawTex = Assets.get(symbol.name);
 
-            symbol.texture = rawTex //this.createSymbolWithBackground(rawTex);
+        //     symbol.texture = rawTex //this.createSymbolWithBackground(rawTex);
+        // });
+        this.config.symbols.forEach(symbol => {
+            if (symbol.path) {
+                symbol.texture = Assets.get(symbol.name);
+            }
+            // For multi-level symbols, we don't assign a default 'texture' property yet,
+            // or we assign the first one as default.
         });
 
         // 4. Finally, build the visual grid
         this.createGrid();
+    }
+
+    // 3. NEW GENERIC ANTICIPATION METHOD
+    applyAnticipation(grid, symbol) {
+        let foundCount = 0;
+
+        this.reels.forEach((reel, index) => {
+            const reelHasSymbol = grid[index].includes(symbol.id);
+            if (reelHasSymbol) {
+                foundCount += grid[index].filter(id => id === symbol.id).length;
+            }
+            // Standard Logic: Check previous reels to see if we should delay THIS one
+            if (foundCount > symbol.anticipation.after) {
+                // Formula: Base delay + (extra delay * how many scatters we have)
+                reel.symbolsBeforeStop = foundCount * symbol.anticipation.count;
+                console.log("asd")
+            } else {
+                // Reset to default if no anticipation needed (important for repeated spins)
+                reel.symbolsBeforeStop = this.config.symbolsBeforeStop
+            }
+
+            // Increment count AFTER processing this reel 
+            // (or before, depending on if you want the reel WITH the 3rd scatter to slow down)
+
+        });
     }
 
     findClusters(grid) {
@@ -249,20 +279,24 @@ export default class SlotsBase {
     generateRandomResult() {
         return Array.from({ length: this.config.cols }, () =>
             Array.from({ length: this.config.rows }, () =>
-                Math.floor(Math.random() * this.config.symbols.length)
+                this.getRandomSymbolId()
             )
         );
     }
 
     generateReplacements(arr) {
-        console.log(arr)
         return [...arr].map(item => {
             if (item) {
                 return Array.from(
                     { length: item.length },
-                    () => Math.floor(Math.random() * this.config.symbols.length))
+                    () => this.getRandomSymbolId()
+                )
             }
         })
+    }
+
+    getRandomSymbolId() {
+        return Math.floor(Math.random() * (this.config.symbols.length - 1));
     }
 
     async explodeAndCascade(grid, clusters, replacements) {
@@ -311,5 +345,35 @@ export default class SlotsBase {
 
         // Add to reelContainer so it centers automatically with the game
         this.reelContainer.addChild(bgContainer);
+    }
+
+    insertInGrid(grid, symbol, amount) {
+        const rows = this.config.rows
+        const cols = this.config.cols
+
+        // 1. Cap the amount so we don't try to fill more spots than exist
+        // (Prevents infinite loops)
+        const totalCells = rows * cols;
+        const actualAmount = Math.min(amount, totalCells);
+
+        // 2. Use a Set to track coordinates we have already touched
+        const usedCoordinates = new Set();
+
+        while (usedCoordinates.size < actualAmount) {
+            // Generate random coordinates
+            const r = Math.floor(Math.random() * rows);
+            const c = Math.floor(Math.random() * cols);
+
+            // Create a unique key for this position
+            const key = `${r},${c}`;
+
+            // 3. Only place the symbol if we haven't used this spot yet
+            if (!usedCoordinates.has(key)) {
+                usedCoordinates.add(key);
+                grid[r][c] = symbol;
+            }
+        }
+
+        return grid;
     }
 }

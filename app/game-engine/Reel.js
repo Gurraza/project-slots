@@ -1,8 +1,9 @@
 import * as PIXI from 'pixi.js';
 
 export class Reel {
-    constructor(app, index, config) {
+    constructor(app, index, config, game) {
         this.app = app;
+        this.game = game;
         this.index = index;
         this.config = config;
 
@@ -18,6 +19,8 @@ export class Reel {
         this.initSymbols();
         this.symbolsRotated = 0
         this.targetsShown = 0
+        this.symbolsBeforeStop = this.config.symbolsBeforeStop
+
 
         this.explodedSymbols = []
 
@@ -35,7 +38,6 @@ export class Reel {
         for (let i = 0; i < totalSymbols; i++) {
             const randomData = this.getRandomSymbolData();
             const symbol = new PIXI.Sprite(randomData.texture);
-            // const symbol = new PIXI.Sprite(this.getRandomTexture())// new PIXI.Sprite(this.config.symbols[0].texture); // Default texture
 
             symbol.symbolId = randomData.id;
             symbol.width = this.config.symbolWidth;
@@ -78,7 +80,6 @@ export class Reel {
                 this.ghostContainer.removeChild(ghost); // Remove from memory
                 continue;
             }
-            console.log(progress)
             const explosionFactor = 1 + (progress * 1);
 
             // Multiply the base scale by the explosion factor
@@ -176,7 +177,7 @@ export class Reel {
                     // Teleport to top
                     s.y -= totalH;
                     let newData;
-                    if (this.symbolsRotated >= this.config.symbolsBeforeStop) {
+                    if (this.symbolsRotated >= this.symbolsBeforeStop) {
                         const targetId = this.targetResult[this.targetsShown]
                         if (targetId !== undefined) {
 
@@ -193,7 +194,7 @@ export class Reel {
                         s.texture = newData.texture;
                         s.symbolId = newData.id;
                     }
-                    if (this.symbolsRotated === this.config.symbolsBeforeStop + this.targetResult.length) {
+                    if (this.symbolsRotated === this.symbolsBeforeStop + this.targetResult.length) {
                         this.state = "LANDING"
                     }
                     this.symbolsRotated++
@@ -220,7 +221,8 @@ export class Reel {
     }
 
     getRandomTexture() {
-        const randomTex = this.config.symbols[Math.floor(Math.random() * this.config.symbols.length)].texture;
+        // const randomTex = this.config.symbols[Math.floor(Math.random() * this.config.symbols.length)].texture;
+        const randomTex = this.config.symbols[this.game.getRandomSymbolId()].texture
         return randomTex;
     }
 
@@ -291,7 +293,8 @@ export class Reel {
     }
 
     getRandomSymbolData() {
-        const id = Math.floor(Math.random() * this.config.symbols.length);
+        // const id = Math.floor(Math.random() * this.config.symbols.length);
+        const id = this.game.getRandomSymbolId()
         return {
             id: id,
             texture: this.config.symbols[id].texture

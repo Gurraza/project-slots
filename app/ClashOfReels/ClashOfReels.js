@@ -1,3 +1,4 @@
+import { Assets } from "pixi.js"
 import SlotsBase from '../game-engine/SlotsBase';
 
 const SYMBOLS = [
@@ -10,18 +11,29 @@ const SYMBOLS = [
     { id: 6, name: 'troop_giant', path: "/games/ClashOfReels/Troop_HV_Giant_1_grass.png" },
 ];
 
-const TownHallSymbol = [
-    "/games/ClashOfReels/Building_HV_Town_Hall_level_1.png",
-    "/games/ClashOfReels/Building_HV_Town_Hall_level_2.png",
-    "/games/ClashOfReels/Building_HV_Town_Hall_level_3.png",
-    "/games/ClashOfReels/Building_HV_Town_Hall_level_4.png",
-    "/games/ClashOfReels/Building_HV_Town_Hall_level_5.png",
-    "/games/ClashOfReels/Building_HV_Town_Hall_level_6.png",
-    "/games/ClashOfReels/Building_HV_Town_Hall_level_7.png",
-    "/games/ClashOfReels/Building_HV_Town_Hall_level_8.png",
-    "/games/ClashOfReels/Building_HV_Town_Hall_level_9.png",
-    "/games/ClashOfReels/Building_HV_Town_Hall_level_10.png",
-]
+const TownHallSymbol = {
+    id: 7,
+    name: "townhall",
+    textureAtLevel: [
+        "/games/ClashOfReels/TH/Building_HV_Town_Hall_level_1.png",
+        "/games/ClashOfReels/TH/Building_HV_Town_Hall_level_2.png",
+        "/games/ClashOfReels/TH/Building_HV_Town_Hall_level_3.png",
+        "/games/ClashOfReels/TH/Building_HV_Town_Hall_level_4.png",
+        "/games/ClashOfReels/TH/Building_HV_Town_Hall_level_5.png",
+        "/games/ClashOfReels/TH/Building_HV_Town_Hall_level_6.png",
+        "/games/ClashOfReels/TH/Building_HV_Town_Hall_level_7.png",
+        "/games/ClashOfReels/TH/Building_HV_Town_Hall_level_8.png",
+        "/games/ClashOfReels/TH/Building_HV_Town_Hall_level_9.png",
+        "/games/ClashOfReels/TH/Building_HV_Town_Hall_level_10.png",
+    ],
+    anticipation: {
+        after: 2,
+        count: 15,
+    }
+}
+
+SYMBOLS.push(TownHallSymbol)
+
 
 export default class ClashOfReels extends SlotsBase {
     constructor(rootContainer, app) {
@@ -46,7 +58,6 @@ export default class ClashOfReels extends SlotsBase {
             delayBeforeCascading: 1000,
             ghostTime: 700
         };
-
         super(rootContainer, app, myConfig);
         this.init()
     }
@@ -56,7 +67,14 @@ export default class ClashOfReels extends SlotsBase {
         this.processing = true;
 
         let grid = this.generateRandomResult();
-        this.insertInGrid()
+
+        const n = "townhall_level_" + Math.floor(Math.random() * TownHallSymbol.textureAtLevel.length + 1)
+        TownHallSymbol.texture = await Assets.get(n)
+
+        this.insertInGrid(grid, TownHallSymbol.id, 3)
+
+        this.applyAnticipation(grid, TownHallSymbol)
+
         grid = await this.startSpin(grid);
 
         while (true) {
