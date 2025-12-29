@@ -1,22 +1,21 @@
 import SlotsBase from '../game-engine/SlotsBase';
 
 const SYMBOLS = [
-    // { id: 0, name: 'troop_wallbreaker', path: "/games/ClashOfReels/Troop_HV_Wall_Breaker_1_grass.png" },
-    { id: 0, name: 'troop_barbarian', weight: 20, scale: .9, path: "troops_icons/barbarian.png" },
-    { id: 1, name: 'troop_archer', weight: 20, scale: .9, path: "troops_icons/archer.png" },
-    { id: 2, name: 'troop_goblin', weight: 20, scale: .9, yOff: 10, path: "troops_icons/goblin.png" },
-    { id: 3, name: 'troop_wizard', weight: 20, scale: .9, path: "troops_icons/wizard.png" },
-    { id: 4, name: 'resource_gold', weight: 40, scale: 4, path: "resource/gold.png" },
-    { id: 5, name: 'resource_elixir', weight: 40, scale: 4, path: "resource/elixir.png" },
-    { id: 6, name: 'resource_darkelixir', weight: 30, scale: 4, path: "resource/dark_elixir.png" },
-    { id: 7, name: 'resource_gem', weight: 30, scale: .8, path: "resource/gem.png" },
+    { name: 'troop_barbarian', weight: 20, scale: .9, path: "troops_icons/barbarian.png" },
+    { name: 'troop_archer', weight: 20, scale: .9, path: "troops_icons/archer.png" },
+    { name: 'troop_goblin', weight: 20, scale: .9, yOff: 10, path: "troops_icons/goblin.png" },
+    { name: 'troop_wizard', weight: 20, scale: .9, path: "troops_icons/wizard.png" },
+    { name: 'troop_wallbreaker', weight: 10, scale: .9, path: "troops_icons/wallbreaker.png" },
+    { name: 'resource_gold', weight: 40, scale: 4, path: "resource/gold.png" },
+    { name: 'resource_elixir', weight: 40, scale: 4, path: "resource/elixir.png" },
+    { name: 'resource_darkelixir', weight: 30, scale: 4, path: "resource/dark_elixir.png" },
+    { name: 'resource_gem', weight: 30, scale: .8, path: "resource/gem.png" },
 
 ];
 
-const clanCastle = { id: 8, name: "clancastle", dontCluster: true, weight: 50, scale: 1.5, path: "clanCastle.png" }
+const clanCastle = { name: "clancastle", dontCluster: true, weight: 50, scale: 1.5, path: "clanCastle.png" }
 SYMBOLS.push(clanCastle)
 const TownHallSymbol = {
-    id: 9,
     name: "townhall",
     weight: [5, 4, 1],
     scale: 0.8,
@@ -39,17 +38,29 @@ const TownHallSymbol = {
     },
     border: "red"
 }
+const treasureSymbol = {
+    name: "treasure",
+    weight: [10, 5, 1],
+    scale: 1.4,
+    onlyAppearOnRoll: false,
+    path: "Icon_HV_Treasury.png",
+    // anticipation: {
+    //     after: 1,
+    //     count: 15,
+    // },
+    border: "red"
+}
 
-SYMBOLS.push(TownHallSymbol)
-
+// SYMBOLS.push(TownHallSymbol)
+SYMBOLS.push(treasureSymbol)
 
 export default class ClashOfReels extends SlotsBase {
     constructor(rootContainer, app) {
         const myConfig = {
             width: 1280,
             height: 720,
-            cols: 7,
-            rows: 7,
+            cols: 6,
+            rows: 5,
             pathPrefix: "/games/ClashOfReels/",
             symbolWidth: 80,
             symbolHeight: 80,
@@ -63,13 +74,13 @@ export default class ClashOfReels extends SlotsBase {
             symbolsBeforeStop: 5,
             symbols: SYMBOLS,
             clusterSize: 4,
-            timeBeforeProcessingGrid: 500,
-            delayBeforeCascading: 1000,
-            ghostTime: 600,
-            replaceTime: 1,
+            timeBeforeProcessingGrid: 400,
+            delayBeforeCascading: 600,
+            ghostTime: 400,
+            replaceTime: .6,
             invisibleFlyby: true,
             mode: "normal",
-            bounce: 2,
+            bounce: 0,
             bounceDuration: .5,
         };
         super(rootContainer, app, myConfig);
@@ -77,23 +88,55 @@ export default class ClashOfReels extends SlotsBase {
     }
 
     processSpecialFeatures(grid) {
-        return this.simulateClanCastle(grid)
+        return this.simulateChangeSymbols(grid)
     }
 
-    simulateClanCastle(grid) {
-        const moves = [];
-        const positions = this.contain(8, grid); // ID 8 is Clan Castle
+    calculateMoves() {
+        const timeline = [];
+        let currentGrid = this.generateRandomResult();
+        timeline.push({
+            type: 'SPIN_START',
+            grid: JSON.parse(JSON.stringify(currentGrid)) // Deep copy
+        });
 
-        if (positions) {
-            const newId = this.getRandomSymbolId(false, grid, this.config.symbols.slice(0, 4));
-            positions.forEach(pos => {
-                moves.push({
-                    x: pos.x,
-                    y: pos.y,
-                    newId: newId
+        while (true) {
+            let actionOccurred = false;
+
+            const moves = this.simulateChangeSymbols(currentGrid, clanCastle.id);
+            if (moves && moves.length > 0) {
+                moves.forEach(move => {
+                    if (currentGrid[move.x] && currentGrid[move.x][move.y] !== undefined) {
+                        currentGrid[move.x][move.y] = move.newId;
+                    }
                 });
-            });
+
+                timeline.push({
+                    type: 'TRANSFORM',
+                    changes: moves,
+                    grid: JSON.parse(JSON.stringify(currentGrid))
+                });
+                actionOccurred = true;
+            }
+
+
+            const clusters = this.findClusters(currentGrid);
+            console.log(clusters)
+            const hasClusters = clusters && clusters.some(col => col.length > 0);
+
+            if (hasClusters) {
+                const replacements = this.generateReplacements(clusters, currentGrid);
+                currentGrid = this.simulateCascade(currentGrid, clusters, replacements);
+                timeline.push({
+                    type: 'CASCADE',
+                    clusters: clusters,
+                    replacements: replacements,
+                    grid: JSON.parse(JSON.stringify(currentGrid))
+                });
+                actionOccurred = true;
+            }
+
+            if (!actionOccurred) break;
         }
-        return moves;
+        return timeline;
     }
 }

@@ -27,19 +27,21 @@ export default class SlotsBase {
 
         // Merge user config with defaults
         this.config = { ...DEFAULT_CONFIG, ...config };
-        this.grid = Array.from({ length: this.config.rows }, () =>
-            Array.from({ length: this.config.cols }, () => 0)
+        this.grid = Array.from({ length: this.config.cols }, () =>
+            Array.from({ length: this.config.rows }, () => 0)
         );
         this.reels = [];
         this.state = 'IDLE';
         this.timeSinceStart = 0;
         console.log(this.config)
-        this.config.symbols = this.config.symbols.map(symbol => {
-            if (symbol.path) return {
-                ...symbol,
-                path: (this.config.pathPrefix + symbol.path)
+        this.config.symbols = this.config.symbols.map((symbol, index) => {
+            const fixedSymbol = symbol
+            fixedSymbol.id = index
+            if (fixedSymbol.path) return {
+                ...fixedSymbol,
+                path: (this.config.pathPrefix + fixedSymbol.path)
             }
-            else return symbol
+            else return fixedSymbol
         });
 
         // Group for the reels to center them easily
@@ -58,95 +60,6 @@ export default class SlotsBase {
                 this.stage.addChildAt(backgroundSprite, 0); // Add as the first child
             })
         }
-    }
-
-    // 1. THE MAIN FUNCTION TO PREDICT THE GAME
-    calculateMoves() {
-        const timeline = [];
-
-        // Step A: Initial Spin
-        // Generate the starting grid purely in data
-        let currentGrid = this.generateRandomResult();
-
-        // Record the start state
-        timeline.push({
-            type: 'SPIN_START',
-            grid: JSON.parse(JSON.stringify(currentGrid)) // Deep copy
-        });
-
-        // Loop until no more actions
-        let iteration = 0;
-        while (true) {
-            iteration++;
-            let actionOccurred = false;
-
-            const featureMoves = this.processSpecialFeatures(currentGrid);
-            // Step B: Clan Castle Logic (Virtual)
-            // const clanCastleMoves = this.simulateClanCastle(currentGrid);
-            if (featureMoves && featureMoves.length > 0) {
-                // Apply logic to virtual grid
-                featureMoves.forEach(move => {
-                    if (currentGrid[move.x] && currentGrid[move.x][move.y] !== undefined) {
-                        currentGrid[move.x][move.y] = move.newId;
-                    }
-                });
-
-                timeline.push({
-                    type: 'TRANSFORM',
-                    changes: featureMoves,
-                    grid: JSON.parse(JSON.stringify(currentGrid))
-                });
-                actionOccurred = true;
-            }
-            // if (clanCastleMoves.length > 0) {
-            //     // Apply changes to currentGrid
-            //     clanCastleMoves.forEach(move => {
-            //         currentGrid[move.x][move.y] = move.newId;
-            //     });
-
-            //     timeline.push({
-            //         type: 'TRANSFORM',
-            //         changes: clanCastleMoves,
-            //         grid: JSON.parse(JSON.stringify(currentGrid))
-            //     });
-            //     actionOccurred = true;
-            // }
-
-            // Step C: Check Clusters
-            // Note: findClusters is now pure logic in SlotsBase
-            const clusters = this.findClusters(currentGrid);
-
-            // Check if clusters has any actual content (it returns an array of arrays)
-            const hasClusters = clusters && clusters.some(col => col.length > 0);
-
-            if (hasClusters) {
-                // Step D: Generate Replacements
-                const replacements = this.generateReplacements(clusters, currentGrid);
-
-                // Step E: Explode and Cascade (Virtual)
-                // This modifies currentGrid based on your specific gravity logic
-                currentGrid = this.simulateCascade(currentGrid, clusters, replacements);
-
-                timeline.push({
-                    type: 'CASCADE',
-                    clusters: clusters,
-                    replacements: replacements,
-                    grid: JSON.parse(JSON.stringify(currentGrid))
-                });
-                actionOccurred = true;
-            }
-
-            // If nothing happened in this loop (no castles, no clusters), we are done.
-            if (!actionOccurred) break;
-
-            // Safety break for infinite loops
-            if (iteration > 20) {
-                console.warn("Max simulation iterations reached");
-                break;
-            }
-        }
-
-        return timeline;
     }
 
     processSpecialFeatures(grid) {
@@ -195,7 +108,7 @@ export default class SlotsBase {
     simulateCascade(grid, clusters, replacements) {
         const nextGrid = [];
 
-        for (let i = 0; i < grid.length; i++) {
+        for (let i = 0; i < this.config.cols; i++) {
             const col = grid[i];
             const explodedIndices = clusters[i] || [];
             const newSymbols = replacements[i] || [];
@@ -359,63 +272,54 @@ export default class SlotsBase {
     }
 
     findClusters(grid) {
-        // 1. Handle edge cases
         if (!grid || grid.length === 0) return [];
-        const rows = grid.length;
-        const cols = grid[0].length;
+        const rows = this.config.rows;
+        const cols = this.config.cols;
 
-        // 2. Create a 'visited' matrix to keep track of processed cells
-        // We initialize it with false.
-        const visited = Array.from({ length: rows }, () => Array(cols).fill(false));
+        const visited = Array.from({ length: cols }, () => Array(rows).fill(false)); // [Col][Row]
         const clusters = [];
 
-        // 3. Define the directions for neighbors (Up, Down, Left, Right)
-        // To include diagonals, add [1, 1], [-1, -1], etc. to this array.
         const directions = [
-            [0, 1],  // Right
-            [0, -1], // Left
-            [1, 0],  // Down
-            [-1, 0]  // Up
+            [0, 1],  // Down (y+1)
+            [0, -1], // Up (y-1)
+            [1, 0],  // Right (x+1)
+            [-1, 0]  // Left (x-1)
         ];
 
-        // 4. Helper function to perform Depth-First Search
-        function explore(r, c, targetValue, currentCluster) {
+        // Helper: c=Column(x), r=Row(y)
+        function explore(c, r, targetValue, currentCluster) {
             // Boundary checks
-            if (r < 0 || r >= rows || c < 0 || c >= cols) return;
+            if (c < 0 || c >= cols || r < 0 || r >= rows) return;
 
-            // Check if already visited or if value doesn't match
-            if (visited[r][c] || grid[r][c] !== targetValue) return;
+            // Check if visited or value mismatch
+            if (visited[c][r] || grid[c][r] !== targetValue) return;
 
-            // Mark as visited
-            visited[r][c] = true;
+            visited[c][r] = true;
 
-            // Add to current cluster (Note: x is column index, y is row index)
-            currentCluster.push({ x: r, y: c, value: targetValue });
+            // X is Column, Y is Row
+            currentCluster.push({ x: c, y: r, value: targetValue });
 
-            // Visit neighbors
-            for (const [dr, dc] of directions) {
-                explore(r + dr, c + dc, targetValue, currentCluster);
+            for (const [dx, dy] of directions) {
+                explore(c + dx, r + dy, targetValue, currentCluster);
             }
         }
 
-        // 5. Main loop to iterate over every cell
-        for (let y = 0; y < rows; y++) {
-            for (let x = 0; x < cols; x++) {
-                // If we haven't visited this cell yet, it starts a new cluster
-                if (!visited[y][x]) {
-                    const symbolId = grid[y][x];
+        // FIXED LOOP ORDER: Iterate Cols (x) first, then Rows (y)
+        // Because grid is defined as grid[x][y]
+        for (let x = 0; x < cols; x++) {
+            for (let y = 0; y < rows; y++) {
+                if (!visited[x][y]) {
+                    const symbolId = grid[x][y];
                     const symbolConfig = this.config.symbols.find(s => s.id === symbolId);
 
-                    // 2. CHECK THE FLAG
-                    // If the symbol is missing or has dontCluster: true, skip it entirely.
                     if (symbolConfig && symbolConfig.dontCluster) {
-                        visited[y][x] = true; // Mark visited so we don't check again
+                        visited[x][y] = true;
                         continue;
                     }
-                    const currentCluster = [];
-                    explore(y, x, grid[y][x], currentCluster);
 
-                    // Only push non-empty clusters (safety check)
+                    const currentCluster = [];
+                    explore(x, y, symbolId, currentCluster);
+
                     if (currentCluster.length > 0) {
                         clusters.push(currentCluster);
                     }
@@ -423,31 +327,17 @@ export default class SlotsBase {
             }
         }
 
-        // Return generic cluster objects, not just x/y buckets, 
-        // but for your specific logic we format it to match your explode function expectations
         const rawClusters = clusters.filter(i => i.length >= this.config.clusterSize);
 
-        // Convert to the array-of-arrays format your Cascade logic expects: [ [rowsForCol0], [rowsForCol1] ... ]
+        // Convert to array of columns containing rows to explode
         const formattedClusters = Array.from({ length: cols }, () => []);
         rawClusters.flat().forEach(({ x, y }) => {
+            // x is Column Index, y is Row Index
             formattedClusters[x].push(y);
         });
 
-        // Only return if there is actual data
         if (formattedClusters.every(arr => arr.length === 0)) return [];
-
         return formattedClusters;
-        return clusters
-            .filter(i => i.length >= this.config.clusterSize)
-            .flat().reduce((acc, { x, y }) => {
-                // Initialize the array at index x if it doesn't exist
-                if (!acc[x]) acc[x] = [];
-
-                // Push the value into the correct index bucket
-                acc[x].push(y);
-
-                return acc;
-            }, []);
     }
 
     // generateRandomResult() {
@@ -496,12 +386,13 @@ export default class SlotsBase {
         if (selectFrom) {
             validSymbols = validSymbols.filter(s => selectFrom.includes(s))
         }
-        else if (firstSpin) {
+        else if (!firstSpin) {
             validSymbols = validSymbols.filter(s => !s.onlyAppearOnRoll);
         }
 
         const getSymbolWeight = (symbol) => {
             if (Array.isArray(symbol.weight)) {
+                console.log(gridToCheck)
                 const result = this.contain(symbol.id, gridToCheck)
                 const count = result ? result.length : 0
                 return symbol.weight[Math.min(symbol.weight.length - 1, count)]
@@ -629,6 +520,7 @@ export default class SlotsBase {
 
     contain(id, gridToCheck = this.grid) {
         const positions = []
+        console.log(gridToCheck)
         for (let x = 0; x < this.config.cols; x++) {
             for (let y = 0; y < this.config.rows; y++) {
                 if (gridToCheck[x][y] == id) {
@@ -640,5 +532,22 @@ export default class SlotsBase {
             }
         }
         return positions.length > 0 ? positions : false
+    }
+
+    simulateChangeSymbols(grid, toWhatId) {
+        const moves = [];
+        const positions = this.contain(toWhatId, grid);
+
+        if (positions) {
+            const newId = this.getRandomSymbolId(false, grid, this.config.symbols.slice(0, 4));
+            positions.forEach(pos => {
+                moves.push({
+                    x: pos.x,
+                    y: pos.y,
+                    newId: newId
+                });
+            });
+        }
+        return moves;
     }
 }

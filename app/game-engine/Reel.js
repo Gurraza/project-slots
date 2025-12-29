@@ -37,7 +37,7 @@ export class Reel {
         this.slotHeight = this.config.symbolHeight + (this.config.gapY || 0);
 
         for (let i = 0; i < totalSymbols; i++) {
-            const randomData = this.getRandomSymbolData();
+            const randomData = this.getRandomSymbolData(false);
             const symbol = new PIXI.Sprite(randomData.texture);
 
             symbol.symbolId = randomData.id;
@@ -161,16 +161,6 @@ export class Reel {
                     this.cascadeResolve();
                     this.cascadeResolve = null;
                 }
-            }
-            return;
-        }
-        else if (this.state === "CASCADINGG") {
-
-            this.symbols.forEach((symbol, i) => {
-                symbol.y += symbol.yToMove * delta
-            })
-            if (!this.symbols.some(symbol => Math.abs(symbol.y - symbol.yToMove) > 4)) {
-                this.state = "IDLE"
             }
             return;
         }
@@ -320,7 +310,9 @@ export class Reel {
             }
         }
         // const id = Math.floor(Math.random() * this.config.symbols.length);
+        console.log("ASD")
         const id = this.game.getRandomSymbolId()
+        console.log("ASD")
         return {
             id: id,
             texture: this.config.symbols[id].texture
