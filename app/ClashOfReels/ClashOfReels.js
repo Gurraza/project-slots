@@ -46,7 +46,7 @@ const treasureSymbol = {
     weight: [10, 5, 1],
     scale: 1.4,
     onlyAppearOnRoll: false,
-    path: "Icon_HV_Treasury.png",
+    path: "Treasury.png",
     anticipation: {
         after: 1,
         count: 15,
