@@ -1,19 +1,22 @@
 import SlotsBase from '../game-engine/SlotsBase';
 
 const SYMBOLS = [
-    { name: 'troop_barbarian', weight: 20, scale: .9, path: "troops_icons/barbarian.png" },
-    { name: 'troop_archer', weight: 20, scale: .9, path: "troops_icons/archer.png" },
-    { name: 'troop_goblin', weight: 20, scale: .9, yOff: 10, path: "troops_icons/goblin.png" },
-    { name: 'troop_wizard', weight: 20, scale: .9, path: "troops_icons/wizard.png" },
-    { name: 'troop_wallbreaker', weight: 10, scale: .9, path: "troops_icons/wallbreaker.png" },
-    { name: 'resource_gold', weight: 40, scale: 4, path: "resource/gold.png" },
-    { name: 'resource_elixir', weight: 40, scale: 4, path: "resource/elixir.png" },
-    { name: 'resource_darkelixir', weight: 30, scale: 4, path: "resource/dark_elixir.png" },
-    { name: 'resource_gem', weight: 30, scale: .8, path: "resource/gem.png" },
+    { weight: 50, name: 'troop_barbarian', group: "low_troop", scale: .9, path: "troops_icons/barbarian.png" },
+    { weight: 50, name: 'troop_archer', group: "low_troop", scale: .9, path: "troops_icons/archer.png" },
+    { weight: 50, name: 'troop_goblin', group: "low_troop", scale: .9, path: "troops_icons/goblin.png" },
+
+    { weight: 35, name: 'troop_wizard', scale: .9, path: "troops_icons/wizard.png" },
+    { weight: 0, name: 'troop_wallbreaker', scale: .9, path: "troops_icons/wallbreaker.png" },
+
+    { weight: 100, name: 'resource_gold', group: "low_resource", scale: 4, path: "resource/gold.png" },
+    { weight: 100, name: 'resource_elixir', group: "low_resource", scale: 4, path: "resource/elixir.png" },
+    { weight: 100, name: 'resource_darkelixir', group: "low_resource", scale: 4, path: "resource/dark_elixir.png" },
+
+    { weight: 70, name: 'resource_gem', scale: .8, path: "resource/gem.png" },
 
 ];
+const clanCastle = { name: "clancastle", dontCluster: true, weight: 30, scale: 1.5, path: "clanCastle.png" }
 
-const clanCastle = { name: "clancastle", dontCluster: true, weight: 50, scale: 1.5, path: "clanCastle.png" }
 SYMBOLS.push(clanCastle)
 const TownHallSymbol = {
     name: "townhall",
@@ -44,10 +47,10 @@ const treasureSymbol = {
     scale: 1.4,
     onlyAppearOnRoll: false,
     path: "Icon_HV_Treasury.png",
-    // anticipation: {
-    //     after: 1,
-    //     count: 15,
-    // },
+    anticipation: {
+        after: 1,
+        count: 15,
+    },
     border: "red"
 }
 
@@ -55,12 +58,14 @@ const treasureSymbol = {
 SYMBOLS.push(treasureSymbol)
 
 export default class ClashOfReels extends SlotsBase {
+
+    static backgroundImage = "/games/ClashOfReels/background.jpg"
     constructor(rootContainer, app) {
         const myConfig = {
             width: 1280,
             height: 720,
-            cols: 6,
-            rows: 5,
+            cols: 7,
+            rows: 7,
             pathPrefix: "/games/ClashOfReels/",
             symbolWidth: 80,
             symbolHeight: 80,
@@ -70,7 +75,6 @@ export default class ClashOfReels extends SlotsBase {
             staggerTime: 100,
             gapX: 5,
             gapY: 5,
-            backgroundImage: "/games/ClashOfReels/background.jpg",
             symbolsBeforeStop: 5,
             symbols: SYMBOLS,
             clusterSize: 4,
@@ -83,12 +87,15 @@ export default class ClashOfReels extends SlotsBase {
             bounce: 0,
             bounceDuration: .5,
         };
+
         super(rootContainer, app, myConfig);
         this.init()
     }
 
-    processSpecialFeatures(grid) {
-        return this.simulateChangeSymbols(grid)
+    async spin() {
+        this.setActiveGroupVariants('low_troop', 2);
+        this.setActiveGroupVariants('low_resource', 2);
+        super.spin();
     }
 
     calculateMoves() {

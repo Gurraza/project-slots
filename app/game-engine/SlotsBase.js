@@ -24,7 +24,6 @@ export default class SlotsBase {
     constructor(rootContainer, app, config = {}) {
         this.stage = rootContainer;
         this.app = app;
-
         // Merge user config with defaults
         this.config = { ...DEFAULT_CONFIG, ...config };
         this.grid = Array.from({ length: this.config.cols }, () =>
@@ -37,6 +36,7 @@ export default class SlotsBase {
         this.config.symbols = this.config.symbols.map((symbol, index) => {
             const fixedSymbol = symbol
             fixedSymbol.id = index
+            fixedSymbol.baseWeight = fixedSymbol.weight
             if (fixedSymbol.path) return {
                 ...fixedSymbol,
                 path: (this.config.pathPrefix + fixedSymbol.path)
@@ -48,25 +48,19 @@ export default class SlotsBase {
         this.reelContainer = new Container();
         this.stage.addChild(this.reelContainer);
 
-        if (config.backgroundImage) {
-            Assets.add({ alias: 'background', src: config.backgroundImage });
+        // if (config.backgroundImage) {
+        //     Assets.add({ alias: 'background', src: config.backgroundImage });
 
-            Assets.load('background').then((texture) => {
-                const backgroundSprite = new Sprite(texture);
-                backgroundSprite.anchor.set(0)
-                backgroundSprite.x = 0
-                backgroundSprite.y = 0
-                backgroundSprite.setSize(this.config.width, this.config.height)
-                this.stage.addChildAt(backgroundSprite, 0); // Add as the first child
-            })
-        }
+        //     Assets.load('background').then((texture) => {
+        //         const backgroundSprite = new Sprite(texture);
+        //         backgroundSprite.anchor.set(0)
+        //         backgroundSprite.x = 0
+        //         backgroundSprite.y = 0
+        //         backgroundSprite.setSize(this.config.width, this.config.height)
+        //         this.stage.addChildAt(backgroundSprite, 0); // Add as the first child
+        //     })
+        // }
     }
-
-    processSpecialFeatures(grid) {
-        return [];
-    }
-
-
 
     async spin() {
         if (this.processing) return;
@@ -392,7 +386,6 @@ export default class SlotsBase {
 
         const getSymbolWeight = (symbol) => {
             if (Array.isArray(symbol.weight)) {
-                console.log(gridToCheck)
                 const result = this.contain(symbol.id, gridToCheck)
                 const count = result ? result.length : 0
                 return symbol.weight[Math.min(symbol.weight.length - 1, count)]
@@ -549,5 +542,25 @@ export default class SlotsBase {
             });
         }
         return moves;
+    }
+
+    setActiveGroupVariants(groupName, countToKeep) {
+        // 1. Find all symbols belonging to this group
+        const groupSymbols = this.config.symbols.filter(s => s.group === groupName);
+
+        // 2. Shuffle them
+        const shuffled = [...groupSymbols].sort(() => 0.5 - Math.random());
+
+        // 3. Remap Weights
+        groupSymbols.forEach(symbol => {
+            if (shuffled.indexOf(symbol) < countToKeep) {
+                // ACTIVE: Restore its original probability
+                symbol.weight = symbol.baseWeight;
+            } else {
+                // INACTIVE: Set weight to 0. 
+                // The randomizer will NEVER pick this, so the Reel never needs to load it.
+                symbol.weight = 0;
+            }
+        });
     }
 }
