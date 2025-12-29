@@ -1,4 +1,5 @@
 import * as PIXI from 'pixi.js';
+import gsap from "gsap"
 
 export class Reel {
     constructor(app, index, config, game) {
@@ -16,7 +17,6 @@ export class Reel {
         this.speed = 0;
         this.targetResult = null;
         this.stopDelay = 0;
-        this.initSymbols();
         this.symbolsRotated = 0
         this.targetsShown = 0
         this.symbolsBeforeStop = this.config.symbolsBeforeStop
@@ -27,6 +27,7 @@ export class Reel {
         this.cascadeResolve = null;
         this.ghostContainer = new PIXI.Container();
         this.container.addChild(this.ghostContainer)
+        this.initSymbols();
     }
 
     initSymbols() {
@@ -40,11 +41,12 @@ export class Reel {
             const symbol = new PIXI.Sprite(randomData.texture);
 
             symbol.symbolId = randomData.id;
-            symbol.width = this.config.symbolWidth;
-            symbol.height = this.config.symbolHeight;
+            this.applySymbolStyle(symbol, randomData.id);
+            // symbol.width = this.config.symbolWidth;
+            // symbol.height = this.config.symbolHeight;
 
-            symbol.anchor.set(0.5);
-            symbol.x = this.config.symbolWidth / 2;
+            // symbol.anchor.set(0.5);
+            // symbol.x = this.config.symbolWidth / 2;
             symbol.y = (i - 1) * this.slotHeight + (this.config.symbolHeight / 2);
 
             this.symbols.push(symbol);
@@ -71,24 +73,24 @@ export class Reel {
 
     update(delta) {
 
-        for (let i = this.ghostContainer.children.length - 1; i >= 0; i--) {
-            const ghost = this.ghostContainer.children[i];
+        // for (let i = this.ghostContainer.children.length - 1; i >= 0; i--) {
+        //     const ghost = this.ghostContainer.children[i];
 
-            ghost.age += delta;
-            const progress = ghost.age / ghost.duration;
-            if (progress >= 1) {
-                this.ghostContainer.removeChild(ghost); // Remove from memory
-                continue;
-            }
-            const explosionFactor = 1 + (progress * 1);
+        //     ghost.age += delta;
+        //     const progress = ghost.age / ghost.duration;
+        //     if (progress >= 1) {
+        //         this.ghostContainer.removeChild(ghost); // Remove from memory
+        //         continue;
+        //     }
+        //     const explosionFactor = 1 + (progress * 1);
 
-            // Multiply the base scale by the explosion factor
-            ghost.scale.set(ghost.startScale * explosionFactor);
-            // ghost.scale.set(targetScale); // <--- CORRECT SYNTAX
+        //     // Multiply the base scale by the explosion factor
+        //     ghost.scale.set(ghost.startScale * explosionFactor);
+        //     // ghost.scale.set(targetScale); // <--- CORRECT SYNTAX
 
-            // Alpha: fade from 1.0 to 0.0
-            ghost.alpha = 1 - progress
-        }
+        //     // Alpha: fade from 1.0 to 0.0
+        //     ghost.alpha = 1 - progress
+        // }
         if (this.state === 'IDLE') return;
 
         const maxSpeed = this.config.spinSpeed;
@@ -186,14 +188,13 @@ export class Reel {
                         } else {
                             newData = this.getRandomSymbolData();
                         }
-                        s.texture = newData.texture;
-                        s.symbolId = newData.id;
                     }
                     else {
-                        newData = this.getRandomSymbolData();
-                        s.texture = newData.texture;
-                        s.symbolId = newData.id;
+                        newData = this.getRandomSymbolData(this.config.invisibleFlyby);
                     }
+                    s.texture = newData.texture;
+                    s.symbolId = newData.id;
+                    this.applySymbolStyle(s, newData.id);
                     if (this.symbolsRotated === this.symbolsBeforeStop + this.targetResult.length) {
                         this.state = "LANDING"
                     }
@@ -264,10 +265,18 @@ export class Reel {
                 const newId = idsReplace[i];
                 const newData = this.getSymbolDataById(newId);
                 this.spawnGhost(explodedSymbol)
-                explodedSymbol.texture = this.getRandomTexture();
+                // explodedSymbol.texture = this.getRandomTexture();
+
+                const randomFillData = this.getRandomSymbolData();
+                explodedSymbol.texture = randomFillData.texture;
+                explodedSymbol.symbolId = randomFillData.id;       // <--- CRITICAL UPDATE
+                this.applySymbolStyle(explodedSymbol, randomFillData.id);
+
+
                 const topSymbol = this.symbols[this.symbols.length - 1];
                 topSymbol.texture = newData.texture;
                 topSymbol.symbolId = newData.id;
+                this.applySymbolStyle(topSymbol, newData.id);      // <--- RE-APPLY SCALE
                 const offset = this.slotHeight / 2 - this.slotHeight * (i + 2)
                 explodedSymbol.y = offset
                 explodedSymbol.yToMove = this.slotHeight * this.explodedSymbols.length
@@ -292,7 +301,13 @@ export class Reel {
         this.container.addChild(container)
     }
 
-    getRandomSymbolData() {
+    getRandomSymbolData(invisibleFlyby) {
+        if (invisibleFlyby && !this.forceVisible) {
+            return {
+                id: -1,
+                texture: null
+            }
+        }
         // const id = Math.floor(Math.random() * this.config.symbols.length);
         const id = this.game.getRandomSymbolId()
         return {
@@ -315,13 +330,123 @@ export class Reel {
         ghost.height = originalSymbol.height;
         ghost.x = originalSymbol.x;
         ghost.y = originalSymbol.y;
-        ghost.alpha = 1;
-        ghost.startScale = ghost.scale.x;
-        // ghost.scale.set(1);
-        ghost.age = 0;
-        ghost.duration = this.config.ghostTime / 16.66
 
+        // Start visible
+        ghost.alpha = 1;
 
         this.ghostContainer.addChild(ghost);
+
+        // Convert ms to seconds for GSAP
+        const duration = this.config.ghostTime / 1000;
+
+        gsap.to(ghost.scale, {
+            x: ghost.scale.x * 2, // Expand bigger (2.5x)
+            y: ghost.scale.y * 2,
+            duration: duration,
+            ease: "expo.out"
+
+        });
+        gsap.to(ghost, {
+            alpha: 0,
+            duration: duration * 0.5,
+            delay: duration * 0.3, // Keep it visible for the first 30% of the movement
+            ease: "power2.in",     // Fade out accelerates
+            onComplete: () => {
+                ghost.destroy();
+            }
+        });
+    }
+
+    // 1. New Helper: Applies size while respecting aspect ratio + custom scale
+    applySymbolStyle(sprite, symbolId) {
+        // Find the specific config for this symbol ID
+        // (Assuming this.config.symbols corresponds to your SYMBOLS array)
+        const symbolConfig = this.config.symbols.find(s => s.id === symbolId);
+        const customScale = symbolConfig?.scale || 1;
+
+        // Reset scale to 1 before measuring
+        sprite.scale.set(1);
+
+        // 1. Calculate the ratio to fit the sprite INSIDE the cell box
+        //    (Like CSS 'object-fit: contain')
+        const ratioX = this.config.symbolWidth / sprite.texture.width;
+        const ratioY = this.config.symbolHeight / sprite.texture.height;
+        const baseScale = Math.min(ratioX, ratioY);
+
+        // 2. Apply that base fit * your custom modifier
+        const finalScale = baseScale * customScale;
+
+        sprite.scale.set(finalScale);
+
+        // 3. Center it
+        sprite.anchor.set(0.5);
+        sprite.x = this.config.symbolWidth / 2;
+    }
+
+    // In Reel.js
+
+    async animateSymbolReplacement(rowIndex, newSymbolId) {
+        return new Promise((resolve) => {
+            this.sort()
+
+            // 1. Find the correct sprite. 
+            // NOTE: If you have buffer symbols (invisible ones at top), 
+            // you might need to add an offset: this.symbols[rowIndex + 1]
+            const symbolSprite = this.symbols[rowIndex + 1]; // +1 assuming 1 top buffer
+            console.log(this.symbols)
+
+            if (!symbolSprite) {
+                resolve();
+                return;
+            }
+            // --- FUTURE ANIMATION START ---
+            // Example: symbolSprite.alpha = 0;
+            // -----------------------------
+            const newData = this.getSymbolDataById(newSymbolId);
+            let targetScale = 1;
+            // --- FUTURE ANIMATION END ---
+            // Example: Tween back to alpha 1, then resolve()
+            // setTimeout(() => { symbolSprite.alpha = 1; resolve() }, 500); 
+            // ---------------------------
+
+            const tl = gsap.timeline({
+                onComplete: () => {
+                    resolve();
+                }
+            });
+            tl.to(symbolSprite.scale, {
+                x: 0,
+                y: 0,
+                duration: 0.25,    // Adjust speed (0.25 seconds)
+                ease: "back.in(2)" // A little "pull back" anticipation before shrinking
+            });
+            tl.call(() => {
+                // 2a. Swap Texture and Data
+                symbolSprite.texture = newData.texture;
+                symbolSprite.symbolId = newData.id;
+
+                // 2b. Apply style to calculate the correct scale for the NEW symbol.
+                // This sets the scale instantly to the final size.
+                this.applySymbolStyle(symbolSprite, newData.id);
+
+                // 2c. Capture that calculated scale.
+                targetScale = symbolSprite.scale.x;
+
+                // 2d. Reset scale back to 0 instantly so it can grow in the next step.
+                symbolSprite.scale.set(0);
+            });
+
+
+            // --- Sequence Step 3: Expand In ---
+            // Animate from 0 to the target scale we captured
+            tl.to(symbolSprite.scale, {
+                x: () => targetScale, // Use a function to ensure it uses the value captured in the previous step
+                y: () => targetScale,
+                duration: 0.35,      // Adjust speed (should be slightly slower than shrink for impact)
+                ease: "back.out(2)"  // A nice bouncy "pop" in
+            });
+            // For now, resolve immediately
+            resolve();
+        });
     }
 }

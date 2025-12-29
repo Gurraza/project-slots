@@ -27,7 +27,9 @@ export default class SlotsBase {
 
         // Merge user config with defaults
         this.config = { ...DEFAULT_CONFIG, ...config };
-
+        this.grid = Array.from({ length: this.config.rows }, () =>
+            Array.from({ length: this.config.cols }, () => 0)
+        );
         this.reels = [];
         this.state = 'IDLE';
         this.timeSinceStart = 0;
@@ -47,7 +49,6 @@ export default class SlotsBase {
                 backgroundSprite.setSize(this.config.width, this.config.height)
                 this.stage.addChildAt(backgroundSprite, 0); // Add as the first child
             })
-
         }
     }
 
@@ -79,21 +80,36 @@ export default class SlotsBase {
         this.stage.addChild(mask)
     }
 
-    async startSpin(resultData) {
+    async startSpin() {
+        const resultData = this.grid
         if (resultData.length !== this.config.cols || resultData.some(i => i.length !== this.config.rows)) {
             throw Error("Wrong structure of result data");
         }
+
+        this.config.symbols.forEach(symbol => {
+            if (symbol.anticipation) {
+                this.applyAnticipation(symbol)
+            }
+        })
 
         this.state = 'SPINNING';
         this.timeSinceStart = 0;
 
         const spinPromises = this.reels.map((r, i) => {
+            // this.bgContainer[i].forEach(i => i.clearBorder())
             // Return a new wrapper Promise that handles both delay + spin
             return new Promise((resolve) => {
                 // a. Wait for the stagger delay
                 setTimeout(() => {
                     // b. Start the spin and wait for it to finish
                     r.spin(resultData[i]).then(() => {
+                        resultData[i].forEach((symb, j) => {
+                            // if (symb == 9) {
+                            //     this.bgContainer[i][this.config.rows - j - 1].border()
+
+                            // }
+                        })
+
                         // c. When reel finishes, resolve this specific reel's promise
                         resolve(resultData[i]);
                     });
@@ -173,6 +189,9 @@ export default class SlotsBase {
             if (symbol.path) {
                 symbol.texture = Assets.get(symbol.name);
             }
+            else if (symbol.textureAtLevel) {
+                symbol.texture = Assets.get(symbol.name + "_level_1")
+            }
             // For multi-level symbols, we don't assign a default 'texture' property yet,
             // or we assign the first one as default.
         });
@@ -182,24 +201,25 @@ export default class SlotsBase {
     }
 
     // 3. NEW GENERIC ANTICIPATION METHOD
-    applyAnticipation(grid, symbol) {
+    applyAnticipation(symbol) {
         let foundCount = 0;
 
         this.reels.forEach((reel, index) => {
-            const reelHasSymbol = grid[index].includes(symbol.id);
-            if (reelHasSymbol) {
-                foundCount += grid[index].filter(id => id === symbol.id).length;
-            }
+            const reelHasSymbol = this.grid[index].includes(symbol.id);
+
             // Standard Logic: Check previous reels to see if we should delay THIS one
-            if (foundCount > symbol.anticipation.after) {
+            if (foundCount >= symbol.anticipation.after) {
                 // Formula: Base delay + (extra delay * how many scatters we have)
                 reel.symbolsBeforeStop = foundCount * symbol.anticipation.count;
-                console.log("asd")
+                reel.forceVisible = true;
             } else {
                 // Reset to default if no anticipation needed (important for repeated spins)
                 reel.symbolsBeforeStop = this.config.symbolsBeforeStop
+                reel.forceVisible = false;
             }
-
+            if (reelHasSymbol) {
+                foundCount += this.grid[index].filter(id => id === symbol.id).length;
+            }
             // Increment count AFTER processing this reel 
             // (or before, depending on if you want the reel WITH the 3rd scatter to slow down)
 
@@ -209,7 +229,6 @@ export default class SlotsBase {
     findClusters(grid) {
         // 1. Handle edge cases
         if (!grid || grid.length === 0) return [];
-        console.log(grid)
         const rows = grid.length;
         const cols = grid[0].length;
 
@@ -252,6 +271,15 @@ export default class SlotsBase {
             for (let x = 0; x < cols; x++) {
                 // If we haven't visited this cell yet, it starts a new cluster
                 if (!visited[y][x]) {
+                    const symbolId = grid[y][x];
+                    const symbolConfig = this.config.symbols.find(s => s.id === symbolId);
+
+                    // 2. CHECK THE FLAG
+                    // If the symbol is missing or has dontCluster: true, skip it entirely.
+                    if (symbolConfig && symbolConfig.dontCluster) {
+                        visited[y][x] = true; // Mark visited so we don't check again
+                        continue;
+                    }
                     const currentCluster = [];
                     explore(y, x, grid[y][x], currentCluster);
 
@@ -262,7 +290,6 @@ export default class SlotsBase {
                 }
             }
         }
-        console.log(clusters & "found cluster")
         return clusters
             .filter(i => i.length >= this.config.clusterSize)
             .flat().reduce((acc, { x, y }) => {
@@ -279,7 +306,7 @@ export default class SlotsBase {
     generateRandomResult() {
         return Array.from({ length: this.config.cols }, () =>
             Array.from({ length: this.config.rows }, () =>
-                this.getRandomSymbolId()
+                this.getRandomSymbolId(true)
             )
         );
     }
@@ -295,12 +322,44 @@ export default class SlotsBase {
         })
     }
 
-    getRandomSymbolId() {
-        return Math.floor(Math.random() * (this.config.symbols.length - 1));
+    getRandomSymbolId(firstSpin = false, gridToCheck = this.grid) {
+        const validSymbols = this.config.symbols.filter(s => firstSpin ? true : !s.onlyAppearOnRoll);        // 1. Calculate the total weight of all symbols (do this once in constructor ideally, but here is fine)
+
+        const getSymbolWeight = (symbol) => {
+            if (Array.isArray(symbol.weight)) {
+                const result = this.contain(symbol.id, gridToCheck)
+                const count = result ? result.length : 0
+                return symbol.weight[Math.min(symbol.weight.length - 1, count)]
+            }
+            else {
+                return symbol.weight
+            }
+        }
+
+        const totalWeight = validSymbols.reduce((sum, symbol) => sum + getSymbolWeight(symbol), 0);
+        let randomNum = Math.random() * totalWeight;
+
+
+        for (const symbol of validSymbols) {
+            if (randomNum < getSymbolWeight(symbol)) {
+                return symbol.id;
+            }
+            randomNum -= getSymbolWeight(symbol);
+        }
+
+        console.log("FUQQQ")
+        return validSymbols[0].id;
     }
 
-    async explodeAndCascade(grid, clusters, replacements) {
+    getRandomCell() {
+        return {
+            row: Math.floor(Math.random() * rows),
+            col: Math.floor(Math.random() * cols),
+        }
+    }
 
+    async explodeAndCascade(clusters, replacements) {
+        const grid = this.grid
 
         if (clusters.length === 0) {
             return false
@@ -321,7 +380,9 @@ export default class SlotsBase {
     drawBackgroundCells() {
         const bgContainer = new Container();
 
+        this.bgContainer = []
         for (let i = 0; i < this.config.cols; i++) {
+            this.bgContainer.push([])
             for (let j = 0; j < this.config.rows; j++) {
                 const bg = new Graphics();
                 const w = this.config.symbolWidth;
@@ -332,48 +393,78 @@ export default class SlotsBase {
                 const y = j * (h + this.config.gapY);
 
                 // Styling: Darker version of your symbol background
-                bg.roundRect(0, 0, w, h, 15);
-                bg.fill({ color: 0x1a110d, alpha: 0.5 }); // Dark semi-transparent fill
-                bg.stroke({ width: 2, color: 0xcfb972, alpha: 0.3 }); // Faint gold border
-
                 bg.x = x;
                 bg.y = y;
+                const renderState = (isActive) => {
+                    bg.clear(); // 1. Wipe previous state
 
+                    // 2. Define Shape & Fill (Always present)
+                    bg.roundRect(0, 0, w, h, 15);
+                    bg.fill({ color: 0x1a110d, alpha: 0.5 });
+
+                    // 3. Define Border based on state
+                    if (isActive) {
+                        // Active: Thick Gold Border
+                        bg.stroke({ width: 5, color: "gold", alpha: 1 });
+                    } else {
+                        // Idle: Faint Border
+                        bg.stroke({ width: 2, color: 0xcfb972, alpha: 0.3 });
+                    }
+                };
+
+                renderState(false)
+
+                bg.border = () => {
+                    renderState(true)
+                }
+                bg.clearBorder = () => {
+                    renderState(false)
+                }
+                this.bgContainer[i].push(bg)
                 bgContainer.addChild(bg);
             }
         }
-
         // Add to reelContainer so it centers automatically with the game
         this.reelContainer.addChild(bgContainer);
     }
 
-    insertInGrid(grid, symbol, amount) {
-        const rows = this.config.rows
-        const cols = this.config.cols
+    async insertIntoGrid(position, symbolId) {
+        return new Promise(async (resolve) => {
+            const col = position.x;
+            const row = position.y;
 
-        // 1. Cap the amount so we don't try to fill more spots than exist
-        // (Prevents infinite loops)
-        const totalCells = rows * cols;
-        const actualAmount = Math.min(amount, totalCells);
+            // 1. Capture the old value
+            const hereBefore = this.grid[col][row];
 
-        // 2. Use a Set to track coordinates we have already touched
-        const usedCoordinates = new Set();
+            // 2. Update the Data Grid
+            console.log(this.grid)
+            this.grid[col][row] = symbolId;
 
-        while (usedCoordinates.size < actualAmount) {
-            // Generate random coordinates
-            const r = Math.floor(Math.random() * rows);
-            const c = Math.floor(Math.random() * cols);
+            // 3. Trigger Visual Update (and wait for it!)
+            // We delegate the animation logic to the Reel class
+            const reel = this.reels[col];
+            if (reel) {
+                // Pass the row index and the new ID
+                await reel.animateSymbolReplacement(row, symbolId);
+            }
 
-            // Create a unique key for this position
-            const key = `${r},${c}`;
+            // 4. Resolve the promise returning the old value
+            resolve(hereBefore);
+        });
+    }
 
-            // 3. Only place the symbol if we haven't used this spot yet
-            if (!usedCoordinates.has(key)) {
-                usedCoordinates.add(key);
-                grid[r][c] = symbol;
+    contain(id, gridToCheck = this.grid) {
+        const positions = []
+        for (let x = 0; x < this.config.cols; x++) {
+            for (let y = 0; y < this.config.rows; y++) {
+                if (this.gridToCheck[x][y] == id) {
+                    positions.push({
+                        x,
+                        y
+                    })
+                }
             }
         }
-
-        return grid;
+        return positions.length > 0 ? positions : false
     }
 }

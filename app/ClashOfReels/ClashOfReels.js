@@ -1,19 +1,26 @@
-import { Assets } from "pixi.js"
 import SlotsBase from '../game-engine/SlotsBase';
 
 const SYMBOLS = [
-    { id: 0, name: 'troop_wallbreaker', path: "/games/ClashOfReels/Troop_HV_Wall_Breaker_1_grass.png" },
-    { id: 1, name: 'troop_balloon', path: "/games/ClashOfReels/Troop_HV_Balloon_1_grass.png" },
-    { id: 2, name: 'troop_wizard', path: "/games/ClashOfReels/Troop_HV_Wizard_1_grass.png" },
-    { id: 3, name: 'troop_goblin', path: "/games/ClashOfReels/Troop_HV_Goblin_1_grass.png" },
-    { id: 4, name: 'hero_barbarianKing', path: "/games/ClashOfReels/Barbarian_King_2_grass.png" },
-    { id: 5, name: 'troop_barbarian', path: "/games/ClashOfReels/Troop_HV_Barbarian_1_grass.png" },
-    { id: 6, name: 'troop_giant', path: "/games/ClashOfReels/Troop_HV_Giant_1_grass.png" },
+    // { id: 0, name: 'troop_wallbreaker', path: "/games/ClashOfReels/Troop_HV_Wall_Breaker_1_grass.png" },
+    { id: 0, name: 'troop_barbarian', weight: 20, scale: 1, path: "/games/ClashOfReels/Troop_HV_Barbarian_1_grass.png" },
+    { id: 1, name: 'troop_archer', weight: 20, path: "/games/ClashOfReels/Troop_HV_Archer_1_grass.png" },
+    { id: 2, name: 'troop_goblin', weight: 20, scale: 1, yOff: 10, path: "/games/ClashOfReels/Troop_HV_Goblin_1_grass.png" },
+    { id: 3, name: 'troop_wizard', weight: 20, path: "/games/ClashOfReels/Troop_HV_Wizard_1_grass.png" },
+    { id: 4, name: 'resource_gold', weight: 40, scale: 3, path: "/games/ClashOfReels/Icon_HV_Resource_Gold_1.png" },
+    { id: 5, name: 'resource_elixir', weight: 40, scale: 3, path: "/games/ClashOfReels/Icon_HV_Resource_Elixir_1.png" },
+    { id: 6, name: 'resource_darkelixir', weight: 30, scale: 3, path: "/games/ClashOfReels/Icon_HV_Resource_Dark_Elixir_1.png" },
+    { id: 7, name: 'resource_gem', weight: 30, scale: .7, path: "/games/ClashOfReels/Icon_HV_Resource_Gem.png" },
+
 ];
 
+const clanCastle = { id: 8, name: "clancastle", dontCluster: true, weight: 5, scale: 1.2, path: "/games/ClashOfReels/Building_HV_Clan_Castle_level_4.png" }
+SYMBOLS.push(clanCastle)
 const TownHallSymbol = {
-    id: 7,
+    id: 9,
     name: "townhall",
+    weight: [5, 4, 1],
+    scale: 0.8,
+    onlyAppearOnRoll: true,
     textureAtLevel: [
         "/games/ClashOfReels/TH/Building_HV_Town_Hall_level_1.png",
         "/games/ClashOfReels/TH/Building_HV_Town_Hall_level_2.png",
@@ -29,7 +36,8 @@ const TownHallSymbol = {
     anticipation: {
         after: 2,
         count: 15,
-    }
+    },
+    border: "red"
 }
 
 SYMBOLS.push(TownHallSymbol)
@@ -51,12 +59,13 @@ export default class ClashOfReels extends SlotsBase {
             gapX: 5,
             gapY: 5,
             backgroundImage: "/games/ClashOfReels/background.jpg",
-            symbolsBeforeStop: 0,
+            symbolsBeforeStop: 5,
             symbols: SYMBOLS,
             clusterSize: 4,
             timeBeforeProcessingGrid: 500,
             delayBeforeCascading: 1000,
-            ghostTime: 700
+            ghostTime: 1000,
+            invisibleFlyby: true
         };
         super(rootContainer, app, myConfig);
         this.init()
@@ -65,30 +74,39 @@ export default class ClashOfReels extends SlotsBase {
     async spin() {
         if (this.processing) return;
         this.processing = true;
-
-        let grid = this.generateRandomResult();
-
-        const n = "townhall_level_" + Math.floor(Math.random() * TownHallSymbol.textureAtLevel.length + 1)
-        TownHallSymbol.texture = await Assets.get(n)
-
-        this.insertInGrid(grid, TownHallSymbol.id, 3)
-
-        this.applyAnticipation(grid, TownHallSymbol)
-
-        grid = await this.startSpin(grid);
+        this.grid = this.generateRandomResult();
+        console.log(this.grid)
+        await this.startSpin();
+        console.log(this.grid)
 
         while (true) {
+            await this.clanCastleLogic()
             await new Promise(resolve => setTimeout(resolve, this.config.timeBeforeProcessingGrid));
-
-            const clusters = this.findClusters(grid)
+            const clusters = this.findClusters(this.grid)
+            if (clusters.length === 0) break
             const replacements = this.generateReplacements(clusters)
-            grid = await this.explodeAndCascade(grid, clusters, replacements)
-
-
-            if (!grid) break
+            const nextGrid = await this.explodeAndCascade(clusters, replacements)
+            console.log(nextGrid)
+            this.grid = nextGrid
         }
         this.processing = false
     }
+
+    async clanCastleLogic() {
+        console.log(this.grid)
+        const positions = this.contain(clanCastle.id)
+        console.log(positions)
+        if (positions) {
+            const toChangeTo = this.getRandomSymbolId()
+            console.log(positions)
+            console.log(toChangeTo)
+            const promises = []
+            positions.forEach(position => {
+                const promise = this.insertIntoGrid(position, toChangeTo)
+                promises.push(promise)
+            })
+            await Promise.all(promises)
+        }
+
+    }
 }
-
-
