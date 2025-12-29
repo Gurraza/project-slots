@@ -18,6 +18,7 @@ const DEFAULT_CONFIG = {
     symbolsBeforeStop: 200,
     clusterSize: 3,
     timeBeforeProcessingGrid: 500,
+    motionBlurStrength: .3
 };
 
 export default class SlotsBase {
@@ -84,8 +85,8 @@ export default class SlotsBase {
                 this.grid = event.grid;
             }
         }
-
         this.processing = false;
+        return this.grid
     }
 
     async playTransformAnimation(changes) {
@@ -175,7 +176,13 @@ export default class SlotsBase {
                 setTimeout(() => {
                     // b. Start the spin and wait for it to finish
                     r.spin(resultData[i]).then(() => {
-                        resultData[i].forEach((symb, j) => {
+                        // this.config.symbols.forEach(symbol => {
+                        //     if (symbol.anticipation) r.anticipation(symbol.id)
+                        // })
+                        resultData[i].forEach((symbolId, j) => {
+                            // if (this.config.symbols[symbolId].anticipation) {
+                            //     r.anticipation(symbolId)
+                            // }
                             // if (symb == 9) {
                             //     this.bgContainer[i][this.config.rows - j - 1].border()
 
@@ -192,6 +199,7 @@ export default class SlotsBase {
         // 4. Return a master Promise that waits for ALL reels to finish
         return Promise.all(spinPromises).then((finalResults) => {
             this.state = 'IDLE'; // Automatically reset state when done
+            this.reels.forEach(r => r.clearAnticipation())
             return finalResults; // Pass data to the .then() block
         });
     }
@@ -334,54 +342,75 @@ export default class SlotsBase {
         return formattedClusters;
     }
 
-    // generateRandomResult() {
-    //     return Array.from({ length: this.config.cols }, () =>
-    //         Array.from({ length: this.config.rows }, () =>
-    //             this.getRandomSymbolId(true)
-    //         )
-    //     );
-    // }
-    generateRandomResult() {
-        // This generates the INITIAL grid. 
-        // We create a temporary structure to pass to getRandomSymbolId so weights work during generation
+    ggenerateRandomResult() {
         const tempGrid = Array.from({ length: this.config.cols }, () => []);
 
         for (let col = 0; col < this.config.cols; col++) {
             for (let row = 0; row < this.config.rows; row++) {
                 // We pass 'tempGrid' (even if incomplete) to handle dynamic weights if needed
-                const id = this.getRandomSymbolId(true, tempGrid);
+                const id = this.getRandomSymbolId({ firstSpin: true, gridToCheck: tempGrid, colIndex: col });
                 tempGrid[col].push(id);
             }
         }
         return tempGrid;
     }
+
+    generateRandomResult() {
+        // 1. Initialize an empty grid structure (Col x Row) filled with null/undefined
+        const tempGrid = Array.from({ length: this.config.cols }, () =>
+            Array.from({ length: this.config.rows })
+        );
+
+        // 2. Create a list of all possible coordinates [ {c:0, r:0}, {c:0, r:1}, ... ]
+        const coordinates = [];
+        for (let c = 0; c < this.config.cols; c++) {
+            for (let r = 0; r < this.config.rows; r++) {
+                coordinates.push({ col: c, row: r });
+            }
+        }
+
+        // 3. Shuffle the coordinates array (Fisher-Yates shuffle)
+        for (let i = coordinates.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [coordinates[i], coordinates[j]] = [coordinates[j], coordinates[i]];
+        }
+
+        // 4. Fill the grid using the random order
+        coordinates.forEach(({ col, row }) => {
+            // We pass the currently filling tempGrid. 
+            // Note: Since we fill randomly, some neighbors might still be empty/undefined when checking weights.
+            const id = this.getRandomSymbolId({
+                firstSpin: true,
+                gridToCheck: tempGrid,
+                colIndex: col
+            });
+
+            tempGrid[col][row] = id;
+        });
+
+        return tempGrid;
+    }
+
     generateReplacements(clusterData, gridToCheck) {
         return clusterData.map(colIndices => {
             if (!colIndices || colIndices.length === 0) return [];
             return Array.from(
                 { length: colIndices.length },
-                () => this.getRandomSymbolId(false, gridToCheck)
+                () => this.getRandomSymbolId({ firstSpin: false, gridToCheck: gridToCheck, colIndex: colIndices })
             )
         })
     }
-    // generateReplacements(arr) {
-    //     return [...arr].map(item => {
-    //         if (item) {
-    //             return Array.from(
-    //                 { length: item.length },
-    //                 () => this.getRandomSymbolId()
-    //             )
-    //         }
-    //     })
-    // }
 
-    getRandomSymbolId(firstSpin = false, gridToCheck = this.grid, selectFrom) {
+    getRandomSymbolId({ firstSpin, gridToCheck = this.grid, selectFrom, colIndex } = {}) {
         let validSymbols = this.config.symbols
         if (selectFrom) {
             validSymbols = validSymbols.filter(s => selectFrom.includes(s))
         }
         else if (!firstSpin) {
             validSymbols = validSymbols.filter(s => !s.onlyAppearOnRoll);
+        }
+        if (colIndex !== undefined) {
+            validSymbols = validSymbols.filter(symbol => symbol.onePerReel ? !gridToCheck[colIndex].includes(symbol.id) : true)
         }
 
         const getSymbolWeight = (symbol) => {
@@ -513,7 +542,6 @@ export default class SlotsBase {
 
     contain(id, gridToCheck = this.grid) {
         const positions = []
-        console.log(gridToCheck)
         for (let x = 0; x < this.config.cols; x++) {
             for (let y = 0; y < this.config.rows; y++) {
                 if (gridToCheck[x][y] == id) {
@@ -532,7 +560,7 @@ export default class SlotsBase {
         const positions = this.contain(toWhatId, grid);
 
         if (positions) {
-            const newId = this.getRandomSymbolId(false, grid, this.config.symbols.slice(0, 4));
+            const newId = this.getRandomSymbolId({ firstSpin: false, gridToCheck: grid, selectFrom: this.config.symbols.slice(0, 4) });
             positions.forEach(pos => {
                 moves.push({
                     x: pos.x,

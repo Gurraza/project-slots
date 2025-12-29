@@ -43,15 +43,16 @@ const TownHallSymbol = {
 }
 const treasureSymbol = {
     name: "treasure",
-    weight: [10, 5, 1],
+    weight: [100, 50, 1],
     scale: 1.4,
-    onlyAppearOnRoll: false,
+    onlyAppearOnRoll: true,
     path: "Treasury.png",
     anticipation: {
-        after: 1,
+        after: 2,
         count: 15,
     },
-    border: "red"
+    border: "red",
+    onePerReel: true,
 }
 
 // SYMBOLS.push(TownHallSymbol)
@@ -69,23 +70,24 @@ export default class ClashOfReels extends SlotsBase {
             pathPrefix: "/games/ClashOfReels/",
             symbolWidth: 80,
             symbolHeight: 80,
-            spinSpeed: 20,
+            spinSpeed: 25,
             spinAcceleration: 1,
             spinDeacceleration: 0.9,
             staggerTime: 100,
             gapX: 5,
             gapY: 5,
-            symbolsBeforeStop: 5,
+            symbolsBeforeStop: 12,
             symbols: SYMBOLS,
             clusterSize: 4,
             timeBeforeProcessingGrid: 400,
             delayBeforeCascading: 600,
             ghostTime: 400,
             replaceTime: .6,
-            invisibleFlyby: true,
+            invisibleFlyby: false,
             mode: "normal",
             bounce: 0,
             bounceDuration: .5,
+            motionBlurStrength: .8
         };
 
         super(rootContainer, app, myConfig);
@@ -95,7 +97,7 @@ export default class ClashOfReels extends SlotsBase {
     async spin() {
         this.setActiveGroupVariants('low_troop', 2);
         this.setActiveGroupVariants('low_resource', 2);
-        super.spin();
+        return super.spin();
     }
 
     calculateMoves() {
@@ -127,7 +129,6 @@ export default class ClashOfReels extends SlotsBase {
 
 
             const clusters = this.findClusters(currentGrid);
-            console.log(clusters)
             const hasClusters = clusters && clusters.some(col => col.length > 0);
 
             if (hasClusters) {

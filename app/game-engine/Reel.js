@@ -28,6 +28,14 @@ export class Reel {
         this.ghostContainer = new PIXI.Container();
         this.container.addChild(this.ghostContainer)
         this.initSymbols();
+
+        this.blurFilter = new PIXI.BlurFilter();
+        this.blurFilter.strength = 0;
+        this.blurFilter.blurX = 0; // Ensure no horizontal blur
+        this.blurFilter.blurY = 0;
+
+        // Apply the filter to the entire reel container
+        this.container.filters = [this.blurFilter];
     }
 
     initSymbols() {
@@ -59,14 +67,18 @@ export class Reel {
         this.state = 'ACCELERATING';
         gsap.to(this, {
             speed: this.config.spinSpeed,
-            duration: 0.5,
+            duration: .5,
             ease: "power2.out",
             onStart: () => this.state = "SPINNING"
         });
         this.targetResult = resultData;
 
         return new Promise((resolve) => {
-            this.spinResolve = resolve;
+            this.spinResolve = () => {
+                this.blurFilter.blurY = 0;
+                this.anticipation()
+                resolve()
+            }
         });
     }
 
@@ -97,8 +109,15 @@ export class Reel {
         //     // Alpha: fade from 1.0 to 0.0
         //     ghost.alpha = 1 - progress
         // }
-        if (this.state === 'IDLE') return;
+        if (this.state === 'IDLE') {
+            // Ensure blur is off when idle
+            if (this.blurFilter.blurY !== 0) this.blurFilter.blurY = 0;
+            return;
+        }
+        const blurAmount = Math.abs(this.speed) * (this.config.motionBlurStrength);
 
+        // Apply purely vertical blur
+        this.blurFilter.blurY = blurAmount;
         const maxSpeed = this.config.spinSpeed;
         const accel = this.config.spinAcceleration;
 
@@ -123,6 +142,7 @@ export class Reel {
             if (targetSpeed < 2) targetSpeed = 2;
             this.speed = targetSpeed;
             if (distance < 4) {
+                this.blurFilter.blurY = 0; // Turn off blur explicitly on stop
                 this.speed = 0;
                 this.realignOnGrid();
                 this.state = 'IDLE';
@@ -133,6 +153,7 @@ export class Reel {
                     // No bounce, just stop
                     this.state = 'IDLE';
                     if (this.spinResolve) {
+                        this.blurr = 0
                         this.spinResolve(this.targetResult);
                         this.spinResolve = null;
                     }
@@ -309,10 +330,7 @@ export class Reel {
                 texture: null
             }
         }
-        // const id = Math.floor(Math.random() * this.config.symbols.length);
-        console.log("ASD")
-        const id = this.game.getRandomSymbolId()
-        console.log("ASD")
+        const id = this.game.getRandomSymbolId({ firstSpin: false })
         return {
             id: id,
             texture: this.config.symbols[id].texture
@@ -486,5 +504,82 @@ export class Reel {
                 duration: duration * 0.6,
                 ease: "back.out(1.2)"
             });
+    }
+    // --------------------------------------------------------
+    // ANTICIPATION VISUALS
+    // --------------------------------------------------------
+
+    anticipation() {
+        if (this.index === this.config.cols - 1) return
+        if (this.symbols.some(symb => this.config.symbols[symb.symbolId].anticipation)) {
+            this.game.reels.forEach((reel, index) => {
+                if (reel.state == "IDLE") {
+                    reel.symbols.forEach(symbol => {
+                        if (this.config.symbols[symbol.symbolId].anticipation) {
+                            // A. Make it bright (remove any previous tint)
+                            symbol.tint = 0xFFFFFF;
+
+                            // B. Handle Expansion Animation
+                            // First, kill any existing animations on the scale to prevent conflicts
+                            gsap.killTweensOf(symbol.scale);
+
+                            // Reset the symbol to its "perfect fit" size first so we have a clean starting point
+                            this.applySymbolStyle(symbol, symbol.symbolId);
+
+                            // Capture that base scale
+                            const baseScaleX = symbol.scale.x;
+                            const baseScaleY = symbol.scale.y;
+
+                            // Create a "breathing" pulse animation
+                            // expanding to 120% of its original size
+                            gsap.to(symbol.scale, {
+                                x: baseScaleX * 1.2,
+                                y: baseScaleY * 1.2,
+                                duration: 0.6,
+                                yoyo: true,     // Go back and forth
+                                repeat: -1,     // Infinite loop
+                                ease: "sine.inOut"
+                            });
+
+                        } else {
+                            // 2. Not the target? Darken it.
+                            symbol.tint = 0x555555; // Dark Grey
+
+                            // Ensure no residual animations are running on non-targets
+                            gsap.killTweensOf(symbol.scale);
+
+                            // Reset size to normal if it was previously animating
+                            if (symbol.symbolId !== undefined) {
+                                this.applySymbolStyle(symbol, symbol.symbolId);
+                            }
+                        }
+                    })
+                }
+                else {
+                    // reel.speed = this.config.spinSpeed / 2
+                    gsap.to(reel, {
+                        speed: this.config.spinSpeed / 2,
+                        duration: 1,
+                        ease: "power2.out"
+                    });
+                }
+            })
+        }
+    }
+
+    clearAnticipation() {
+        this.symbols.forEach(symbol => {
+            // 1. Reset Tint to pure white (normal)
+
+            // 2. Kill the pulsing animation
+            gsap.killTweensOf(symbol.scale);
+            gsap.killTweensOf(symbol.tint);
+            symbol.tint = 0xFFFFFF;
+
+            // 3. Reset the scale back to the correct fit
+            if (symbol.symbolId !== undefined) {
+                this.applySymbolStyle(symbol, symbol.symbolId);
+            }
+        });
     }
 }
