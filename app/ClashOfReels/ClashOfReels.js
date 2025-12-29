@@ -2,18 +2,18 @@ import SlotsBase from '../game-engine/SlotsBase';
 
 const SYMBOLS = [
     // { id: 0, name: 'troop_wallbreaker', path: "/games/ClashOfReels/Troop_HV_Wall_Breaker_1_grass.png" },
-    { id: 0, name: 'troop_barbarian', weight: 20, scale: 1, path: "/games/ClashOfReels/Troop_HV_Barbarian_1_grass.png" },
-    { id: 1, name: 'troop_archer', weight: 20, path: "/games/ClashOfReels/Troop_HV_Archer_1_grass.png" },
-    { id: 2, name: 'troop_goblin', weight: 20, scale: 1, yOff: 10, path: "/games/ClashOfReels/Troop_HV_Goblin_1_grass.png" },
-    { id: 3, name: 'troop_wizard', weight: 20, path: "/games/ClashOfReels/Troop_HV_Wizard_1_grass.png" },
-    { id: 4, name: 'resource_gold', weight: 40, scale: 3, path: "/games/ClashOfReels/Icon_HV_Resource_Gold_1.png" },
-    { id: 5, name: 'resource_elixir', weight: 40, scale: 3, path: "/games/ClashOfReels/Icon_HV_Resource_Elixir_1.png" },
-    { id: 6, name: 'resource_darkelixir', weight: 30, scale: 3, path: "/games/ClashOfReels/Icon_HV_Resource_Dark_Elixir_1.png" },
-    { id: 7, name: 'resource_gem', weight: 30, scale: .7, path: "/games/ClashOfReels/Icon_HV_Resource_Gem.png" },
+    { id: 0, name: 'troop_barbarian', weight: 20, scale: .9, path: "troops_icons/barbarian.png" },
+    { id: 1, name: 'troop_archer', weight: 20, scale: .9, path: "troops_icons/archer.png" },
+    { id: 2, name: 'troop_goblin', weight: 20, scale: .9, yOff: 10, path: "troops_icons/goblin.png" },
+    { id: 3, name: 'troop_wizard', weight: 20, scale: .9, path: "troops_icons/wizard.png" },
+    { id: 4, name: 'resource_gold', weight: 40, scale: 4, path: "resource/gold.png" },
+    { id: 5, name: 'resource_elixir', weight: 40, scale: 4, path: "resource/elixir.png" },
+    { id: 6, name: 'resource_darkelixir', weight: 30, scale: 4, path: "resource/dark_elixir.png" },
+    { id: 7, name: 'resource_gem', weight: 30, scale: .8, path: "resource/gem.png" },
 
 ];
 
-const clanCastle = { id: 8, name: "clancastle", dontCluster: true, weight: 5, scale: 1.2, path: "/games/ClashOfReels/Building_HV_Clan_Castle_level_4.png" }
+const clanCastle = { id: 8, name: "clancastle", dontCluster: true, weight: 50, scale: 1.5, path: "clanCastle.png" }
 SYMBOLS.push(clanCastle)
 const TownHallSymbol = {
     id: 9,
@@ -50,6 +50,7 @@ export default class ClashOfReels extends SlotsBase {
             height: 720,
             cols: 7,
             rows: 7,
+            pathPrefix: "/games/ClashOfReels/",
             symbolWidth: 80,
             symbolHeight: 80,
             spinSpeed: 20,
@@ -64,49 +65,35 @@ export default class ClashOfReels extends SlotsBase {
             clusterSize: 4,
             timeBeforeProcessingGrid: 500,
             delayBeforeCascading: 1000,
-            ghostTime: 1000,
-            invisibleFlyby: true
+            ghostTime: 600,
+            replaceTime: 1,
+            invisibleFlyby: true,
+            mode: "normal",
+            bounce: 2,
+            bounceDuration: .5,
         };
         super(rootContainer, app, myConfig);
         this.init()
     }
 
-    async spin() {
-        if (this.processing) return;
-        this.processing = true;
-        this.grid = this.generateRandomResult();
-        console.log(this.grid)
-        await this.startSpin();
-        console.log(this.grid)
-
-        while (true) {
-            await this.clanCastleLogic()
-            await new Promise(resolve => setTimeout(resolve, this.config.timeBeforeProcessingGrid));
-            const clusters = this.findClusters(this.grid)
-            if (clusters.length === 0) break
-            const replacements = this.generateReplacements(clusters)
-            const nextGrid = await this.explodeAndCascade(clusters, replacements)
-            console.log(nextGrid)
-            this.grid = nextGrid
-        }
-        this.processing = false
+    processSpecialFeatures(grid) {
+        return this.simulateClanCastle(grid)
     }
 
-    async clanCastleLogic() {
-        console.log(this.grid)
-        const positions = this.contain(clanCastle.id)
-        console.log(positions)
-        if (positions) {
-            const toChangeTo = this.getRandomSymbolId()
-            console.log(positions)
-            console.log(toChangeTo)
-            const promises = []
-            positions.forEach(position => {
-                const promise = this.insertIntoGrid(position, toChangeTo)
-                promises.push(promise)
-            })
-            await Promise.all(promises)
-        }
+    simulateClanCastle(grid) {
+        const moves = [];
+        const positions = this.contain(8, grid); // ID 8 is Clan Castle
 
+        if (positions) {
+            const newId = this.getRandomSymbolId(false, grid, this.config.symbols.slice(0, 4));
+            positions.forEach(pos => {
+                moves.push({
+                    x: pos.x,
+                    y: pos.y,
+                    newId: newId
+                });
+            });
+        }
+        return moves;
     }
 }

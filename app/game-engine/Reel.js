@@ -57,6 +57,12 @@ export class Reel {
     spin(resultData) {
         this.reset();
         this.state = 'ACCELERATING';
+        gsap.to(this, {
+            speed: this.config.spinSpeed,
+            duration: 0.5,
+            ease: "power2.out",
+            onStart: () => this.state = "SPINNING"
+        });
         this.targetResult = resultData;
 
         return new Promise((resolve) => {
@@ -97,8 +103,8 @@ export class Reel {
         const accel = this.config.spinAcceleration;
 
         if (this.state === 'ACCELERATING') {
-            if (this.speed < maxSpeed) this.speed += accel * delta;
-            else this.state = 'SPINNING';
+            // if (this.speed < maxSpeed) this.speed += accel * delta;
+            // else this.state = 'SPINNING';
         }
         else if (this.state === 'LANDING') {
             const h = this.config.symbolHeight;
@@ -118,11 +124,18 @@ export class Reel {
             this.speed = targetSpeed;
             if (distance < 4) {
                 this.speed = 0;
-                this.state = 'IDLE';
                 this.realignOnGrid();
-                if (this.spinResolve) {
-                    this.spinResolve(this.targetResult);
-                    this.spinResolve = null;
+                this.state = 'IDLE';
+                // Check if bounce is configured
+                if (this.config.bounce && this.config.bounce > 0) {
+                    this.performLandingBounce();
+                } else {
+                    // No bounce, just stop
+                    this.state = 'IDLE';
+                    if (this.spinResolve) {
+                        this.spinResolve(this.targetResult);
+                        this.spinResolve = null;
+                    }
                 }
                 return;
             }
@@ -229,7 +242,6 @@ export class Reel {
 
     explodeAndCascade(indexExplode, idsReplace, reelData) {
         indexExplode = indexExplode.sort((a, b) => a - b)
-        console.log("replace these indexes: " + indexExplode + " with these values: " + idsReplace)
         return new Promise((resolve) => {
             this.cascadeResolve = () => resolve([...reelData.filter((symbolId, index) => !indexExplode.includes(index)), ...idsReplace])
 
@@ -265,7 +277,6 @@ export class Reel {
                 const newId = idsReplace[i];
                 const newData = this.getSymbolDataById(newId);
                 this.spawnGhost(explodedSymbol)
-                // explodedSymbol.texture = this.getRandomTexture();
 
                 const randomFillData = this.getRandomSymbolData();
                 explodedSymbol.texture = randomFillData.texture;
@@ -338,10 +349,9 @@ export class Reel {
 
         // Convert ms to seconds for GSAP
         const duration = this.config.ghostTime / 1000;
-
         gsap.to(ghost.scale, {
-            x: ghost.scale.x * 2, // Expand bigger (2.5x)
-            y: ghost.scale.y * 2,
+            x: ghost.scale.x * 1.3, // Expand bigger (2.5x)
+            y: ghost.scale.y * 1.3,
             duration: duration,
             ease: "expo.out"
 
@@ -393,7 +403,6 @@ export class Reel {
             // NOTE: If you have buffer symbols (invisible ones at top), 
             // you might need to add an offset: this.symbols[rowIndex + 1]
             const symbolSprite = this.symbols[rowIndex + 1]; // +1 assuming 1 top buffer
-            console.log(this.symbols)
 
             if (!symbolSprite) {
                 resolve();
@@ -417,7 +426,7 @@ export class Reel {
             tl.to(symbolSprite.scale, {
                 x: 0,
                 y: 0,
-                duration: 0.25,    // Adjust speed (0.25 seconds)
+                duration: this.config.replaceTime,    // Adjust speed (0.25 seconds)
                 ease: "back.in(2)" // A little "pull back" anticipation before shrinking
             });
             tl.call(() => {
@@ -446,7 +455,44 @@ export class Reel {
                 ease: "back.out(2)"  // A nice bouncy "pop" in
             });
             // For now, resolve immediately
-            resolve();
+            // resolve();
         });
+    }
+
+    performLandingBounce() {
+        this.state = 'BOUNCING';
+
+        const bounceAmount = this.config.bounce || 30;
+        // Increase duration slightly for a smoother feel (0.5s - 0.6s is the sweet spot)
+        const duration = this.config.bounceDuration || 0.5;
+
+        const tl = gsap.timeline({
+            onComplete: () => {
+                this.state = 'IDLE';
+                // Ensure we are perfectly at 0 at the end
+                this.container.y = 0;
+
+                if (this.spinResolve) {
+                    this.spinResolve(this.targetResult);
+                    this.spinResolve = null;
+                }
+            }
+        });
+
+        // STEP 1: The "Sink" (Overshoot)
+        // We use 'circ.out' or 'power2.out' to simulate the reel fighting tension
+        tl.to(this.container, {
+            y: bounceAmount,
+            duration: duration * 0.4,
+            ease: "power2.out"
+        })
+
+            // STEP 2: The "Recover" (Return to 0)
+            // 'back.out(1.2)' creates a very soft settling motion, going slightly past 0 and returning
+            .to(this.container, {
+                y: 0,
+                duration: duration * 0.6,
+                ease: "back.out(1.2)"
+            });
     }
 }

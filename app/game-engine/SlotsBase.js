@@ -33,6 +33,14 @@ export default class SlotsBase {
         this.reels = [];
         this.state = 'IDLE';
         this.timeSinceStart = 0;
+        console.log(this.config)
+        this.config.symbols = this.config.symbols.map(symbol => {
+            if (symbol.path) return {
+                ...symbol,
+                path: (this.config.pathPrefix + symbol.path)
+            }
+            else return symbol
+        });
 
         // Group for the reels to center them easily
         this.reelContainer = new Container();
@@ -50,6 +58,163 @@ export default class SlotsBase {
                 this.stage.addChildAt(backgroundSprite, 0); // Add as the first child
             })
         }
+    }
+
+    // 1. THE MAIN FUNCTION TO PREDICT THE GAME
+    calculateMoves() {
+        const timeline = [];
+
+        // Step A: Initial Spin
+        // Generate the starting grid purely in data
+        let currentGrid = this.generateRandomResult();
+
+        // Record the start state
+        timeline.push({
+            type: 'SPIN_START',
+            grid: JSON.parse(JSON.stringify(currentGrid)) // Deep copy
+        });
+
+        // Loop until no more actions
+        let iteration = 0;
+        while (true) {
+            iteration++;
+            let actionOccurred = false;
+
+            const featureMoves = this.processSpecialFeatures(currentGrid);
+            // Step B: Clan Castle Logic (Virtual)
+            // const clanCastleMoves = this.simulateClanCastle(currentGrid);
+            if (featureMoves && featureMoves.length > 0) {
+                // Apply logic to virtual grid
+                featureMoves.forEach(move => {
+                    if (currentGrid[move.x] && currentGrid[move.x][move.y] !== undefined) {
+                        currentGrid[move.x][move.y] = move.newId;
+                    }
+                });
+
+                timeline.push({
+                    type: 'TRANSFORM',
+                    changes: featureMoves,
+                    grid: JSON.parse(JSON.stringify(currentGrid))
+                });
+                actionOccurred = true;
+            }
+            // if (clanCastleMoves.length > 0) {
+            //     // Apply changes to currentGrid
+            //     clanCastleMoves.forEach(move => {
+            //         currentGrid[move.x][move.y] = move.newId;
+            //     });
+
+            //     timeline.push({
+            //         type: 'TRANSFORM',
+            //         changes: clanCastleMoves,
+            //         grid: JSON.parse(JSON.stringify(currentGrid))
+            //     });
+            //     actionOccurred = true;
+            // }
+
+            // Step C: Check Clusters
+            // Note: findClusters is now pure logic in SlotsBase
+            const clusters = this.findClusters(currentGrid);
+
+            // Check if clusters has any actual content (it returns an array of arrays)
+            const hasClusters = clusters && clusters.some(col => col.length > 0);
+
+            if (hasClusters) {
+                // Step D: Generate Replacements
+                const replacements = this.generateReplacements(clusters, currentGrid);
+
+                // Step E: Explode and Cascade (Virtual)
+                // This modifies currentGrid based on your specific gravity logic
+                currentGrid = this.simulateCascade(currentGrid, clusters, replacements);
+
+                timeline.push({
+                    type: 'CASCADE',
+                    clusters: clusters,
+                    replacements: replacements,
+                    grid: JSON.parse(JSON.stringify(currentGrid))
+                });
+                actionOccurred = true;
+            }
+
+            // If nothing happened in this loop (no castles, no clusters), we are done.
+            if (!actionOccurred) break;
+
+            // Safety break for infinite loops
+            if (iteration > 20) {
+                console.warn("Max simulation iterations reached");
+                break;
+            }
+        }
+
+        return timeline;
+    }
+
+    processSpecialFeatures(grid) {
+        return [];
+    }
+
+
+
+    async spin() {
+        if (this.processing) return;
+        this.processing = true;
+
+        const timeline = this.calculateMoves();
+        console.log("PREDICTED GAME FLOW:", timeline);
+
+        this.grid = timeline[0].grid;
+        await this.startSpin();
+
+        for (let i = 1; i < timeline.length; i++) {
+            const event = timeline[i];
+
+            if (event.type === 'TRANSFORM') {
+                await this.playTransformAnimation(event.changes);
+            }
+            else if (event.type === 'CASCADE') {
+                await new Promise(r => setTimeout(r, this.config.timeBeforeProcessingGrid));
+                await this.explodeAndCascade(event.clusters, event.replacements);
+                this.grid = event.grid;
+            }
+        }
+
+        this.processing = false;
+    }
+
+    async playTransformAnimation(changes) {
+        const promises = [];
+        changes.forEach(change => {
+            // We can insert directly because 'change' has {x, y, newId}
+            // insertIntoGrid handles the visual promise
+            promises.push(this.insertIntoGrid({ x: change.x, y: change.y }, change.newId));
+        });
+        await Promise.all(promises);
+    }
+    // Virtual Helper: Cascade
+    // Replicates the logic: Remove Exploded -> Append New (Bottom Fill/Slide Up logic)
+    simulateCascade(grid, clusters, replacements) {
+        const nextGrid = [];
+
+        for (let i = 0; i < grid.length; i++) {
+            const col = grid[i];
+            const explodedIndices = clusters[i] || [];
+            const newSymbols = replacements[i] || [];
+
+            if (explodedIndices.length === 0) {
+                nextGrid.push([...col]);
+                continue;
+            }
+
+            // 1. Filter out exploded items (Pure JS version of your Reel logic)
+            const filteredCol = col.filter((_, index) => !explodedIndices.includes(index));
+
+            // 2. Combine: [Existing Items] + [New Items]
+            // This matches your frontend logic: `resolve([...filtered, ...idsReplace])`
+            const newCol = [...filteredCol, ...newSymbols];
+
+            nextGrid.push(newCol);
+        }
+        return nextGrid;
     }
 
     createGrid() {
@@ -132,33 +297,6 @@ export default class SlotsBase {
         this.stage.removeChildren();
     }
 
-
-    createSymbolWithBackground(baseTexture) {
-        const w = this.config.symbolWidth;
-        const h = this.config.symbolHeight;
-        const container = new Container();
-        const bg = new Graphics();
-        bg.roundRect(0, 0, w, h, 15);
-        bg.fill({ color: 0x2b1d14, alpha: 0.9 });
-        bg.stroke({ width: 3, color: 0xcfb972 });
-        container.addChild(bg);
-        const sprite = new Sprite(baseTexture);
-        sprite.anchor.set(0.5);
-        sprite.x = w / 2;
-        sprite.y = h / 2;
-        const scale = Math.min(w / sprite.width, h / sprite.height) * .9;
-
-        sprite.scale.set(scale);
-
-        container.addChild(sprite);
-        const newTexture = this.app.renderer.generateTexture({
-            target: container,
-            frame: new Rectangle(0, 0, w, h),
-            resolution: 2,
-        });
-        container.destroy({ children: true });
-        return newTexture;
-    }
     async init() {
         // 1. Register all assets with Pixi
         const aliases = [];
@@ -179,12 +317,6 @@ export default class SlotsBase {
         // 2. WAIT for all assets to finish downloading (Critical Step)
         await Assets.load(aliases);
 
-        // 3. Now it is safe to retrieve and process them
-        // this.config.symbols.forEach(symbol => {
-        //     const rawTex = Assets.get(symbol.name);
-
-        //     symbol.texture = rawTex //this.createSymbolWithBackground(rawTex);
-        // });
         this.config.symbols.forEach(symbol => {
             if (symbol.path) {
                 symbol.texture = Assets.get(symbol.name);
@@ -290,6 +422,21 @@ export default class SlotsBase {
                 }
             }
         }
+
+        // Return generic cluster objects, not just x/y buckets, 
+        // but for your specific logic we format it to match your explode function expectations
+        const rawClusters = clusters.filter(i => i.length >= this.config.clusterSize);
+
+        // Convert to the array-of-arrays format your Cascade logic expects: [ [rowsForCol0], [rowsForCol1] ... ]
+        const formattedClusters = Array.from({ length: cols }, () => []);
+        rawClusters.flat().forEach(({ x, y }) => {
+            formattedClusters[x].push(y);
+        });
+
+        // Only return if there is actual data
+        if (formattedClusters.every(arr => arr.length === 0)) return [];
+
+        return formattedClusters;
         return clusters
             .filter(i => i.length >= this.config.clusterSize)
             .flat().reduce((acc, { x, y }) => {
@@ -303,27 +450,55 @@ export default class SlotsBase {
             }, []);
     }
 
+    // generateRandomResult() {
+    //     return Array.from({ length: this.config.cols }, () =>
+    //         Array.from({ length: this.config.rows }, () =>
+    //             this.getRandomSymbolId(true)
+    //         )
+    //     );
+    // }
     generateRandomResult() {
-        return Array.from({ length: this.config.cols }, () =>
-            Array.from({ length: this.config.rows }, () =>
-                this.getRandomSymbolId(true)
-            )
-        );
-    }
+        // This generates the INITIAL grid. 
+        // We create a temporary structure to pass to getRandomSymbolId so weights work during generation
+        const tempGrid = Array.from({ length: this.config.cols }, () => []);
 
-    generateReplacements(arr) {
-        return [...arr].map(item => {
-            if (item) {
-                return Array.from(
-                    { length: item.length },
-                    () => this.getRandomSymbolId()
-                )
+        for (let col = 0; col < this.config.cols; col++) {
+            for (let row = 0; row < this.config.rows; row++) {
+                // We pass 'tempGrid' (even if incomplete) to handle dynamic weights if needed
+                const id = this.getRandomSymbolId(true, tempGrid);
+                tempGrid[col].push(id);
             }
+        }
+        return tempGrid;
+    }
+    generateReplacements(clusterData, gridToCheck) {
+        return clusterData.map(colIndices => {
+            if (!colIndices || colIndices.length === 0) return [];
+            return Array.from(
+                { length: colIndices.length },
+                () => this.getRandomSymbolId(false, gridToCheck)
+            )
         })
     }
+    // generateReplacements(arr) {
+    //     return [...arr].map(item => {
+    //         if (item) {
+    //             return Array.from(
+    //                 { length: item.length },
+    //                 () => this.getRandomSymbolId()
+    //             )
+    //         }
+    //     })
+    // }
 
-    getRandomSymbolId(firstSpin = false, gridToCheck = this.grid) {
-        const validSymbols = this.config.symbols.filter(s => firstSpin ? true : !s.onlyAppearOnRoll);        // 1. Calculate the total weight of all symbols (do this once in constructor ideally, but here is fine)
+    getRandomSymbolId(firstSpin = false, gridToCheck = this.grid, selectFrom) {
+        let validSymbols = this.config.symbols
+        if (selectFrom) {
+            validSymbols = validSymbols.filter(s => selectFrom.includes(s))
+        }
+        else if (firstSpin) {
+            validSymbols = validSymbols.filter(s => !s.onlyAppearOnRoll);
+        }
 
         const getSymbolWeight = (symbol) => {
             if (Array.isArray(symbol.weight)) {
@@ -437,7 +612,6 @@ export default class SlotsBase {
             const hereBefore = this.grid[col][row];
 
             // 2. Update the Data Grid
-            console.log(this.grid)
             this.grid[col][row] = symbolId;
 
             // 3. Trigger Visual Update (and wait for it!)
@@ -457,7 +631,7 @@ export default class SlotsBase {
         const positions = []
         for (let x = 0; x < this.config.cols; x++) {
             for (let y = 0; y < this.config.rows; y++) {
-                if (this.gridToCheck[x][y] == id) {
+                if (gridToCheck[x][y] == id) {
                     positions.push({
                         x,
                         y
