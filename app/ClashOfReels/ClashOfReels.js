@@ -100,21 +100,22 @@ const warden = {
     name: "warden",
     scale: 1,
     path: "Warden.png",
-    weight: [5],
+    weight: [100],
     dontCluster: true,
     onlyAppearOnRoll: true,
-    matchEffect: "PULSE_GOLD",
+    matchEffect: "VIDEO_PLAY",
     // explodingEffect: "warden_poof",
     clusterSize: 1,
     prio: true,
+    videoPath: "warden_anim.mp4"
 }
+
 const TownHallSymbol = {
     name: "townhall",
     weight: [5, 4, 1],
     scale: 0.8,
     onlyAppearOnRoll: true,
     dontCluster: true,
-
     textureAtLevel: [
         "/games/ClashOfReels/TH/Building_HV_Town_Hall_level_1.png",
         "/games/ClashOfReels/TH/Building_HV_Town_Hall_level_2.png",
@@ -127,14 +128,14 @@ const TownHallSymbol = {
         "/games/ClashOfReels/TH/Building_HV_Town_Hall_level_9.png",
         "/games/ClashOfReels/TH/Building_HV_Town_Hall_level_10.png",
     ],
-    // anticipation: {
-    //     after: 2,
-    //     count: 15,
-    // },
+    anticipation: {
+        after: 2,
+        count: 15,
+    },
 }
 const treasureSymbol = {
     name: "treasure",
-    weight: [100, 100, 100],
+    weight: [5, 4, 1],
     scale: 1.4,
     onlyAppearOnRoll: true,
     path: "Treasury.png",
@@ -431,12 +432,20 @@ export default class ClashOfReels extends SlotsBase {
     }
 
     handleSymbolMatch(effect, sprite) {
-        return new Promise(resolve => {
+        return new Promise(async (resolve) => {
             if (effect === "PULSE_GOLD") {
                 // Flash white and scale up
                 const tl = gsap.timeline({ onComplete: resolve });
                 tl.to(sprite.scale, { x: sprite.scale.x * 1.2, y: sprite.scale.y * 1.2, duration: 0.1, yoyo: true, repeat: 3 })
                     .to(sprite, { pixi: { tint: 0xFFD700 }, duration: 0.1, yoyo: true, repeat: 3 }, "<");
+            }
+            else if (effect === "VIDEO_PLAY") {
+                // We find the symbol ID attached to the sprite to get the name
+                const symbolConfig = this.config.symbols.find(s => s.id === sprite.symbolId);
+                const videoAlias = symbolConfig.name + "_anim";
+
+                await this.playSymbolVideo(sprite, videoAlias);
+                resolve();
             }
             else if (effect === "warden_match") {
                 resolve()

@@ -97,11 +97,16 @@ export class Reel {
 
     update(delta) {
         if (this.state === 'IDLE') {
-            if (this.blurFilter.strengthY !== 0) this.blurFilter.strengthY = 0;
+            // Optimization: Remove the filter completely when not needed
+            if (this.container.filters !== null) {
+                this.container.filters = null;
+            }
             return;
         }
         const blurAmount = Math.abs(this.speed) * (this.config.motionBlurStrength);
-
+        if (this.state !== 'IDLE' && !this.container.filters) {
+            this.container.filters = [this.blurFilter];
+        }
         // Apply purely vertical blur
         const maxSpeed = this.config.spinSpeed;
         const accel = this.config.spinAcceleration;

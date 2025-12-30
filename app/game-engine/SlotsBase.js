@@ -1,4 +1,4 @@
-import { Assets, Sprite, Container, Graphics, Rectangle } from 'pixi.js';
+import { Assets, Sprite, Container, Graphics, Filter, GlProgram } from 'pixi.js';
 import { Reel } from './Reel';
 
 const DEFAULT_CONFIG = {
@@ -240,6 +240,13 @@ export default class SlotsBase {
             else if (symbol.path) {
                 Assets.add({ alias: symbol.name, src: symbol.path });
                 aliases.push(symbol.name);
+            }
+
+            if (symbol.videoPath) {
+                const videoAlias = symbol.name + "_anim";
+                // Pixi V8 Assets automatically detects .mp4
+                Assets.add({ alias: videoAlias, src: this.config.pathPrefix + symbol.videoPath });
+                aliases.push(videoAlias);
             }
         });
 
@@ -654,5 +661,144 @@ export default class SlotsBase {
     gridContainsSymbol(grid, name) {
         const targetId = this.config.symbols.find(s => s.name === name).id;
         return grid.flat().includes(targetId);
+    }
+    async playSymbolVideo(targetSprite, videoAlias) {
+        return new Promise((resolve) => {
+            if (!Assets.get(videoAlias)) {
+                console.warn(`Video alias ${videoAlias} not found`);
+                resolve();
+                return;
+            }
+
+            const videoTexture = Assets.get(videoAlias);
+            const videoSource = videoTexture.source;
+            const videoElement = videoSource.resource;
+
+            if (videoTexture.width === 0 || videoTexture.height === 0) {
+                const onLoaded = () => {
+                    videoElement.removeEventListener('loadedmetadata', onLoaded);
+                    this.playSymbolVideo(targetSprite, videoAlias).then(resolve);
+                };
+                videoElement.addEventListener('loadedmetadata', onLoaded);
+                return;
+            }
+
+            // --- OPTIONAL: IMPROVE TEXTURE SAMPLING ---
+            // This tells WebGL not to try and smooth pixels at the very edge 
+            // by wrapping around to the other side. It helps, but might not be enough alone.
+            videoTexture.source.style.addressMode = 'clamp-to-edge';
+            // ------------------------------------------
+
+            videoElement.loop = false;
+            videoElement.currentTime = 0;
+
+            const videoSprite = new Sprite(videoTexture);
+            videoSprite.blendMode = 'normal';
+
+            // --- SHADER SETUP ---
+            const vertex = `
+                in vec2 aPosition;
+                out vec2 vTextureCoord;
+                uniform vec4 uInputSize;
+                uniform vec4 uOutputFrame;
+                uniform vec4 uOutputTexture;
+
+                vec4 filterVertexPosition( void ) {
+                    vec2 position = aPosition * uOutputFrame.zw + uOutputFrame.xy;
+                    position.x = position.x * (2.0 / uOutputTexture.x) - 1.0;
+                    position.y = position.y * (2.0*uOutputTexture.z / uOutputTexture.y) - uOutputTexture.z;
+                    return vec4(position, 0.0, 1.0);
+                }
+
+                vec2 filterTextureCoord( void ) {
+                    return aPosition * (uOutputFrame.zw * uInputSize.zw);
+                }
+
+                void main(void) {
+                    gl_Position = filterVertexPosition();
+                    vTextureCoord = filterTextureCoord();
+                }
+            `;
+
+            const fragment = `
+                in vec2 vTextureCoord;
+                uniform sampler2D uTexture; 
+                uniform float uThreshold; 
+                uniform float uSoftness;
+                // NEW: Uniform to define edge trim amount (0.0 to 1.0)
+                uniform float uEdgeTrim; 
+
+                void main(void) {
+                    // --- 1. EDGE TRIM LOGIC ---
+                    // Check if current pixel UV coordinate is too close to the edge.
+                    // If it is, set to transparent immediately.
+                    if (vTextureCoord.x < uEdgeTrim || vTextureCoord.x > (1.0 - uEdgeTrim) ||
+                        vTextureCoord.y < uEdgeTrim || vTextureCoord.y > (1.0 - uEdgeTrim)) {
+                        gl_FragColor = vec4(0.0); // Full transparent
+                        return; // Stop processing this pixel
+                    }
+
+                    // --- 2. CHROMA KEY LOGIC ---
+                    vec4 color = texture(uTexture, vTextureCoord);
+                    vec3 target = vec3(1.0, 1.0, 1.0);
+                    float dist = distance(color.rgb, target);
+                    float alpha = smoothstep(uThreshold, uThreshold + uSoftness, dist);
+                    
+                    // Premultiplied Alpha fix from previous step
+                    gl_FragColor = vec4(color.rgb * alpha, color.a * alpha);
+                }
+            `;
+
+            const removeWhiteFilter = new Filter({
+                glProgram: new GlProgram({ vertex, fragment }),
+                resources: {
+                    uniforms: {
+                        uThreshold: { value: 0.15, type: 'f32' },
+                        uSoftness: { value: 0.05, type: 'f32' },
+                        // NEW: Start with 1% trim (0.01). 
+                        // Increase to 0.02 or 0.03 if the border persists.
+                        uEdgeTrim: { value: 0.015, type: 'f32' }
+                    },
+                },
+            });
+
+            videoSprite.filters = [removeWhiteFilter];
+            // ---------------------
+
+            videoSprite.anchor.set(0.5);
+            const globalPos = targetSprite.getGlobalPosition();
+            const localPos = this.stage.toLocal(globalPos);
+            videoSprite.x = localPos.x;
+            videoSprite.y = localPos.y;
+
+            const symbolConfig = this.config.symbols.find(s => s.id === targetSprite.symbolId);
+            const baseConfigScale = symbolConfig ? symbolConfig.scale : 1;
+            const ratioY = this.config.symbolHeight / videoTexture.height;
+            const finalScale = ratioY * baseConfigScale * 1.1;
+            videoSprite.scale.set(finalScale);
+
+            this.stage.addChild(videoSprite);
+            targetSprite.alpha = 0;
+
+            const onComplete = () => {
+                if (videoSprite.destroyed) return;
+                videoSprite.destroy();
+                if (targetSprite && !targetSprite.destroyed) targetSprite.alpha = 1;
+                resolve();
+            };
+
+            videoSource.autoPlay = true;
+            const durationSafe = (videoElement.duration && isFinite(videoElement.duration)) ? videoElement.duration : 2;
+            const safetyTimeout = setTimeout(onComplete, (durationSafe * 1000) + 500);
+
+            videoElement.onended = () => {
+                clearTimeout(safetyTimeout);
+                onComplete();
+            };
+
+            videoElement.play().catch(e => {
+                onComplete();
+            });
+        });
     }
 }

@@ -104,12 +104,12 @@ export default function CasinoPage() {
                             <div className="absolute top-5 left-5 flex flex-col gap-2 items-start">
 
                                 {/* Balance Display */}
-                                <div className="text-white font-mono text-xl bg-black/50 p-2 rounded min-w-[200px]">
+                                <div className="text-white font-mono text-xl bg-black/50 p-2 rounded min-w-50">
                                     BALANCE: $1,000
                                 </div>
 
                                 {/* Won Display (Only shows if winAmount >= 0, or always distinct) */}
-                                <div className={"text-white font-mono text-xl bg-black/50 p-2 rounded min-w-[200px] flex transition-opacity justify-between " + (showWin ? " opacity-100" : " opacity-0")}>
+                                <div className={"text-white font-mono text-xl bg-black/50 p-2 rounded min-w-50 flex transition-opacity justify-between " + (showWin ? " opacity-100" : " opacity-0")}>
                                     <span>WON:</span>
                                     <span className={winAmount > 0 ? "text-green-400" : "text-white"}>
                                         ${winAmount.toFixed(2)}
