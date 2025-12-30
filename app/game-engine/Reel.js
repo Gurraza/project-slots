@@ -581,7 +581,12 @@ export class Reel {
             // 2. Kill the pulsing animation
             gsap.killTweensOf(symbol.scale);
             gsap.killTweensOf(symbol);
-            symbol.tint = 0xFFFFFF;
+
+            gsap.to(symbol, {
+                pixi: { tint: 0xFFFFFF }, // Use the 'pixi' wrapper
+                duration: 0.3,
+                ease: "power2.out"
+            });
 
             // 3. Reset the scale back to the correct fit
             if (symbol.symbolId !== undefined) {

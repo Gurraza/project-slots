@@ -47,6 +47,7 @@ export default class SlotsBase {
             }
             else return fixedSymbol
         });
+        console.log(this.config.symbols)
 
         // Group for the reels to center them easily
         this.reelContainer = new Container();
@@ -77,20 +78,26 @@ export default class SlotsBase {
         await this.startSpin();
 
         for (let i = 1; i < timeline.length; i++) {
+            await new Promise(r => setTimeout(r, this.config.timeBeforeProcessingGrid));
             const event = timeline[i];
 
             if (event.type === 'TRANSFORM') {
                 await this.playTransformAnimation(event.changes);
             }
             else if (event.type === 'CASCADE') {
+                await this.onCascadeEvent(event);
                 await this.triggerMatchAnimations(event.clusters);
-                await new Promise(r => setTimeout(r, this.config.timeBeforeProcessingGrid));
                 await this.explodeAndCascade(event.clusters, event.replacements);
                 this.grid = event.grid;
             }
         }
         this.processing = false;
         return this.grid
+    }
+
+    // Virtual Method: Defaults to resolve immediately
+    async onCascadeEvent(event) {
+        return Promise.resolve();
     }
 
     async playTransformAnimation(changes) {
@@ -428,8 +435,6 @@ export default class SlotsBase {
     getRandomSymbolId({ firstSpin, gridToCheck = this.grid, selectFrom, colIndex } = {}) {
         let validSymbols = this.config.symbols
         if (selectFrom && selectFrom.length > 0) {
-            console.log(selectFrom)
-            console.log(validSymbols)
             validSymbols = validSymbols.filter(s => selectFrom.some(ss => ss.id == s.id))
         }
         else if (!firstSpin) {
@@ -633,5 +638,12 @@ export default class SlotsBase {
         }
         // Wait for ALL reels to finish their win animations
         await Promise.all(promises);
+    }
+    // Helper: Get screen coordinates
+    getSymbolGlobalPosition(col, row) {
+        return {
+            x: this.reels[col].container.x + (this.config.symbolWidth / 2),
+            y: (row * (this.config.symbolHeight + this.config.gapY)) + (this.config.symbolHeight / 2)
+        };
     }
 }

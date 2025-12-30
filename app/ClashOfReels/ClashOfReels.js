@@ -1,13 +1,13 @@
 import SlotsBase from '../game-engine/SlotsBase';
 import gsap from "gsap"
-import * as PIXI from "pixi.js"
+import { Assets, Sprite, Graphics } from "pixi.js"
 
 const SYMBOLS = [
     { weight: 50, name: 'troop_barbarian', group: "low_troop", scale: .9, path: "troops_icons/barbarian.png" },
     { weight: 50, name: 'troop_archer', group: "low_troop", scale: .9, path: "troops_icons/archer.png" },
     { weight: 50, name: 'troop_goblin', group: "low_troop", scale: .9, path: "troops_icons/goblin.png" },
 
-    { weight: 35, name: 'troop_wizard', clusterSize: 2, scale: .9, path: "troops_icons/wizard.png" },
+    { weight: 35, name: 'troop_wizard', scale: .9, path: "troops_icons/wizard.png" },
     { weight: 0, name: 'troop_wallbreaker', scale: .9, path: "troops_icons/wallbreaker.png" },
 
     { weight: 100, name: 'resource_gold', group: "low_resource", scale: 4, path: "resource/gold.png" },
@@ -35,11 +35,24 @@ const builder = {
     name: "builder",
     scale: 4,
     path: "Builder.png",
-    weight: [1000],
+    weight: [5],
     onlyAppearOnRoll: true,
-    landingEffect: "builder_land",
-    landingEffect: "builder_poof",
-    clusterSize: 1
+    matchEffect: "builder_match",
+    explodingEffect: "builder_poof",
+    clusterSize: 1,
+    prio: true,
+}
+
+const warden = {
+    name: "warden",
+    scale: 1,
+    path: "Warden.png",
+    weight: [5],
+    onlyAppearOnRoll: true,
+    matchEffect: "PULSE_GOLD",
+    // explodingEffect: "warden_poof",
+    clusterSize: 1,
+    prio: true,
 }
 const TownHallSymbol = {
     name: "townhall",
@@ -58,14 +71,14 @@ const TownHallSymbol = {
         "/games/ClashOfReels/TH/Building_HV_Town_Hall_level_9.png",
         "/games/ClashOfReels/TH/Building_HV_Town_Hall_level_10.png",
     ],
-    anticipation: {
-        after: 2,
-        count: 15,
-    },
+    // anticipation: {
+    //     after: 2,
+    //     count: 15,
+    // },
 }
 const treasureSymbol = {
     name: "treasure",
-    weight: [100, 50, 1],
+    weight: [5, 4, 1],
     scale: 1.4,
     onlyAppearOnRoll: true,
     path: "Treasury.png",
@@ -76,10 +89,11 @@ const treasureSymbol = {
     onePerReel: true,
 }
 
-// SYMBOLS.push(TownHallSymbol)
-// SYMBOLS.push(treasureSymbol)
-// SYMBOLS.push(builder)
+SYMBOLS.push(TownHallSymbol)
+SYMBOLS.push(treasureSymbol)
+SYMBOLS.push(builder)
 SYMBOLS.push(clanCastle)
+SYMBOLS.push(warden)
 
 export default class ClashOfReels extends SlotsBase {
 
@@ -127,6 +141,17 @@ export default class ClashOfReels extends SlotsBase {
         return super.spin();
     }
 
+    // 1. OVERRIDE THE HOOK
+    async onCascadeEvent(event) {
+        // Check if our calculation logic passed any Warden Data
+        if (event.wardenData) {
+            // await this.animateWardenBeams(event.wardenData);
+
+            // OPTIONAL: Do something with the targets now that beams hit
+            // event.wardenData.targets.forEach(target => { ... })
+        }
+    }
+
     calculateMoves() {
         const timeline = [];
         let currentGrid = this.generateRandomResult();
@@ -157,15 +182,92 @@ export default class ClashOfReels extends SlotsBase {
 
             const clusters = this.findClusters(currentGrid);
             const hasClusters = clusters && clusters.some(col => col.length > 0);
-
             if (hasClusters) {
-                const replacements = this.generateReplacements(clusters, currentGrid);
-                currentGrid = this.simulateCascade(currentGrid, clusters, replacements);
+                let clustersToProcess = clusters;
+                let wardenData = undefined
+                const priorityClusters = clusters.map(() => []);
+                let foundPrioritySymbol = false;
+
+                for (let colIndex = 0; colIndex < clusters.length; colIndex++) {
+                    const col = clusters[colIndex];
+                    if (!col || col.length === 0) continue;
+
+                    for (const rowIndex of col) {
+                        const symbolId = currentGrid[colIndex][rowIndex];
+                        const symbolDef = this.config.symbols[symbolId];
+
+                        if (symbolDef && symbolDef.prio === true) {
+                            foundPrioritySymbol = true;
+                            priorityClusters[colIndex].push(rowIndex);
+                        }
+
+                        if (symbolId === warden.id) {
+                            // Source: Visual Coordinate (Flipped because Row 0 is Bottom)
+                            const activeWardenPos = { x: colIndex, y: this.config.rows - rowIndex - 1 };
+                            const targets = [];
+
+                            // 1. Map all "low_resource" symbols currently on the grid
+                            const resourceCandidates = {}; // Object to group coords by Symbol ID
+
+                            for (let c = 0; c < this.config.cols; c++) {
+                                for (let r = 0; r < this.config.rows; r++) {
+                                    // Skip the Warden himself (logic safety)
+                                    if (c === colIndex && r === rowIndex) continue;
+
+                                    const sId = currentGrid[c][r];
+                                    const sDef = this.config.symbols[sId];
+
+                                    // Check if this symbol belongs to the target group
+                                    if (sDef && sDef.group === "low_resource") {
+                                        if (!resourceCandidates[sId]) {
+                                            resourceCandidates[sId] = [];
+                                        }
+                                        // Store DATA coordinates (0 is bottom)
+                                        resourceCandidates[sId].push({ x: c, y: r });
+                                    }
+                                }
+                            }
+
+                            // 2. Pick a random Symbol ID from those found
+                            const foundIds = Object.keys(resourceCandidates);
+                            if (foundIds.length > 0) {
+                                const randomId = foundIds[Math.floor(Math.random() * foundIds.length)];
+                                // 3. Target ALL instances of that symbol
+                                targets.push(...resourceCandidates[randomId]);
+                            }
+
+                            // 4. Create Animation Data (Convert Targets to VISUAL coordinates)
+                            wardenData = {
+                                source: activeWardenPos,
+                                targets: targets.map(t => ({
+                                    x: t.x,
+                                    y: this.config.rows - 1 - t.y // Flip Y for Top-Down renderer
+                                }))
+                            }
+
+                            // 5. Add targets to Game Logic (Keep DATA coordinates)
+                            targets.forEach(t => {
+                                if (!priorityClusters[t.x].includes(t.y)) {
+                                    priorityClusters[t.x].push(t.y);
+                                }
+                            });
+
+                        }
+                    }
+                }
+                if (foundPrioritySymbol) {
+                    clustersToProcess = priorityClusters;
+                }
+
+                const replacements = this.generateReplacements(clustersToProcess, currentGrid);
+                currentGrid = this.simulateCascade(currentGrid, clustersToProcess, replacements);
+
                 timeline.push({
                     type: 'CASCADE',
-                    clusters: clusters,
+                    clusters: clustersToProcess,
                     replacements: replacements,
-                    grid: JSON.parse(JSON.stringify(currentGrid))
+                    grid: JSON.parse(JSON.stringify(currentGrid)),
+                    wardenData
                 });
                 actionOccurred = true;
             }
@@ -176,8 +278,8 @@ export default class ClashOfReels extends SlotsBase {
     }
 
     handleSymbolLand(effect, sprite) {
+        console.log(effect)
         gsap.killTweensOf(sprite.scale);
-        // Ensure we start from clean scale
         const baseScaleX = sprite.scale.x;
         const baseScaleY = sprite.scale.y;
 
@@ -185,29 +287,41 @@ export default class ClashOfReels extends SlotsBase {
             if (effect === "HEAVY_LAND") {
                 gsap.fromTo(sprite, { y: sprite.y - 10 }, { y: sprite.y, duration: 0.2, ease: "bounce.out", onComplete: resolve });
             }
-            else if (effect === "builder_land") {
-                console.log("yes")
-                // 1. Create Hammer
+            else {
+                resolve();
+            }
+        });
+    }
+
+    handleSymbolMatch(effect, sprite) {
+        return new Promise(resolve => {
+            if (effect === "PULSE_GOLD") {
+                // Flash white and scale up
+                const tl = gsap.timeline({ onComplete: resolve });
+                tl.to(sprite.scale, { x: sprite.scale.x * 1.2, y: sprite.scale.y * 1.2, duration: 0.1, yoyo: true, repeat: 3 })
+                    .to(sprite, { pixi: { tint: 0xFFD700 }, duration: 0.1, yoyo: true, repeat: 3 }, "<");
+            }
+            else if (effect === "warden_match") {
+                resolve()
+            }
+            else if (effect === "builder_match") {
+                console.log("builder_land")
                 const hammerTexture = Assets.get("hammer");
                 const hammer = new Sprite(hammerTexture);
 
-                // 2. Setup Position
-                // We add it to the Reel Container (sprite.parent) so it scrolls with it if needed,
-                // or use this.stage if you want it absolutely on top of everything.
-                // Let's use this.stage for a dramatic effect that breaks bounds.
                 this.stage.addChild(hammer);
 
                 const globalPos = sprite.getGlobalPosition();
-                hammer.anchor.set(0.5, 1); // Handle at bottom
-                hammer.x = -100; // Start off-screen left
-                hammer.y = globalPos.y + (sprite.height / 2); // Align with symbol bottom
-                hammer.scale.set(1.5); // Big hammer
+                hammer.anchor.set(0.5, 1);
+                hammer.x = -100;
+                hammer.y = globalPos.y + (sprite.height / 2);
+                hammer.scale.set(.1);
 
                 // 3. Animation Timeline
                 const tl = gsap.timeline({
                     onComplete: () => {
-                        hammer.destroy(); // Cleanup
-                        resolve();        // Resume game
+                        hammer.destroy();
+                        resolve();
                     }
                 });
 
@@ -249,20 +363,6 @@ export default class ClashOfReels extends SlotsBase {
         });
     }
 
-    handleSymbolMatch(effect, sprite) {
-        return new Promise(resolve => {
-            if (effect === "PULSE_GOLD") {
-                // Flash white and scale up
-                const tl = gsap.timeline({ onComplete: resolve });
-                tl.to(sprite.scale, { x: sprite.scale.x * 1.2, y: sprite.scale.y * 1.2, duration: 0.1, yoyo: true, repeat: 3 })
-                    .to(sprite, { pixi: { tint: 0xFFD700 }, duration: 0.1, yoyo: true, repeat: 3 }, "<");
-            }
-            else {
-                resolve();
-            }
-        });
-    }
-
     handleSymbolExplode(effect, sprite, index) {
         if (effect === "PARTICLES_GOLD") {
             const ghost = this.reels[index].spawnGhost(sprite)
@@ -275,6 +375,7 @@ export default class ClashOfReels extends SlotsBase {
             });
         }
         else if (effect === "builder_poof") {
+            console.log("builder_poof")
             gsap.to(ghost, {
                 alpha: 0,
                 y: ghost.y - 50,
@@ -288,5 +389,22 @@ export default class ClashOfReels extends SlotsBase {
         else {
             console.log("PLEASE2")
         }
+    }
+}
+
+
+function shuffle(array) {
+    let currentIndex = array.length;
+
+    // While there remain elements to shuffle...
+    while (currentIndex != 0) {
+
+        // Pick a remaining element...
+        let randomIndex = Math.floor(Math.random() * currentIndex);
+        currentIndex--;
+
+        // And swap it with the current element.
+        [array[currentIndex], array[randomIndex]] = [
+            array[randomIndex], array[currentIndex]];
     }
 }
