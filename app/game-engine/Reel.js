@@ -80,7 +80,9 @@ export class Reel {
         return new Promise((resolve) => {
             this.spinResolve = () => {
                 this.blurFilter.strengthY = 0;
-                this.anticipation()
+                if (this.index !== this.config.cols - 1) {
+                    this.anticipation()
+                }
                 resolve()
             }
         });
@@ -94,27 +96,7 @@ export class Reel {
     }
 
     update(delta) {
-
-        // for (let i = this.ghostContainer.children.length - 1; i >= 0; i--) {
-        //     const ghost = this.ghostContainer.children[i];
-
-        //     ghost.age += delta;
-        //     const progress = ghost.age / ghost.duration;
-        //     if (progress >= 1) {
-        //         this.ghostContainer.removeChild(ghost); // Remove from memory
-        //         continue;
-        //     }
-        //     const explosionFactor = 1 + (progress * 1);
-
-        //     // Multiply the base scale by the explosion factor
-        //     ghost.scale.set(ghost.startScale * explosionFactor);
-        //     // ghost.scale.set(targetScale); // <--- CORRECT SYNTAX
-
-        //     // Alpha: fade from 1.0 to 0.0
-        //     ghost.alpha = 1 - progress
-        // }
         if (this.state === 'IDLE') {
-            // Ensure blur is off when idle
             if (this.blurFilter.strengthY !== 0) this.blurFilter.strengthY = 0;
             return;
         }
@@ -125,8 +107,6 @@ export class Reel {
         const accel = this.config.spinAcceleration;
 
         if (this.state === 'ACCELERATING') {
-            // if (this.speed < maxSpeed) this.speed += accel * delta;
-            // else this.state = 'SPINNING';
             this.blurFilter.strengthY = blurAmount;
         }
         else if (this.state === 'LANDING') {
@@ -150,19 +130,27 @@ export class Reel {
                 this.blurFilter.strengthY = 0; // Turn off blur explicitly on stop
                 this.speed = 0;
                 this.realignOnGrid();
-                this.state = 'IDLE';
-                // Check if bounce is configured
+                // 1. Trigger Custom Effects and get their Promise
+                const effectsPromise = this.triggerLandingEffects();
+
+                // 2. Handle Bounce Logic
+                let bouncePromise = Promise.resolve(); // Default to instant resolve
                 if (this.config.bounce && this.config.bounce > 0) {
-                    this.performLandingBounce();
+                    // We modify performLandingBounce to return a Promise
+                    bouncePromise = this.performLandingBounce();
                 } else {
-                    // No bounce, just stop
                     this.state = 'IDLE';
+                    // Ensure y is perfect if not bouncing
+                    this.container.y = 0;
+                }
+
+                // 3. WAIT for BOTH (Bounce + Custom Effects) before finishing the spin
+                Promise.all([effectsPromise, bouncePromise]).then(() => {
                     if (this.spinResolve) {
-                        this.blurr = 0
                         this.spinResolve(this.targetResult);
                         this.spinResolve = null;
                     }
-                }
+                });
                 return;
             }
         }
@@ -274,10 +262,21 @@ export class Reel {
             setTimeout(() => {
                 this.state = "CASCADING"
             }, this.config.delayBeforeCascading);
+
             for (let i = 0; i < indexExplode.length; i++) {
                 const symbolToExplode = this.symbols[indexExplode[i] + 1]
                 // remove current one
                 this.explodedSymbols.push(symbolToExplode)
+
+                const config = this.config.symbols[symbolToExplode.symbolId];
+                if (this.game.handleSymbolExplode) {
+                    // Trigger fire/particles/fade
+                    const effectName = config.explodeEffect
+                    this.game.handleSymbolExplode(effectName, symbolToExplode, this.index);
+                } else {
+                    // Fallback to your old default ghost logic if no handler exists
+                    // this.spawnGhost(symbolToExplode);
+                }
             }
 
             // goes through all exploded symbols and sets every symbol above it to move down one
@@ -293,7 +292,7 @@ export class Reel {
                 this.sort()
                 const newId = idsReplace[i];
                 const newData = this.getSymbolDataById(newId);
-                this.spawnGhost(explodedSymbol)
+                // this.spawnGhost(explodedSymbol)
 
                 const randomFillData = this.getRandomSymbolData();
                 explodedSymbol.texture = randomFillData.texture;
@@ -364,23 +363,24 @@ export class Reel {
         this.ghostContainer.addChild(ghost);
 
         // Convert ms to seconds for GSAP
-        const duration = this.config.ghostTime / 1000;
-        gsap.to(ghost.scale, {
-            x: ghost.scale.x * 1.3, // Expand bigger (2.5x)
-            y: ghost.scale.y * 1.3,
-            duration: duration,
-            ease: "expo.out"
+        // const duration = this.config.ghostTime / 1000;
+        // gsap.to(ghost.scale, {
+        //     x: ghost.scale.x * 1.3, // Expand bigger (2.5x)
+        //     y: ghost.scale.y * 1.3,
+        //     duration: duration,
+        //     ease: "expo.out"
 
-        });
-        gsap.to(ghost, {
-            alpha: 0,
-            duration: duration * 0.5,
-            delay: duration * 0.3, // Keep it visible for the first 30% of the movement
-            ease: "power2.in",     // Fade out accelerates
-            onComplete: () => {
-                ghost.destroy();
-            }
-        });
+        // });
+        // gsap.to(ghost, {
+        //     alpha: 0,
+        //     duration: duration * 0.5,
+        //     delay: duration * 0.3, // Keep it visible for the first 30% of the movement
+        //     ease: "power2.in",     // Fade out accelerates
+        //     onComplete: () => {
+        //         ghost.destroy();
+        //     }
+        // });
+        return ghost
     }
 
     // 1. New Helper: Applies size while respecting aspect ratio + custom scale
@@ -477,39 +477,29 @@ export class Reel {
 
     performLandingBounce() {
         this.state = 'BOUNCING';
-
         const bounceAmount = this.config.bounce || 30;
-        // Increase duration slightly for a smoother feel (0.5s - 0.6s is the sweet spot)
         const duration = this.config.bounceDuration || 0.5;
 
-        const tl = gsap.timeline({
-            onComplete: () => {
-                this.state = 'IDLE';
-                // Ensure we are perfectly at 0 at the end
-                this.container.y = 0;
-
-                if (this.spinResolve) {
-                    this.spinResolve(this.targetResult);
-                    this.spinResolve = null;
+        return new Promise((resolve) => {
+            const tl = gsap.timeline({
+                onComplete: () => {
+                    this.state = 'IDLE';
+                    this.container.y = 0;
+                    resolve(); // Resolve the promise when bounce is done
                 }
-            }
-        });
-
-        // STEP 1: The "Sink" (Overshoot)
-        // We use 'circ.out' or 'power2.out' to simulate the reel fighting tension
-        tl.to(this.container, {
-            y: bounceAmount,
-            duration: duration * 0.4,
-            ease: "power2.out"
-        })
-
-            // STEP 2: The "Recover" (Return to 0)
-            // 'back.out(1.2)' creates a very soft settling motion, going slightly past 0 and returning
-            .to(this.container, {
-                y: 0,
-                duration: duration * 0.6,
-                ease: "back.out(1.2)"
             });
+
+            tl.to(this.container, {
+                y: bounceAmount,
+                duration: duration * 0.4,
+                ease: "power2.out"
+            })
+                .to(this.container, {
+                    y: 0,
+                    duration: duration * 0.6,
+                    ease: "back.out(1.2)"
+                });
+        });
     }
     // --------------------------------------------------------
     // ANTICIPATION VISUALS
@@ -590,7 +580,7 @@ export class Reel {
 
             // 2. Kill the pulsing animation
             gsap.killTweensOf(symbol.scale);
-            gsap.killTweensOf(symbol.tint);
+            gsap.killTweensOf(symbol);
             symbol.tint = 0xFFFFFF;
 
             // 3. Reset the scale back to the correct fit
@@ -598,5 +588,69 @@ export class Reel {
                 this.applySymbolStyle(symbol, symbol.symbolId);
             }
         });
+    }
+
+    triggerLandingEffects() {
+        const promises = [];
+
+        // Loop through visible rows (assuming index 0 is top buffer)
+        for (let i = 1; i <= this.config.rows; i++) {
+            const symbolSprite = this.symbols[i];
+            if (!symbolSprite) continue;
+
+            const symbolConfig = this.config.symbols[symbolSprite.symbolId];
+
+            if (symbolConfig && symbolConfig.landingEffect) {
+                // If the game class handles this, it must return a Promise
+                if (this.game.handleSymbolLand) {
+                    const p = this.game.handleSymbolLand(symbolConfig.landingEffect, symbolSprite, i);
+                    if (p) promises.push(p);
+                }
+            }
+        }
+
+        // Return a master promise that waits for all effects on this reel
+        return Promise.all(promises);
+    }
+
+    playMatchEffects(rowIndices) {
+        const promises = [];
+
+        // Robustly map a row index to the visible sprite by comparing Y positions.
+        // This avoids relying on array ordering which can change during cascades.
+        rowIndices.forEach(rowIndex => {
+            // Expected Y position for this row (0 = top row).
+            // The grid's row indexing is bottom-up in the game logic, so invert
+            // to match display coordinates (top-down).
+            const targetY = ((this.config.rows - 1 - rowIndex) * this.slotHeight) + (this.config.symbolHeight / 2);
+
+            // Find the sprite whose y is closest to targetY
+            let best = null;
+            let bestDist = Infinity;
+            for (let i = 0; i < this.symbols.length; i++) {
+                const s = this.symbols[i];
+                const d = Math.abs(s.y - targetY);
+                if (d < bestDist) {
+                    bestDist = d;
+                    best = s;
+                }
+            }
+
+            const symbol = best;
+
+            if (symbol) {
+                const config = this.config.symbols[symbol.symbolId];
+
+                // If Game class has the hook, call it
+                if (this.game.handleSymbolMatch) {
+                    const effectName = config.matchEffect
+                    const p = this.game.handleSymbolMatch(effectName, symbol);
+                    if (p) promises.push(p);
+                }
+            }
+        });
+
+        // Wait for all symbols in this reel to finish celebrating
+        return Promise.all(promises);
     }
 }

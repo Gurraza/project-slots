@@ -38,6 +38,9 @@ export default class SlotsBase {
             const fixedSymbol = symbol
             fixedSymbol.id = index
             fixedSymbol.baseWeight = fixedSymbol.weight
+            fixedSymbol.landingEffect = symbol.landingEffect ? symbol.landingEffect : this.config.defaultLandingEffect
+            fixedSymbol.matchEffect = symbol.matchEffect ? symbol.matchEffect : this.config.defaultMatchEffect
+            fixedSymbol.explodeEffect = symbol.explodeEffect ? symbol.explodeEffect : this.config.defaultExplodeEffect
             if (fixedSymbol.path) return {
                 ...fixedSymbol,
                 path: (this.config.pathPrefix + fixedSymbol.path)
@@ -80,6 +83,7 @@ export default class SlotsBase {
                 await this.playTransformAnimation(event.changes);
             }
             else if (event.type === 'CASCADE') {
+                await this.triggerMatchAnimations(event.clusters);
                 await new Promise(r => setTimeout(r, this.config.timeBeforeProcessingGrid));
                 await this.explodeAndCascade(event.clusters, event.replacements);
                 this.grid = event.grid;
@@ -229,6 +233,14 @@ export default class SlotsBase {
             }
         });
 
+        // 2. [NEW] Load Extra Game Assets (e.g. Hammer, UI elements)
+        if (this.config.extraAssets) {
+            this.config.extraAssets.forEach(asset => {
+                Assets.add({ alias: asset.name, src: this.config.pathPrefix + asset.path });
+                aliases.push(asset.name);
+            });
+        }
+
         // 2. WAIT for all assets to finish downloading (Critical Step)
         await Assets.load(aliases);
 
@@ -328,8 +340,20 @@ export default class SlotsBase {
                 }
             }
         }
+        const rawClusters = clusters.filter(cluster => {
+            // Get the symbol ID from the first item in the cluster
+            const symbolId = cluster[0].value;
+            const symbolConfig = this.config.symbols.find(s => s.id === symbolId);
 
-        const rawClusters = clusters.filter(i => i.length >= this.config.clusterSize);
+            // Determine the required size for THIS specific symbol
+            // Fallback to global config if not defined
+            const requiredSize = (symbolConfig && symbolConfig.clusterSize)
+                ? symbolConfig.clusterSize
+                : this.config.clusterSize;
+
+            return cluster.length >= requiredSize;
+        });
+        // const rawClusters = clusters.filter(i => i.length >= this.config.clusterSize);
 
         // Convert to array of columns containing rows to explode
         const formattedClusters = Array.from({ length: cols }, () => []);
@@ -595,5 +619,19 @@ export default class SlotsBase {
                 symbol.weight = 0;
             }
         });
+    }
+
+    async triggerMatchAnimations(clusters) {
+        const promises = [];
+        // clusters is an array of arrays: [[rowIdx, rowIdx], [], [rowIdx]...]
+        for (let col = 0; col < this.config.cols; col++) {
+            if (clusters[col] && clusters[col].length > 0) {
+                // Tell the specific reel to play 'onMatch' for specific rows
+                console.log(clusters)
+                promises.push(this.reels[col].playMatchEffects(clusters[col]));
+            }
+        }
+        // Wait for ALL reels to finish their win animations
+        await Promise.all(promises);
     }
 }
