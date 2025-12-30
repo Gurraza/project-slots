@@ -42,8 +42,8 @@ const SYMBOLS = [
         path: "troops_icons/wallbreaker.png"
     },
     {
-        weight: 100,
         name: 'resource_gold',
+        weight: 100,
         group: "low_resource",
         scale: 4,
         payouts: { 4: 0.2, 5: 0.5, 6: 1.0, 7: 1.5, 8: 2.5, 9: 5.0, 10: 6, 11: 10, 7: 15 },
@@ -100,39 +100,59 @@ const warden = {
     name: "warden",
     scale: 1,
     path: "Warden.png",
-    weight: [100],
+    weight: [1000],
     dontCluster: true,
     onlyAppearOnRoll: true,
     matchEffect: "VIDEO_PLAY",
+    explodeEffect: "warden_explode",
     // explodingEffect: "warden_poof",
     clusterSize: 1,
     prio: true,
-    videoPath: "warden_anim.mp4"
+    videoPath: "warden_anim.mp4",
+    playbackRate: 2,
 }
 
-const TownHallSymbol = {
-    name: "townhall",
-    weight: [5, 4, 1],
-    scale: 0.8,
-    onlyAppearOnRoll: true,
-    dontCluster: true,
-    textureAtLevel: [
-        "/games/ClashOfReels/TH/Building_HV_Town_Hall_level_1.png",
-        "/games/ClashOfReels/TH/Building_HV_Town_Hall_level_2.png",
-        "/games/ClashOfReels/TH/Building_HV_Town_Hall_level_3.png",
-        "/games/ClashOfReels/TH/Building_HV_Town_Hall_level_4.png",
-        "/games/ClashOfReels/TH/Building_HV_Town_Hall_level_5.png",
-        "/games/ClashOfReels/TH/Building_HV_Town_Hall_level_6.png",
-        "/games/ClashOfReels/TH/Building_HV_Town_Hall_level_7.png",
-        "/games/ClashOfReels/TH/Building_HV_Town_Hall_level_8.png",
-        "/games/ClashOfReels/TH/Building_HV_Town_Hall_level_9.png",
-        "/games/ClashOfReels/TH/Building_HV_Town_Hall_level_10.png",
-    ],
-    anticipation: {
-        after: 2,
-        count: 15,
-    },
-}
+// const TownHallSymbol = {
+//     name: "townhall",
+//     weight: 5,
+//     scale: 0.8,
+//     dontCluster: true,
+//     textureAtLevel: [
+//         "/games/ClashOfReels/TH/Building_HV_Town_Hall_level_1.png",
+//         "/games/ClashOfReels/TH/Building_HV_Town_Hall_level_2.png",
+//         "/games/ClashOfReels/TH/Building_HV_Town_Hall_level_3.png",
+//         "/games/ClashOfReels/TH/Building_HV_Town_Hall_level_4.png",
+//         "/games/ClashOfReels/TH/Building_HV_Town_Hall_level_5.png",
+//         "/games/ClashOfReels/TH/Building_HV_Town_Hall_level_6.png",
+//         "/games/ClashOfReels/TH/Building_HV_Town_Hall_level_7.png",
+//         "/games/ClashOfReels/TH/Building_HV_Town_Hall_level_8.png",
+//         "/games/ClashOfReels/TH/Building_HV_Town_Hall_level_9.png",
+//         "/games/ClashOfReels/TH/Building_HV_Town_Hall_level_10.png",
+//     ],
+// }
+
+const townHallSymbols = [
+    "Building_HV_Town_Hall_level_1.png",
+    "Building_HV_Town_Hall_level_2.png",
+    "Building_HV_Town_Hall_level_3.png",
+    "Building_HV_Town_Hall_level_4.png",
+    "Building_HV_Town_Hall_level_5.png",
+    "Building_HV_Town_Hall_level_6.png",
+    "Building_HV_Town_Hall_level_7.png",
+    "Building_HV_Town_Hall_level_8.png",
+    "Building_HV_Town_Hall_level_9.png",
+    "Building_HV_Town_Hall_level_10.png",
+].map((fileName, index) => {
+    return {
+        name: `townhall_${index + 1}`,
+        group: "townhall",
+        weight: 10 - index,
+        scale: 0.8,
+        dontCluster: true,
+        path: `TH/${fileName}`
+    };
+});
+
 const treasureSymbol = {
     name: "treasure",
     weight: [5, 4, 1],
@@ -147,11 +167,11 @@ const treasureSymbol = {
     dontCluster: true,
 }
 
-SYMBOLS.push(TownHallSymbol)
 SYMBOLS.push(treasureSymbol)
 SYMBOLS.push(builder)
 SYMBOLS.push(clanCastle)
 SYMBOLS.push(warden)
+SYMBOLS.push(...townHallSymbols)
 
 export default class ClashOfReels extends SlotsBase {
 
@@ -203,6 +223,7 @@ export default class ClashOfReels extends SlotsBase {
             rows: 5,
             bombsCount: 5
         });
+
         this.init()
         this.createUI(); // Create the multiplier text
     }
@@ -249,12 +270,17 @@ export default class ClashOfReels extends SlotsBase {
 
     // Update your spin loop to read the timeline data
     async onCascadeEvent(event) {
+        console.log(event)
         // If we calculated a win for this specific cascade step
         if (event.stepWin > 0) {
             this.globalMultiplier = event.totalWin
             this.onMultiplierChange(this.globalMultiplier);
             // TODO: Trigger a "Win Text" animation here
             // e.g. this.showFloatingText(event.stepWin);
+        }
+
+        if (event.wardenData) {
+
         }
 
         // ... existing warden logic ...
@@ -264,11 +290,16 @@ export default class ClashOfReels extends SlotsBase {
         // if (true) { // Change to 'true' to force bonus every spin
         //     await this.triggerBonusRound();
         // }
-        this.setActiveGroupVariants('low_troop', 2);
-        this.setActiveGroupVariants('low_resource', 2);
+        this.setActiveGroupVariants('low_troop', 3);
+        this.setActiveGroupVariants('low_resource', 3);
         const result = await super.spin();
 
-        if (this.config.symbols.some(s => s.name == "treasure")) this.grid.flat().filter(id => id === this.config.symbols.find(s => s.name === 'treasure').id).length >= 3 && await this.triggerMinesBonusRound();
+        if (this.config.symbols.some(s => s.name == "townhall")) {
+            this.grid.flat().filter(id => id === this.config.symbols.find(s => s.name === 'townhall')).forEach(async (symbol) => console.log(symbol))// await this.triggerTownHallBonus(symbol))
+        }
+        if (this.config.symbols.some(s => s.name == "treasure")) {
+            this.grid.flat().filter(id => id === this.config.symbols.find(s => s.name === 'treasure').id).length >= 3 && await this.triggerMinesBonusRound();
+        }
 
 
         return { grid: this.grid, totalWin: this.globalMultiplier };
@@ -314,6 +345,7 @@ export default class ClashOfReels extends SlotsBase {
 
                 // --- 3. CALCULATE PAYOUTS ---
                 rawClusters.forEach(cluster => {
+                    console.log("a raw cluster", cluster)
                     const symbolId = cluster[0].value;
                     const config = this.config.symbols[symbolId];
                     const count = cluster.length;
@@ -437,7 +469,7 @@ export default class ClashOfReels extends SlotsBase {
                 // Flash white and scale up
                 const tl = gsap.timeline({ onComplete: resolve });
                 tl.to(sprite.scale, { x: sprite.scale.x * 1.2, y: sprite.scale.y * 1.2, duration: 0.1, yoyo: true, repeat: 3 })
-                    .to(sprite, { pixi: { tint: 0xFFD700 }, duration: 0.1, yoyo: true, repeat: 3 }, "<");
+                //.to(sprite, { pixi: { tint: 0xFFD700 }, duration: 0.1, yoyo: true, repeat: 3 }, "<");
             }
             else if (effect === "VIDEO_PLAY") {
                 // We find the symbol ID attached to the sprite to get the name
@@ -509,26 +541,31 @@ export default class ClashOfReels extends SlotsBase {
     }
 
     handleSymbolExplode(effect, sprite, index) {
-        if (effect === "PARTICLES_GOLD") {
-            const ghost = this.reels[index].spawnGhost(sprite)
-            gsap.to(ghost.scale, { x: 0, y: 0, duration: 0.4 });
-            gsap.to(ghost, {
-                rotation: 5, alpha: 0, duration: 0.4, onComplete: () => {
-                    ghost.destroy()
-                }
-            });
-        }
-        else if (effect === "builder_poof") {
-            gsap.to(ghost, {
-                alpha: 0,
-                y: ghost.y - 50,
-                duration: 0.5,
-                onComplete: () => {
-                    ghost.destroy();
-                    resolve();
-                }
-            });
-        }
+        return new Promise(async (resolve) => {
+
+            if (effect === "PARTICLES_GOLD") {
+                const ghost = this.reels[index].spawnGhost(sprite)
+                gsap.to(ghost.scale, { x: 0, y: 0, duration: 0.4 });
+                gsap.to(ghost, {
+                    rotation: 5, alpha: 0, duration: 0.4, onComplete: () => {
+                        ghost.destroy()
+                        resolve()
+                    }
+                });
+            }
+            else if (effect === "builder_poof") {
+                const ghost = this.reels[index].spawnGhost(sprite)
+                gsap.to(ghost, {
+                    alpha: 0,
+                    y: ghost.y - 50,
+                    duration: 0.5,
+                    onComplete: () => {
+                        ghost.destroy();
+                        resolve();
+                    }
+                });
+            }
+        })
     }
     async triggerMinesBonusRound() {
         console.log("!!! ENTERING MINES BONUS !!!");
@@ -550,6 +587,7 @@ export default class ClashOfReels extends SlotsBase {
 
         await gsap.to(this.reelContainer, { alpha: 1, duration: 0.5 });
     }
+
     playBonusTransition() {
         return new Promise((resolve) => {
             // 1. Create the Container (Dark Overlay + Text)
@@ -612,22 +650,5 @@ export default class ClashOfReels extends SlotsBase {
             tl.to(text.scale, { x: 3, y: 3, duration: 0.3, ease: "power2.in" }, "exit");
             tl.to(overlay, { alpha: 0, duration: 0.3 }, "exit");
         });
-    }
-}
-
-
-function shuffle(array) {
-    let currentIndex = array.length;
-
-    // While there remain elements to shuffle...
-    while (currentIndex != 0) {
-
-        // Pick a remaining element...
-        let randomIndex = Math.floor(Math.random() * currentIndex);
-        currentIndex--;
-
-        // And swap it with the current element.
-        [array[currentIndex], array[randomIndex]] = [
-            array[randomIndex], array[currentIndex]];
     }
 }

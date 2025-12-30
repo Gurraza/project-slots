@@ -75,8 +75,10 @@ export default class SlotsBase {
         this.onMultiplierChange(this.globalMultiplier); // Visual update hook
 
         const timeline = this.calculateMoves();
+
         console.log("PREDICTED GAME FLOW:", timeline);
         console.log("PREDICTED PAYOUT:", timeline.findLast(item => item.type == "CASCADE")?.totalWin || 0);
+
         this.grid = timeline[0].grid;
         await this.startSpin();
 
@@ -384,19 +386,6 @@ export default class SlotsBase {
         return rawClusters
     }
 
-    ggenerateRandomResult() {
-        const tempGrid = Array.from({ length: this.config.cols }, () => []);
-
-        for (let col = 0; col < this.config.cols; col++) {
-            for (let row = 0; row < this.config.rows; row++) {
-                // We pass 'tempGrid' (even if incomplete) to handle dynamic weights if needed
-                const id = this.getRandomSymbolId({ firstSpin: true, gridToCheck: tempGrid, colIndex: col });
-                tempGrid[col].push(id);
-            }
-        }
-        return tempGrid;
-    }
-
     generateRandomResult() {
         // 1. Initialize an empty grid structure (Col x Row) filled with null/undefined
         const tempGrid = Array.from({ length: this.config.cols }, () =>
@@ -662,6 +651,7 @@ export default class SlotsBase {
         const targetId = this.config.symbols.find(s => s.name === name).id;
         return grid.flat().includes(targetId);
     }
+
     async playSymbolVideo(targetSprite, videoAlias) {
         return new Promise((resolve) => {
             if (!Assets.get(videoAlias)) {
@@ -673,6 +663,7 @@ export default class SlotsBase {
             const videoTexture = Assets.get(videoAlias);
             const videoSource = videoTexture.source;
             const videoElement = videoSource.resource;
+            videoElement.playbackRate = this.config.symbols[targetSprite.symbolId].playbackRate || 1
 
             if (videoTexture.width === 0 || videoTexture.height === 0) {
                 const onLoaded = () => {
@@ -774,7 +765,7 @@ export default class SlotsBase {
             const symbolConfig = this.config.symbols.find(s => s.id === targetSprite.symbolId);
             const baseConfigScale = symbolConfig ? symbolConfig.scale : 1;
             const ratioY = this.config.symbolHeight / videoTexture.height;
-            const finalScale = ratioY * baseConfigScale * 1.1;
+            const finalScale = ratioY * baseConfigScale;
             videoSprite.scale.set(finalScale);
 
             this.stage.addChild(videoSprite);
