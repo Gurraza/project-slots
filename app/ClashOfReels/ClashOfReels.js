@@ -111,7 +111,7 @@ export default class ClashOfReels extends SlotsBase {
         while (true) {
             let actionOccurred = false;
 
-            const moves = this.simulateChangeSymbols(currentGrid, clanCastle.id);
+            const moves = this.simulateChangeSymbols(currentGrid, clanCastle.id, this.config.symbols.filter(s => s.group == "low_troop" || s.group == "low_resource"));
             if (moves && moves.length > 0) {
                 moves.forEach(move => {
                     if (currentGrid[move.x] && currentGrid[move.x][move.y] !== undefined) {

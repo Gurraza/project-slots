@@ -403,8 +403,10 @@ export default class SlotsBase {
 
     getRandomSymbolId({ firstSpin, gridToCheck = this.grid, selectFrom, colIndex } = {}) {
         let validSymbols = this.config.symbols
-        if (selectFrom) {
-            validSymbols = validSymbols.filter(s => selectFrom.includes(s))
+        if (selectFrom && selectFrom.length > 0) {
+            console.log(selectFrom)
+            console.log(validSymbols)
+            validSymbols = validSymbols.filter(s => selectFrom.some(ss => ss.id == s.id))
         }
         else if (!firstSpin) {
             validSymbols = validSymbols.filter(s => !s.onlyAppearOnRoll);
@@ -417,6 +419,9 @@ export default class SlotsBase {
             if (Array.isArray(symbol.weight)) {
                 const result = this.contain(symbol.id, gridToCheck)
                 const count = result ? result.length : 0
+                if (count >= symbol.weight.length) {
+                    return 0
+                }
                 return symbol.weight[Math.min(symbol.weight.length - 1, count)]
             }
             else {
@@ -555,12 +560,12 @@ export default class SlotsBase {
         return positions.length > 0 ? positions : false
     }
 
-    simulateChangeSymbols(grid, toWhatId) {
+    simulateChangeSymbols(grid, toWhatId, selectFrom = []) {
         const moves = [];
         const positions = this.contain(toWhatId, grid);
 
         if (positions) {
-            const newId = this.getRandomSymbolId({ firstSpin: false, gridToCheck: grid, selectFrom: this.config.symbols.slice(0, 4) });
+            const newId = this.getRandomSymbolId({ firstSpin: false, gridToCheck: grid, selectFrom: selectFrom });
             positions.forEach(pos => {
                 moves.push({
                     x: pos.x,

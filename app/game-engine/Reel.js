@@ -1,5 +1,8 @@
 import * as PIXI from 'pixi.js';
 import gsap from "gsap"
+import { PixiPlugin } from "gsap/PixiPlugin"; // 1. Import Plugin
+gsap.registerPlugin(PixiPlugin);
+PixiPlugin.registerPIXI(PIXI);
 
 export class Reel {
     constructor(app, index, config, game) {
@@ -31,8 +34,9 @@ export class Reel {
 
         this.blurFilter = new PIXI.BlurFilter();
         this.blurFilter.strength = 0;
-        this.blurFilter.blurX = 0; // Ensure no horizontal blur
-        this.blurFilter.blurY = 0;
+        this.blurFilter.strengthX = 0; // Ensure no horizontal blur
+        this.blurFilter.strengthY = 0;
+        this.blurFilter.resolution = this.app.renderer.resolution;
 
         // Apply the filter to the entire reel container
         this.container.filters = [this.blurFilter];
@@ -75,7 +79,7 @@ export class Reel {
 
         return new Promise((resolve) => {
             this.spinResolve = () => {
-                this.blurFilter.blurY = 0;
+                this.blurFilter.strengthY = 0;
                 this.anticipation()
                 resolve()
             }
@@ -111,21 +115,22 @@ export class Reel {
         // }
         if (this.state === 'IDLE') {
             // Ensure blur is off when idle
-            if (this.blurFilter.blurY !== 0) this.blurFilter.blurY = 0;
+            if (this.blurFilter.strengthY !== 0) this.blurFilter.strengthY = 0;
             return;
         }
         const blurAmount = Math.abs(this.speed) * (this.config.motionBlurStrength);
 
         // Apply purely vertical blur
-        this.blurFilter.blurY = blurAmount;
         const maxSpeed = this.config.spinSpeed;
         const accel = this.config.spinAcceleration;
 
         if (this.state === 'ACCELERATING') {
             // if (this.speed < maxSpeed) this.speed += accel * delta;
             // else this.state = 'SPINNING';
+            this.blurFilter.strengthY = blurAmount;
         }
         else if (this.state === 'LANDING') {
+            this.blurFilter.strengthY = blurAmount;
             const h = this.config.symbolHeight;
             const symbolY = this.symbols[0].y;
             const error = (symbolY - h / 2) % this.slotHeight;
@@ -142,7 +147,7 @@ export class Reel {
             if (targetSpeed < 2) targetSpeed = 2;
             this.speed = targetSpeed;
             if (distance < 4) {
-                this.blurFilter.blurY = 0; // Turn off blur explicitly on stop
+                this.blurFilter.strengthY = 0; // Turn off blur explicitly on stop
                 this.speed = 0;
                 this.realignOnGrid();
                 this.state = 'IDLE';
@@ -193,6 +198,7 @@ export class Reel {
         }
 
         if (this.state !== 'CASCADING' && this.state !== 'IDLE') {
+            this.blurFilter.strengthY = blurAmount;
             // 3. Infinite Loop Logic (The "Treadmill")
             const totalH = this.slotHeight * this.symbols.length;
             const viewBottom = (this.config.rows + 1) * this.slotHeight;
@@ -517,7 +523,7 @@ export class Reel {
                     reel.symbols.forEach(symbol => {
                         if (this.config.symbols[symbol.symbolId].anticipation) {
                             // A. Make it bright (remove any previous tint)
-                            symbol.tint = 0xFFFFFF;
+                            // symbol.tint = 0xFFFFFF;
 
                             // B. Handle Expansion Animation
                             // First, kill any existing animations on the scale to prevent conflicts
@@ -543,7 +549,18 @@ export class Reel {
 
                         } else {
                             // 2. Not the target? Darken it.
-                            symbol.tint = 0x555555; // Dark Grey
+                            // symbol.tint = 0x555555; // Dark Grey
+
+                            // gsap.to(symbol, {
+                            //     tint: 0x555555,
+                            //     duration: 0.3,
+                            //     ease: "power2.out"
+                            // });
+                            gsap.to(symbol, {
+                                pixi: { tint: 0x555555 }, // Use the 'pixi' wrapper
+                                duration: 0.3,
+                                ease: "power2.out"
+                            });
 
                             // Ensure no residual animations are running on non-targets
                             gsap.killTweensOf(symbol.scale);
