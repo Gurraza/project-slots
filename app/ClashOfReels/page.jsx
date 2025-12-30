@@ -1,5 +1,5 @@
 'use client';
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import PixiCanvas from '../components/PixiCanvas';
 import ClashOfReels from './ClashOfReels';
 
@@ -7,14 +7,35 @@ export default function CasinoPage() {
     const [gameState, setGameState] = useState({ status: 'IDLE' });
     const [layout, setLayout] = useState(null); // Stores the position/scale of the game
     const gameRef = useRef(null);
+    const [winAmount, setWinAmount] = useState(0);
     const [isSpinning, setIsSpinning] = useState(false);
+    const fadeTimerRef = useRef(null)
+    const [showWin, setShowWin] = useState(false)
+
     const handleSpin = async () => {
         setIsSpinning(true);
         if (gameRef.current && gameRef.current.startSpin) {
-            await gameRef.current.spin();
-            setIsSpinning(false)
+            setWinAmount(0);
+            const result = await gameRef.current.spin();
+            // 3. Update UI with the final win
+            // Adjust 'result.totalWin' depending on exactly what your class returns
+            if (result && typeof result.totalWin === 'number' && result.totalWin > 0) {
+                setWinAmount(result.totalWin);
+                setShowWin(true)
+                fadeTimerRef.current = setTimeout(() => {
+                    setShowWin(false)
+                }, 5000);
+            }
+
+            setIsSpinning(false);
         }
     };
+
+    useEffect(() => {
+        return () => {
+            if (fadeTimerRef.current) clearTimeout(fadeTimerRef.current);
+        };
+    }, []);
 
     return (
         <div className="flex flex-col items-center relative justify-center min-h-screen bg-black">
@@ -79,9 +100,22 @@ export default function CasinoPage() {
                                 </svg>
                             </button>
 
-                            {/* Example: Top Left Logo/Text */}
-                            <div className="absolute top-5 left-5 text-white font-mono text-xl bg-black/50 p-2 rounded">
-                                BALANCE: $1,000
+                            {/* Top Left Stats Container */}
+                            <div className="absolute top-5 left-5 flex flex-col gap-2 items-start">
+
+                                {/* Balance Display */}
+                                <div className="text-white font-mono text-xl bg-black/50 p-2 rounded min-w-[200px]">
+                                    BALANCE: $1,000
+                                </div>
+
+                                {/* Won Display (Only shows if winAmount >= 0, or always distinct) */}
+                                <div className={"text-white font-mono text-xl bg-black/50 p-2 rounded min-w-[200px] flex transition-opacity justify-between " + (showWin ? " opacity-100" : " opacity-0")}>
+                                    <span>WON:</span>
+                                    <span className={winAmount > 0 ? "text-green-400" : "text-white"}>
+                                        ${winAmount.toFixed(2)}
+                                    </span>
+                                </div>
+
                             </div>
                         </div>
                     </div>

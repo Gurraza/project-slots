@@ -33,7 +33,7 @@ export default class SlotsBase {
         this.reels = [];
         this.state = 'IDLE';
         this.timeSinceStart = 0;
-        console.log(this.config)
+        console.log("CONFIG", this.config)
         this.config.symbols = this.config.symbols.map((symbol, index) => {
             const fixedSymbol = symbol
             fixedSymbol.id = index
@@ -47,7 +47,7 @@ export default class SlotsBase {
             }
             else return fixedSymbol
         });
-        console.log(this.config.symbols)
+        console.log("SYMBOLS", this.config.symbols)
 
         // Group for the reels to center them easily
         this.reelContainer = new Container();
@@ -71,9 +71,12 @@ export default class SlotsBase {
         if (this.processing) return;
         this.processing = true;
 
+        this.globalMultiplier = 0; // Reset multiplier on new spin
+        this.onMultiplierChange(this.globalMultiplier); // Visual update hook
+
         const timeline = this.calculateMoves();
         console.log("PREDICTED GAME FLOW:", timeline);
-
+        console.log("PREDICTED PAYOUT:", timeline.findLast(item => item.type == "CASCADE")?.totalWin || 0);
         this.grid = timeline[0].grid;
         await this.startSpin();
 
@@ -92,7 +95,7 @@ export default class SlotsBase {
             }
         }
         this.processing = false;
-        return this.grid
+        return { grid: this.grid, timeline: timeline }
     }
 
     // Virtual Method: Defaults to resolve immediately
@@ -333,7 +336,7 @@ export default class SlotsBase {
                     const symbolId = grid[x][y];
                     const symbolConfig = this.config.symbols.find(s => s.id === symbolId);
 
-                    if (symbolConfig && symbolConfig.dontCluster) {
+                    if (symbolConfig && symbolConfig.dontCluster && !(symbolConfig && symbolConfig.clusterSize === 1)) {
                         visited[x][y] = true;
                         continue;
                     }
@@ -363,14 +366,15 @@ export default class SlotsBase {
         // const rawClusters = clusters.filter(i => i.length >= this.config.clusterSize);
 
         // Convert to array of columns containing rows to explode
-        const formattedClusters = Array.from({ length: cols }, () => []);
-        rawClusters.flat().forEach(({ x, y }) => {
-            // x is Column Index, y is Row Index
-            formattedClusters[x].push(y);
-        });
+        // const formattedClusters = Array.from({ length: cols }, () => []);
+        // rawClusters.flat().forEach(({ x, y }) => {
+        //     // x is Column Index, y is Row Index
+        //     formattedClusters[x].push(y);
+        // });
 
-        if (formattedClusters.every(arr => arr.length === 0)) return [];
-        return formattedClusters;
+        // if (formattedClusters.every(arr => arr.length === 0)) return [];
+        // return formattedClusters;
+        return rawClusters
     }
 
     ggenerateRandomResult() {
@@ -632,7 +636,6 @@ export default class SlotsBase {
         for (let col = 0; col < this.config.cols; col++) {
             if (clusters[col] && clusters[col].length > 0) {
                 // Tell the specific reel to play 'onMatch' for specific rows
-                console.log(clusters)
                 promises.push(this.reels[col].playMatchEffects(clusters[col]));
             }
         }
@@ -645,5 +648,11 @@ export default class SlotsBase {
             x: this.reels[col].container.x + (this.config.symbolWidth / 2),
             y: (row * (this.config.symbolHeight + this.config.gapY)) + (this.config.symbolHeight / 2)
         };
+    }
+
+    // Helper to check grid without looping manually every time
+    gridContainsSymbol(grid, name) {
+        const targetId = this.config.symbols.find(s => s.name === name).id;
+        return grid.flat().includes(targetId);
     }
 }

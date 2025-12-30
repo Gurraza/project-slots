@@ -1,23 +1,75 @@
 import SlotsBase from '../game-engine/SlotsBase';
 import gsap from "gsap"
-import { Assets, Sprite, Graphics } from "pixi.js"
-
+import { Assets, Sprite, Graphics, Text, Container } from "pixi.js"
+import { MinesGame } from './MinesGame'; // Import the new game
 const SYMBOLS = [
-    { weight: 50, name: 'troop_barbarian', group: "low_troop", scale: .9, path: "troops_icons/barbarian.png" },
-    { weight: 50, name: 'troop_archer', group: "low_troop", scale: .9, path: "troops_icons/archer.png" },
-    { weight: 50, name: 'troop_goblin', group: "low_troop", scale: .9, path: "troops_icons/goblin.png" },
-
-    { weight: 35, name: 'troop_wizard', scale: .9, path: "troops_icons/wizard.png" },
-    { weight: 0, name: 'troop_wallbreaker', scale: .9, path: "troops_icons/wallbreaker.png" },
-
-    { weight: 100, name: 'resource_gold', group: "low_resource", scale: 4, path: "resource/gold.png" },
-    { weight: 100, name: 'resource_elixir', group: "low_resource", scale: 4, path: "resource/elixir.png" },
-    { weight: 100, name: 'resource_darkelixir', group: "low_resource", scale: 4, path: "resource/dark_elixir.png" },
-
     {
-        weight: 70,
+        name: 'troop_barbarian',
+        weight: 50,
+        group: "low_troop",
+        scale: .9,
+        payouts: { 4: 0.2, 5: 0.5, 6: 1.0, 7: 1.5, 8: 2.5, 9: 5.0, 10: 6, 11: 10, 7: 15 },
+        path: "troops_icons/barbarian.png"
+    },
+    {
+        name: 'troop_archer',
+        weight: 50,
+        group: "low_troop",
+        scale: .9,
+        payouts: { 4: 0.2, 5: 0.5, 6: 1.0, 7: 1.5, 8: 2.5, 9: 5.0, 10: 6, 11: 10, 7: 15 },
+        path: "troops_icons/archer.png"
+    },
+    {
+        name: 'troop_goblin',
+        weight: 50,
+        group: "low_troop",
+        scale: .9,
+        payouts: { 4: 0.2, 5: 0.5, 6: 1.0, 7: 1.5, 8: 2.5, 9: 5.0, 10: 6, 11: 10, 7: 15 },
+        path: "troops_icons/goblin.png"
+    },
+    {
+        name: 'troop_wizard',
+        weight: 35,
+        scale: .9,
+        payouts: { 4: 0.2, 5: 0.5, 6: 1.0, 7: 1.5, 8: 2.5, 9: 5.0, 10: 6, 11: 10, 7: 15 },
+        path: "troops_icons/wizard.png"
+    },
+    {
+        name: 'troop_wallbreaker',
+        weight: 0,
+        scale: .9,
+        payouts: { 4: 0.2, 5: 0.5, 6: 1.0, 7: 1.5, 8: 2.5, 9: 5.0, 10: 6, 11: 10, 7: 15 },
+        path: "troops_icons/wallbreaker.png"
+    },
+    {
+        weight: 100,
+        name: 'resource_gold',
+        group: "low_resource",
+        scale: 4,
+        payouts: { 4: 0.2, 5: 0.5, 6: 1.0, 7: 1.5, 8: 2.5, 9: 5.0, 10: 6, 11: 10, 7: 15 },
+        path: "resource/gold.png"
+    },
+    {
+        name: 'resource_elixir',
+        weight: 100,
+        group: "low_resource",
+        scale: 4,
+        payouts: { 4: 0.2, 5: 0.5, 6: 1.0, 7: 1.5, 8: 2.5, 9: 5.0, 10: 6, 11: 10, 7: 15 },
+        path: "resource/elixir.png"
+    },
+    {
+        name: 'resource_darkelixir',
+        weight: 100,
+        group: "low_resource",
+        scale: 4,
+        payouts: { 4: 0.2, 5: 0.5, 6: 1.0, 7: 1.5, 8: 2.5, 9: 5.0, 10: 6, 11: 10, 7: 15 },
+        path: "resource/dark_elixir.png"
+    },
+    {
         name: 'resource_gem',
+        weight: 70,
         scale: .8,
+        payouts: { 4: 0.2, 5: 0.5, 6: 1.0, 7: 1.5, 8: 2.5, 9: 5.0, 10: 6, 11: 10, 7: 15 },
         path: "resource/gem.png",
     },
 
@@ -40,6 +92,7 @@ const builder = {
     matchEffect: "builder_match",
     explodingEffect: "builder_poof",
     clusterSize: 1,
+    dontCluster: true,
     prio: true,
 }
 
@@ -48,6 +101,7 @@ const warden = {
     scale: 1,
     path: "Warden.png",
     weight: [5],
+    dontCluster: true,
     onlyAppearOnRoll: true,
     matchEffect: "PULSE_GOLD",
     // explodingEffect: "warden_poof",
@@ -59,6 +113,8 @@ const TownHallSymbol = {
     weight: [5, 4, 1],
     scale: 0.8,
     onlyAppearOnRoll: true,
+    dontCluster: true,
+
     textureAtLevel: [
         "/games/ClashOfReels/TH/Building_HV_Town_Hall_level_1.png",
         "/games/ClashOfReels/TH/Building_HV_Town_Hall_level_2.png",
@@ -78,7 +134,7 @@ const TownHallSymbol = {
 }
 const treasureSymbol = {
     name: "treasure",
-    weight: [5, 4, 1],
+    weight: [100, 100, 100],
     scale: 1.4,
     onlyAppearOnRoll: true,
     path: "Treasury.png",
@@ -87,6 +143,7 @@ const treasureSymbol = {
         count: 15,
     },
     onePerReel: true,
+    dontCluster: true,
 }
 
 SYMBOLS.push(TownHallSymbol)
@@ -128,41 +185,109 @@ export default class ClashOfReels extends SlotsBase {
             defaultLandingEffect: "HEAVY_LAND",
             defaultMatchEffect: "PULSE_GOLD",
             defaultExplodeEffect: "PARTICLES_GOLD",
-            extraAssets: [{ name: "hammer", path: "Hammer.png" }]
+            extraAssets: [
+                { name: "hammer", path: "Hammer.png" },
+                { name: "grass", path: "grass.png" },
+                { name: "mines_backgroundImage", path: "grass5b5.png" },
+                { name: "bomb", path: "bomb.png" },
+            ],
         };
-
         super(rootContainer, app, myConfig);
+        this.minesBonus = new MinesGame(this.stage, app, {
+            textureHidden: { texture: "grass", scale: .3 },
+            backgroundImage: { texture: "mines_backgroundImage", scale: 1 },
+            textureBomb: { texture: "bomb", scale: .6 },
+            textureGem: { texture: "resource_gem", scale: .6 },
+            cols: 5,
+            rows: 5,
+            bombsCount: 5
+        });
         this.init()
+        this.createUI(); // Create the multiplier text
+    }
+
+    createUI() {
+        this.multiplierText = new Text({
+            text: "0",
+            style: {
+                fontFamily: "cocFont",
+                fontSize: 50,
+                fill: "gold",
+                stroke: { color: "black", width: 4 }, // Updated v8 syntax
+                dropShadow: true
+            }
+        });
+        this.multiplierText.visible = false
+        this.multiplierText.anchor.set(0.5);
+        this.multiplierText.x = 1100; // Right side of screen
+        this.multiplierText.y = 100;
+        this.stage.addChild(this.multiplierText);
+    }
+
+    // Override the hook from SlotsBase
+    onMultiplierChange(newVal) {
+        if (!this.multiplierText) return;
+        if (newVal === 0) {
+            this.multiplierText.visible = false
+        }
+        else {
+            this.multiplierText.visible = true
+        }
+        // Animate the change
+        const formattedVal = Number(newVal).toFixed(2);
+
+        // Animate the change
+        this.multiplierText.text = `x${formattedVal}`;
+
+        // Pop effect
+        gsap.fromTo(this.multiplierText.scale,
+            { x: 1.5, y: 1.5 },
+            { x: 1, y: 1, duration: 0.5, ease: "elastic.out(1, 0.3)" }
+        );
+    }
+
+    // Update your spin loop to read the timeline data
+    async onCascadeEvent(event) {
+        // If we calculated a win for this specific cascade step
+        if (event.stepWin > 0) {
+            this.globalMultiplier = event.totalWin
+            this.onMultiplierChange(this.globalMultiplier);
+            // TODO: Trigger a "Win Text" animation here
+            // e.g. this.showFloatingText(event.stepWin);
+        }
+
+        // ... existing warden logic ...
     }
 
     async spin() {
+        // if (true) { // Change to 'true' to force bonus every spin
+        //     await this.triggerBonusRound();
+        // }
         this.setActiveGroupVariants('low_troop', 2);
         this.setActiveGroupVariants('low_resource', 2);
-        return super.spin();
-    }
+        const result = await super.spin();
 
-    // 1. OVERRIDE THE HOOK
-    async onCascadeEvent(event) {
-        // Check if our calculation logic passed any Warden Data
-        if (event.wardenData) {
-            // await this.animateWardenBeams(event.wardenData);
+        if (this.config.symbols.some(s => s.name == "treasure")) this.grid.flat().filter(id => id === this.config.symbols.find(s => s.name === 'treasure').id).length >= 3 && await this.triggerMinesBonusRound();
 
-            // OPTIONAL: Do something with the targets now that beams hit
-            // event.wardenData.targets.forEach(target => { ... })
-        }
+
+        return { grid: this.grid, totalWin: this.globalMultiplier };
     }
 
     calculateMoves() {
         const timeline = [];
         let currentGrid = this.generateRandomResult();
+        let totalWin = 0; // Track total win for this spin
+
+        // ... timeline initialization ...
         timeline.push({
             type: 'SPIN_START',
-            grid: JSON.parse(JSON.stringify(currentGrid)) // Deep copy
+            grid: JSON.parse(JSON.stringify(currentGrid))
         });
 
         while (true) {
             let actionOccurred = false;
 
+            // --- 1. TRANSFORMS (Clan Castle / Mystery Symbols) ---
             const moves = this.simulateChangeSymbols(currentGrid, clanCastle.id, this.config.symbols.filter(s => s.group == "low_troop"));
             if (moves && moves.length > 0) {
                 moves.forEach(move => {
@@ -179,86 +304,97 @@ export default class ClashOfReels extends SlotsBase {
                 actionOccurred = true;
             }
 
+            // --- 2. CLUSTER SEARCH ---
+            // Because Warden has clusterSize: 1, he will trigger this block even if alone
+            const rawClusters = this.findClusters(currentGrid);
 
-            const clusters = this.findClusters(currentGrid);
-            const hasClusters = clusters && clusters.some(col => col.length > 0);
-            if (hasClusters) {
-                let clustersToProcess = clusters;
-                let wardenData = undefined
-                const priorityClusters = clusters.map(() => []);
-                let foundPrioritySymbol = false;
+            if (rawClusters.length > 0) {
+                let stepWin = 0;
 
-                for (let colIndex = 0; colIndex < clusters.length; colIndex++) {
-                    const col = clusters[colIndex];
-                    if (!col || col.length === 0) continue;
+                // --- 3. CALCULATE PAYOUTS ---
+                rawClusters.forEach(cluster => {
+                    const symbolId = cluster[0].value;
+                    const config = this.config.symbols[symbolId];
+                    const count = cluster.length;
 
-                    for (const rowIndex of col) {
-                        const symbolId = currentGrid[colIndex][rowIndex];
-                        const symbolDef = this.config.symbols[symbolId];
-
-                        if (symbolDef && symbolDef.prio === true) {
-                            foundPrioritySymbol = true;
-                            priorityClusters[colIndex].push(rowIndex);
+                    if (config.payouts) {
+                        let payout = config.payouts[count];
+                        if (payout === undefined) {
+                            const maxKey = Math.max(...Object.keys(config.payouts).map(Number));
+                            if (count > maxKey) payout = config.payouts[maxKey];
                         }
+                        if (payout) stepWin += payout;
+                    }
+                });
+                totalWin += stepWin;
 
-                        if (symbolId === warden.id) {
-                            // Source: Visual Coordinate (Flipped because Row 0 is Bottom)
-                            const activeWardenPos = { x: colIndex, y: this.config.rows - rowIndex - 1 };
+                // --- 4. PREPARE EXPLOSIONS (Standard) ---
+                // Convert raw clusters into the [Col][Row] format for the engine
+                const clustersToProcess = Array.from({ length: this.config.cols }, () => []);
+                rawClusters.flat().forEach(({ x, y }) => {
+                    if (!clustersToProcess[x].includes(y)) {
+                        clustersToProcess[x].push(y);
+                    }
+                });
+
+                // --- 5. WARDEN LOGIC (The "Search & Destroy" Add-on) ---
+                let wardenData = undefined;
+                const wardenId = this.config.symbols.find(s => s.name === 'warden').id;
+
+                // Scan grid to see if Warden is present
+                for (let c = 0; c < this.config.cols; c++) {
+                    for (let r = 0; r < this.config.rows; r++) {
+
+                        if (currentGrid[c][r] === wardenId) {
+                            // A. Setup Warden Position
+                            // Note: Visual Y is flipped relative to Grid Y
+                            const activeWardenPos = { x: c, y: this.config.rows - r - 1 };
                             const targets = [];
+                            const resourceCandidates = {};
 
-                            // 1. Map all "low_resource" symbols currently on the grid
-                            const resourceCandidates = {}; // Object to group coords by Symbol ID
+                            // B. Find Potential Targets (Low Resources)
+                            for (let tc = 0; tc < this.config.cols; tc++) {
+                                for (let tr = 0; tr < this.config.rows; tr++) {
+                                    if (tc === c && tr === r) continue; // Don't target self
 
-                            for (let c = 0; c < this.config.cols; c++) {
-                                for (let r = 0; r < this.config.rows; r++) {
-                                    // Skip the Warden himself (logic safety)
-                                    if (c === colIndex && r === rowIndex) continue;
+                                    const tId = currentGrid[tc][tr];
+                                    const tDef = this.config.symbols[tId];
 
-                                    const sId = currentGrid[c][r];
-                                    const sDef = this.config.symbols[sId];
-
-                                    // Check if this symbol belongs to the target group
-                                    if (sDef && sDef.group === "low_resource") {
-                                        if (!resourceCandidates[sId]) {
-                                            resourceCandidates[sId] = [];
-                                        }
-                                        // Store DATA coordinates (0 is bottom)
-                                        resourceCandidates[sId].push({ x: c, y: r });
+                                    if (tDef && tDef.group === "low_resource") {
+                                        if (!resourceCandidates[tId]) resourceCandidates[tId] = [];
+                                        resourceCandidates[tId].push({ x: tc, y: tr });
                                     }
                                 }
                             }
 
-                            // 2. Pick a random Symbol ID from those found
+                            // C. Pick One Resource Type to Destroy
                             const foundIds = Object.keys(resourceCandidates);
                             if (foundIds.length > 0) {
                                 const randomId = foundIds[Math.floor(Math.random() * foundIds.length)];
-                                // 3. Target ALL instances of that symbol
                                 targets.push(...resourceCandidates[randomId]);
                             }
 
-                            // 4. Create Animation Data (Convert Targets to VISUAL coordinates)
+                            // D. Create Animation Data for Frontend
                             wardenData = {
                                 source: activeWardenPos,
                                 targets: targets.map(t => ({
                                     x: t.x,
-                                    y: this.config.rows - 1 - t.y // Flip Y for Top-Down renderer
+                                    y: this.config.rows - 1 - t.y
                                 }))
-                            }
+                            };
 
-                            // 5. Add targets to Game Logic (Keep DATA coordinates)
+                            // E. ADD TARGETS TO EXPLOSION LIST
+                            // This ensures they disappear and trigger a cascade
                             targets.forEach(t => {
-                                if (!priorityClusters[t.x].includes(t.y)) {
-                                    priorityClusters[t.x].push(t.y);
+                                if (!clustersToProcess[t.x].includes(t.y)) {
+                                    clustersToProcess[t.x].push(t.y);
                                 }
                             });
-
                         }
                     }
                 }
-                if (foundPrioritySymbol) {
-                    clustersToProcess = priorityClusters;
-                }
 
+                // --- 6. CASCADE GENERATION ---
                 const replacements = this.generateReplacements(clustersToProcess, currentGrid);
                 currentGrid = this.simulateCascade(currentGrid, clustersToProcess, replacements);
 
@@ -267,7 +403,9 @@ export default class ClashOfReels extends SlotsBase {
                     clusters: clustersToProcess,
                     replacements: replacements,
                     grid: JSON.parse(JSON.stringify(currentGrid)),
-                    wardenData
+                    stepWin: stepWin,
+                    totalWin: totalWin,
+                    wardenData: wardenData // <--- Pass the data here
                 });
                 actionOccurred = true;
             }
@@ -278,7 +416,6 @@ export default class ClashOfReels extends SlotsBase {
     }
 
     handleSymbolLand(effect, sprite) {
-        console.log(effect)
         gsap.killTweensOf(sprite.scale);
         const baseScaleX = sprite.scale.x;
         const baseScaleY = sprite.scale.y;
@@ -305,7 +442,6 @@ export default class ClashOfReels extends SlotsBase {
                 resolve()
             }
             else if (effect === "builder_match") {
-                console.log("builder_land")
                 const hammerTexture = Assets.get("hammer");
                 const hammer = new Sprite(hammerTexture);
 
@@ -369,13 +505,11 @@ export default class ClashOfReels extends SlotsBase {
             gsap.to(ghost.scale, { x: 0, y: 0, duration: 0.4 });
             gsap.to(ghost, {
                 rotation: 5, alpha: 0, duration: 0.4, onComplete: () => {
-                    console.log("destory?")
                     ghost.destroy()
                 }
             });
         }
         else if (effect === "builder_poof") {
-            console.log("builder_poof")
             gsap.to(ghost, {
                 alpha: 0,
                 y: ghost.y - 50,
@@ -386,9 +520,89 @@ export default class ClashOfReels extends SlotsBase {
                 }
             });
         }
-        else {
-            console.log("PLEASE2")
-        }
+    }
+    async triggerMinesBonusRound() {
+        console.log("!!! ENTERING MINES BONUS !!!");
+        await this.playBonusTransition();
+
+        await gsap.to(this.reelContainer, { alpha: 0.2, duration: 0.5 });
+
+        const totalTiles = this.minesBonus.config.cols * this.minesBonus.config.rows;
+        const bombCount = this.minesBonus.config.bombsCount || 5; // Default safety
+        const maxSafeMoves = totalTiles - bombCount;
+
+        // 2. Generate a random limit between 1 and maxSafeMoves (Inclusive)
+        // This determines "How many times can I click before the game forces a bomb?"
+        const randomLimit = Math.floor(Math.random() * maxSafeMoves);
+        const totalBonusWin = await this.minesBonus.play(1, randomLimit);
+        if (this.globalMultiplier == 0) this.globalMultiplier = totalBonusWin
+        this.onMultiplierChange(this.globalMultiplier); // Visual update hook
+
+
+        await gsap.to(this.reelContainer, { alpha: 1, duration: 0.5 });
+    }
+    playBonusTransition() {
+        return new Promise((resolve) => {
+            // 1. Create the Container (Dark Overlay + Text)
+            const overlay = new Container();
+            overlay.alpha = 0;
+            this.stage.addChild(overlay);
+
+            // Dark Background
+            const bg = new Graphics();
+            bg.rect(0, 0, this.config.width, this.config.height).fill({ color: 0x000000, alpha: 0.7 });
+            overlay.addChild(bg);
+
+            // "BONUS" Text
+            // Inside playBonusTransition()
+
+            const text = new Text({
+                text: "BONUS ROUND\nMINES",
+                style: {
+                    fontFamily: "Arial",
+                    fontSize: 120,
+                    fontWeight: "bold",
+                    fill: "#FFD700", // <--- CHANGE THIS (Use a single string, remove the array)
+                    stroke: { color: "#4a3c31", width: 8 },
+                    dropShadow: true,
+                    dropShadowColor: '#000000',
+                    dropShadowBlur: 10,
+                    dropShadowAngle: Math.PI / 6,
+                    dropShadowDistance: 6,
+                    align: "center"
+                }
+            });
+            text.anchor.set(0.5);
+            text.x = this.config.width / 2;
+            text.y = this.config.height / 2;
+            text.scale.set(0); // Start tiny
+            overlay.addChild(text);
+
+            // 2. Animate Sequence
+            const tl = gsap.timeline({
+                onComplete: () => {
+                    // Cleanup and Resume
+                    overlay.destroy({ children: true });
+                    resolve();
+                }
+            });
+
+            // Fade In Overlay
+            tl.to(overlay, { alpha: 1, duration: 0.3 });
+
+            // Pop Text In (Elastic bounce)
+            tl.to(text.scale, { x: 1, y: 1, duration: 0.8, ease: "elastic.out(1, 0.3)" }, "-=0.1");
+
+            // Pulse / Shake for excitement
+            tl.to(text.scale, { x: 1.1, y: 1.1, duration: 0.1, yoyo: true, repeat: 3 });
+
+            // Wait a moment for player to read it
+            tl.to(text, { duration: 0.5 });
+
+            // Zoom Out / Fade Away
+            tl.to(text.scale, { x: 3, y: 3, duration: 0.3, ease: "power2.in" }, "exit");
+            tl.to(overlay, { alpha: 0, duration: 0.3 }, "exit");
+        });
     }
 }
 
