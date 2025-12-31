@@ -78,7 +78,7 @@ const SYMBOLS = [
 
 const wildCard = {
     name: "wild",
-    weight: 500,
+    weight: 150,
     scale: 1,
     path: "super_icon.png",
     matchesWith: ["*"],
@@ -141,7 +141,8 @@ const townHallSymbols = [
         weight: 10,
         scale: 0.8,
         dontCluster: true,
-        path: `TH/${fileName}`
+        path: `TH/${fileName}`,
+        multiplier: index + 1
     };
 });
 
@@ -253,6 +254,7 @@ export default class ClashOfReels extends SlotsBase {
                 { name: "mines_backgroundImage", path: "grass5b5.png" },
                 { name: "bomb", path: "bomb.png" },
             ],
+            font: "cocFont",
         };
         super(rootContainer, app, myConfig);
         this.minesBonus = new MinesGame(this.stage, app, {
@@ -266,47 +268,6 @@ export default class ClashOfReels extends SlotsBase {
         });
 
         this.init()
-        this.createUI(); // Create the multiplier text
-    }
-
-    createUI() {
-        this.multiplierText = new Text({
-            text: "0",
-            style: {
-                fontFamily: "cocFont",
-                fontSize: 50,
-                fill: "gold",
-                stroke: { color: "black", width: 4 }, // Updated v8 syntax
-                dropShadow: true
-            }
-        });
-        this.multiplierText.visible = false
-        this.multiplierText.anchor.set(0.5);
-        this.multiplierText.x = 1100; // Right side of screen
-        this.multiplierText.y = 100;
-        this.stage.addChild(this.multiplierText);
-    }
-
-    // Override the hook from SlotsBase
-    onMultiplierChange(newVal) {
-        if (!this.multiplierText) return;
-        if (newVal === 0) {
-            this.multiplierText.visible = false
-        }
-        else {
-            this.multiplierText.visible = true
-        }
-        // Animate the change
-        const formattedVal = Number(newVal).toFixed(2);
-
-        // Animate the change
-        this.multiplierText.text = `x${formattedVal}`;
-
-        // Pop effect
-        gsap.fromTo(this.multiplierText.scale,
-            { x: 1.5, y: 1.5 },
-            { x: 1, y: 1, duration: 0.5, ease: "elastic.out(1, 0.3)" }
-        );
     }
 
     // Update your spin loop to read the timeline data
@@ -321,9 +282,100 @@ export default class ClashOfReels extends SlotsBase {
         if (event.superAbility) {
             await this.triggerSuperAbility(event.superAbility);
         }
+
     }
 
+    async onCustomEvent(event) {
+        if (event.type === 'TOWNHALL_BONUS') {
 
+            // 1. Identify all Town Hall instances on the grid first
+            const targets = [];
+            for (let c = 0; c < this.config.cols; c++) {
+                this.reels[c].sort()
+                for (let r = 0; r < this.config.rows; r++) {
+                    const symbolId = event.grid[c][r];
+                    const symbolDef = this.config.symbols.find(s => s.id === symbolId);
+
+                    if (symbolDef && symbolDef.name.includes("townhall")) {
+                        // Ensure the sprite actually exists in the view
+                        if (this.reels[c] && this.reels[c].symbols[r]) {
+                            targets.push({
+                                sprite: this.reels[c].symbols[r],
+                                multiplier: symbolDef.multiplier // Use the specific multiplier for this TH level
+                            });
+                        }
+                    }
+                }
+            }
+
+            // 2. Iterate and animate them SEQUENTIALLY
+            // We use a for...of loop here because standard .forEach does not support await
+            for (const target of targets) {
+                const { sprite, multiplier } = target;
+                const globalPos = sprite.getGlobalPosition();
+
+                // --- A. WOBBLE ANIMATION (Visual only, runs parallel to text start) ---
+                const baseScale = sprite.scale.x;
+                gsap.timeline()
+                    .to(sprite.scale, { x: baseScale * 1.15, y: baseScale * 1.15, duration: 0.1 })
+                    .to(sprite.scale, { x: baseScale * 0.9, y: baseScale * 0.9, duration: 0.1 })
+                    .to(sprite.scale, { x: baseScale * 1.1, y: baseScale * 1.1, duration: 0.1 })
+                    .to(sprite.scale, { x: baseScale, y: baseScale, duration: 0.1, ease: "elastic.out(1, 0.3)" });
+
+                // --- B. FLYING TEXT ANIMATION ---
+                const bonusText = new Text({
+                    text: `+${multiplier}x`,
+                    style: {
+                        fontFamily: "cocFont",
+                        fontSize: 80,
+                        fontWeight: "bold",
+                        fill: "#FFD700",
+                        stroke: { color: "#000000", width: 6 },
+                        dropShadow: true,
+                        dropShadowBlur: 4,
+                        dropShadowDistance: 4,
+                    }
+                });
+
+                bonusText.anchor.set(0.5);
+                bonusText.position.set(globalPos.x, globalPos.y);
+                bonusText.scale.set(0);
+                this.stage.addChild(bonusText);
+
+                const destX = this.config.width - 100; // Top Right X
+                const destY = 80;                      // Top Right Y
+
+                // --- C. AWAIT COMPLETION ---
+                // The loop pauses here until this specific text flies and destroys itself
+                await new Promise(resolve => {
+                    const tl = gsap.timeline({
+                        onComplete: () => {
+                            bonusText.destroy();
+                            resolve(); // Signals the loop to continue to the next Town Hall
+                        }
+                    });
+
+                    // 1. Pop In
+                    tl.to(bonusText.scale, { x: 1, y: 1, duration: 0.3, ease: "back.out(1.7)" });
+
+                    // 2. Fly to corner
+                    tl.to(bonusText, {
+                        x: destX,
+                        y: destY,
+                        duration: 0.6,
+                        ease: "power2.inOut"
+                    }, ">0.1");
+
+                    // 3. Shrink/Fade at destination
+                    tl.to(bonusText.scale, { x: 0.5, y: 0.5, duration: 0.2 }, ">-0.15");
+                    tl.to(bonusText, { alpha: 0, duration: 0.2 }, "<");
+                });
+            }
+
+            // 3. Final Update (Only happens after all Town Halls are done)
+            this.setMultiplier(event.totalWin);
+        }
+    }
 
     async spin() {
         // if (true) { // Change to 'true' to force bonus every spin
@@ -333,10 +385,16 @@ export default class ClashOfReels extends SlotsBase {
         this.setActiveGroupVariants('low_resource', 3);
         const result = await super.spin();
 
-        if (this.config.symbols.some(s => s.name == "townhall")) {
+        if (this.config.symbols.some(s => s.name.includes("townhall")) && this.globalMultiplier > 0) {
+            let townHallMultipliers = 0
             this.config.symbols.forEach(symbol => {
-                console.log(this.contain(symbol.name.includes("townhall").id))
+                if (symbol.name.includes("townhall")) {
+                    townHallMultipliers += symbol.multiplier
+                }
             })
+
+            this.setMultiplier(this.globalMultiplier += this.globalMultiplier * townHallMultipliers); // Visual update hook
+
             // this.grid.flat().filter(id => id === this.config.symbols.find(s => s.name === 'townhall')).forEach(async (symbol) => console.log(symbol))// await this.triggerTownHallBonus(symbol))
         }
         if (this.config.symbols.some(s => s.name == "treasure")) {
@@ -389,6 +447,7 @@ export default class ClashOfReels extends SlotsBase {
                 timeline.push({
                     type: 'TRANSFORM',
                     changes: moves,
+
                     grid: JSON.parse(JSON.stringify(currentGrid))
                 });
                 actionOccurred = true;
@@ -520,7 +579,44 @@ export default class ClashOfReels extends SlotsBase {
 
             if (!actionOccurred) break;
         }
-        return timeline;
+
+        if (this.config.symbols.some(s => s.name.includes("townhall")) && timeline.some(a => a?.totalWin > 0)) {
+            let townHallMultipliers = 0;
+
+            // Calculate the total multiplier based on your existing logic
+            this.config.symbols.forEach(symbol => {
+                if (symbol.name.includes("townhall")) {
+                    townHallMultipliers += symbol.multiplier;
+                }
+            });
+
+            // 1. Get the current win amount from the last significant action
+            const lastAction = timeline.findLast(a => a?.totalWin > 0);
+            const currentTotalWin = lastAction ? lastAction.totalWin : 0;
+
+            // 2. Calculate the specific bonus amount
+            // Note: I am using currentTotalWin as the base. If you specifically need
+            // 'this.globalMultiplier', swap currentTotalWin for that.
+            const bonusAmount = currentTotalWin * townHallMultipliers;
+            const newTotalWin = currentTotalWin + bonusAmount;
+            totalWin = newTotalWin
+            // 3. Push a SEPARATE action to the timeline
+            timeline.push({
+                type: 'TOWNHALL_BONUS', // Unique identifier for the frontend
+                grid: JSON.parse(JSON.stringify(currentGrid)), // Maintain grid state
+                multiplier: townHallMultipliers,
+                bonusAmount: bonusAmount,
+                totalWin: newTotalWin
+            });
+        }
+        timeline.forEach((event, index) => {
+            if (event.totalWin === undefined) {
+                // If it's the first item, default to 0. 
+                // Otherwise, copy the value from the previous item.
+                event.totalWin = index === 0 ? 0 : timeline[index - 1].totalWin;
+            }
+        });
+        return timeline
     }
 
     handleSymbolLand(effect, sprite) {
@@ -656,8 +752,13 @@ export default class ClashOfReels extends SlotsBase {
         // This determines "How many times can I click before the game forces a bomb?"
         const randomLimit = Math.floor(Math.random() * maxSafeMoves);
         const totalBonusWin = await this.minesBonus.play(1, randomLimit);
-        if (this.globalMultiplier == 0) this.globalMultiplier = totalBonusWin
-        this.onMultiplierChange(this.globalMultiplier); // Visual update hook
+        if (this.globalMultiplier == 0) {
+            this.onMultiplierChange(totalBonusWin); // Visual update hook
+        }
+        else {
+            this.onMultiplierChange(this.globalMultiplier * totalBonusWin); // Visual update hook
+
+        }
 
 
         await gsap.to(this.reelContainer, { alpha: 1, duration: 0.5 });

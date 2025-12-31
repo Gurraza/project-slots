@@ -1,5 +1,6 @@
-import { Assets, Sprite, Container, Graphics, Filter, GlProgram } from 'pixi.js';
+import { Assets, Sprite, Container, Graphics, Filter, GlProgram, Text } from 'pixi.js';
 import { Reel } from './Reel';
+import gsap from "gsap"
 
 const DEFAULT_CONFIG = {
     width: 1280,
@@ -52,7 +53,7 @@ export default class SlotsBase {
         // Group for the reels to center them easily
         this.reelContainer = new Container();
         this.stage.addChild(this.reelContainer);
-
+        this.createUI()
         // if (config.backgroundImage) {
         //     Assets.add({ alias: 'background', src: config.backgroundImage });
 
@@ -71,13 +72,12 @@ export default class SlotsBase {
         if (this.processing) return;
         this.processing = true;
 
-        this.globalMultiplier = 0; // Reset multiplier on new spin
-        this.onMultiplierChange(this.globalMultiplier); // Visual update hook
+        this.setMultiplier(0); // Visual update hook
 
         const timeline = this.calculateMoves();
 
         console.log("PREDICTED GAME FLOW:", timeline);
-        console.log("PREDICTED PAYOUT:", timeline.findLast(item => item.type == "CASCADE")?.totalWin || 0);
+        console.log("PREDICTED PAYOUT:", timeline[timeline.length - 1].totalWin || 0);
 
         this.grid = timeline[0].grid;
         await this.startSpin();
@@ -95,18 +95,65 @@ export default class SlotsBase {
                 await this.explodeAndCascade(event.clusters, event.replacements);
 
                 if (event.totalWin > 0) {
-                    this.globalMultiplier = event.totalWin
-                    this.onMultiplierChange(this.globalMultiplier);
+                    this.setMultiplier(event.totalWin);
                 }
                 this.grid = event.grid;
+            }
+            else {
+                await this.onCustomEvent(event)
             }
         }
         this.processing = false;
         return { grid: this.grid, timeline: timeline }
     }
 
+
+    createUI() {
+        this.multiplierText = new Text({
+            text: "0",
+            style: {
+                fontFamily: this.config.font,
+                fontSize: 50,
+                fill: "gold",
+                stroke: { color: "black", width: 4 }, // Updated v8 syntax
+                dropShadow: true
+            }
+        });
+        this.multiplierText.visible = false
+        this.multiplierText.anchor.set(0.5);
+        this.multiplierText.x = 1100; // Right side of screen
+        this.multiplierText.y = 100;
+        this.stage.addChild(this.multiplierText);
+    }
+
+
+    // Override the hook from SlotsBase
+    setMultiplier(newVal) {
+        if (!this.multiplierText) return;
+        if (newVal === 0) {
+            this.multiplierText.visible = false
+        }
+        else {
+            this.multiplierText.visible = true
+        }
+        // Animate the change
+        const formattedVal = Number(newVal).toFixed(2);
+
+        // Animate the change
+        this.multiplierText.text = `x${formattedVal}`;
+
+        // Pop effect
+        gsap.fromTo(this.multiplierText.scale,
+            { x: 1.5, y: 1.5 },
+            { x: 1, y: 1, duration: 0.5, ease: "elastic.out(1, 0.3)" }
+        );
+    }
+
     // Virtual Method: Defaults to resolve immediately
     async onCascadeEvent(event) {
+        return Promise.resolve();
+    }
+    async onCustomEvent(event) {
         return Promise.resolve();
     }
 
