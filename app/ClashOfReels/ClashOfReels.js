@@ -30,6 +30,7 @@ const SYMBOLS = [
     {
         name: 'wizard',
         weight: 800,
+        group: "low_troop",
         scale: .9,
         payouts: { 4: 0.2, 5: 0.5, 6: 1.0, 7: 1.5, 8: 2.5, 9: 5.0, 10: 6, 11: 10, 7: 15 },
         path: "troops_icons/wizard.png"
@@ -78,7 +79,7 @@ const clanCastle = {
     name: "clancastle",
     // landingEffect: "HEAVY_DROP",
     dontCluster: true,
-    weight: 100,
+    weight: 200,
     scale: 1.5,
     path: "clanCastle.png"
 }
@@ -156,7 +157,7 @@ const townHallSymbols = [
 
 const treasureSymbol = {
     name: "treasure",
-    weight: [150, 50, 25],
+    weight: [150, 150, 25],
     scale: 1.4,
     onlyAppearOnRoll: true,
     path: "Treasury.png",
@@ -168,11 +169,59 @@ const treasureSymbol = {
     dontCluster: true,
 }
 
+const SUPER_SYMBOLS = [
+    {
+        name: 'super_barbarian',
+        matchesWith: 'barbarian', // Critical for clustering
+        isSuper: true,
+        weight: 0, // 0 weight because they only appear via Clan Castle
+        scale: .9,
+        payouts: { 3: 1.0, 4: 2.0, 5: 5.0 }, // Higher payouts?
+        path: "super/super_barbarian.png", // Ensure this exists or use placeholder
+        superAbility: "EXPLODE_NEIGHBORS",
+        multiplier: 2,
+    },
+    {
+        name: 'super_archer',
+        matchesWith: 'archer',
+        isSuper: true,
+        weight: 0,
+        scale: .9,
+        payouts: { 3: 1.0, 4: 2.0, 5: 5.0 },
+        path: "super/super_archer.png",
+        superAbility: "SHOOT_ARROWS",
+        multiplier: 2,
+    },
+    {
+        name: 'super_goblin',
+        matchesWith: 'goblin',
+        isSuper: true,
+        weight: 0,
+        scale: .9,
+        payouts: { 3: 1.0, 4: 2.0, 5: 5.0 },
+        path: "super/super_goblin.png",
+        superAbility: "EXPLODE_NEIGHBORS",
+        multiplier: 2,
+    },
+    {
+        name: 'super_wizard',
+        matchesWith: 'wizard',
+        isSuper: true,
+        weight: 0,
+        scale: .9,
+        payouts: { 3: 1.0, 4: 2.0, 5: 5.0 },
+        path: "super/super_wizard.png",
+        superAbility: "EXPLODE_NEIGHBORS",
+        multiplier: 2,
+    }
+];
+
 SYMBOLS.push(treasureSymbol)
 SYMBOLS.push(builder)
 SYMBOLS.push(clanCastle)
 SYMBOLS.push(warden)
 SYMBOLS.push(...townHallSymbols)
+SYMBOLS.push(...SUPER_SYMBOLS)
 
 export default class ClashOfReels extends SlotsBase {
 
@@ -212,11 +261,6 @@ export default class ClashOfReels extends SlotsBase {
                 { name: "grass", path: "grass.png" },
                 { name: "mines_backgroundImage", path: "grass5b5.png" },
                 { name: "bomb", path: "bomb.png" },
-
-                { name: "super_barbarian", path: "bomb.png" },
-                { name: "super_archer", path: "bomb.png" },
-                { name: "super_goblin", path: "bomb.png" },
-                { name: "super_wizard", path: "bomb.png" },
             ],
         };
         super(rootContainer, app, myConfig);
@@ -282,7 +326,13 @@ export default class ClashOfReels extends SlotsBase {
         if (event.wardenData) {
 
         }
+
+        if (event.superAbility) {
+            await this.triggerSuperAbility(event.superAbility);
+        }
     }
+
+
 
     async spin() {
         // if (true) { // Change to 'true' to force bonus every spin
@@ -317,14 +367,30 @@ export default class ClashOfReels extends SlotsBase {
         while (true) {
             let actionOccurred = false;
 
-            // --- 1. TRANSFORMS (Clan Castle / Mystery Symbols) ---
-            const moves = this.simulateChangeSymbols(currentGrid, clanCastle.id, this.config.symbols.filter(s => s.group == "low_troop"));
-            if (moves && moves.length > 0) {
-                moves.forEach(move => {
-                    if (currentGrid[move.x] && currentGrid[move.x][move.y] !== undefined) {
-                        currentGrid[move.x][move.y] = move.newId;
-                    }
+            // --- 1. Clan Castle Logic ---
+            const castlePositions = this.contain(clanCastle.id, currentGrid)
+
+            // const moves = this.simulateChangeSymbols(currentGrid, clanCastle.id, this.config.symbols.filter(s => s.group == "low_troop"));
+            if (castlePositions) {
+                const lowTroops = this.config.symbols.filter(s => s.group == "low_troop");
+                const randomBaseTroop = lowTroops[Math.floor(Math.random() * lowTroops.length)];
+                // 2. Find its SUPER version
+                const superVersion = this.config.symbols.find(s =>
+                    s.isSuper && s.matchesWith === randomBaseTroop.name
+                );
+                // Default to normal if super not found (safety)
+                const transformId = superVersion ? superVersion.id : randomBaseTroop.id;
+
+                const moves = [];
+                castlePositions.forEach(pos => {
+                    moves.push({ x: pos.x, y: pos.y, newId: transformId });
+                    currentGrid[pos.x][pos.y] = transformId;
                 });
+                // moves.forEach(move => {
+                //     if (currentGrid[move.x] && currentGrid[move.x][move.y] !== undefined) {
+                //         currentGrid[move.x][move.y] = move.newId;
+                //     }
+                // });
 
                 timeline.push({
                     type: 'TRANSFORM',
@@ -340,12 +406,12 @@ export default class ClashOfReels extends SlotsBase {
 
             if (rawClusters.length > 0) {
                 let stepWin = 0;
-
+                let superAbilityData = null; // To store ability info
                 // --- 3. CALCULATE PAYOUTS ---
-                rawClusters.forEach(cluster => { // {x: 2, y: 4, value: 6}
-                    console.log("a raw cluster", cluster)
-                    const symbolId = cluster[0].value;
-                    const config = this.config.symbols[symbolId];
+                rawClusters.forEach(cluster => { // [{x: 2, y: 4, value: 6}]
+                    const baseNode = cluster.find(node => !this.config.symbols[node.value].isSuper);
+                    const payoutId = baseNode ? baseNode.value : cluster[0].value;
+                    const config = this.config.symbols[payoutId];
                     const count = cluster.length;
 
                     if (config.payouts && !config.dontCluster) {
@@ -355,6 +421,23 @@ export default class ClashOfReels extends SlotsBase {
                             if (count > maxKey) payout = config.payouts[maxKey];
                         }
                         if (payout) stepWin += payout;
+                    }
+
+                    const superSymbol = cluster.find(node => this.config.symbols[node.value].isSuper);
+
+                    if (superSymbol) {
+                        const superConfig = this.config.symbols[superSymbol.value];
+                        console.log("SUPER TRIGGERED:", superConfig.name);
+
+                        // Define what happens here or store data for the frontend
+                        superAbilityData = {
+                            type: superConfig.superAbility, // e.g., "EXPLODE_NEIGHBORS"
+                            origin: { x: superSymbol.x, y: superSymbol.y },
+                            symbolName: superConfig.name
+                        };
+
+                        // Logic for ability (example: increase win multiplier)
+                        stepWin *= superConfig.multiplier
                     }
                 });
                 totalWin += stepWin;
@@ -405,8 +488,6 @@ export default class ClashOfReels extends SlotsBase {
                             }
 
                             totalWin += warden.payouts[targets.length]
-                            // C. Pick One Resource Type to Destroy
-                            // D. Create Animation Data for Frontend
                             wardenData = {
                                 source: activeWardenPos,
                                 targets: targets.map(t => ({
@@ -437,7 +518,8 @@ export default class ClashOfReels extends SlotsBase {
                     grid: JSON.parse(JSON.stringify(currentGrid)),
                     stepWin: stepWin,
                     totalWin: totalWin,
-                    wardenData: wardenData // <--- Pass the data here
+                    wardenData: wardenData,
+                    superAbility: superAbilityData,
                 });
                 actionOccurred = true;
             }
@@ -649,5 +731,40 @@ export default class ClashOfReels extends SlotsBase {
             tl.to(text.scale, { x: 3, y: 3, duration: 0.3, ease: "power2.in" }, "exit");
             tl.to(overlay, { alpha: 0, duration: 0.3 }, "exit");
         });
+    }
+
+    async triggerSuperAbility(data) {
+        const { type, origin, symbolName } = data;
+
+        if (type === "EXPLODE_NEIGHBORS") {
+            const duration = 0.5;   // Total time
+            const shakes = 15;      // How many rapid movements
+            const intensity = 5;    // Max pixel offset (Amplitutde)
+            const keyframes = [];
+
+            for (let i = 0; i < shakes; i++) {
+                const decay = 1 - (i / shakes);
+                const x = (Math.random() * intensity * 2 - intensity) * decay;
+                const y = (Math.random() * intensity * 2 - intensity) * decay;
+
+                keyframes.push({
+                    x: x,
+                    y: y,
+                    duration: duration / shakes
+                });
+            }
+
+            keyframes.push({ x: 0, y: 0, rotation: 0, duration: 0.1, ease: "power2.out" });
+            await new Promise(resolve => {
+                gsap.to(this.stage, {
+                    keyframes: keyframes,
+                    onComplete: resolve
+                });
+            });
+        }
+        else if (type === "SHOOT_ARROWS") {
+            console.log("Super Archer Logic Executing!");
+            // Spawn arrow sprites flying across screen
+        }
     }
 }

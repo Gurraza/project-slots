@@ -90,11 +90,11 @@ export default class SlotsBase {
                 await this.playTransformAnimation(event.changes);
             }
             else if (event.type === 'CASCADE') {
-                await this.onCascadeEvent(event);
                 await this.triggerMatchAnimations(event.clusters);
+                await this.onCascadeEvent(event);
                 await this.explodeAndCascade(event.clusters, event.replacements);
 
-                if (event.stepWin > 0) {
+                if (event.totalWin > 0) {
                     this.globalMultiplier = event.totalWin
                     this.onMultiplierChange(this.globalMultiplier);
                 }
@@ -303,6 +303,15 @@ export default class SlotsBase {
             if (reelHasSymbol) {
                 foundCount += this.grid[index].filter(id => id === symbol.id).length;
             }
+
+            // --- THIS IS THE PART THAT MAKES REEL.JS WORK ---
+            if (foundCount >= symbol.anticipation.after && index < this.config.cols - 1) {
+                reel.shouldTriggerAnticipation = true; // <--- The Flag
+                reel.anticipationSymbolId = symbol.id; // <--- The ID
+            } else {
+                reel.shouldTriggerAnticipation = false;
+                reel.anticipationSymbolId = null;
+            }
             // Increment count AFTER processing this reel 
             // (or before, depending on if you want the reel WITH the 3rd scatter to slow down)
 
@@ -324,18 +333,49 @@ export default class SlotsBase {
             [-1, 0]  // Left (x-1)
         ];
 
+        const areCompatible = (id1, id2) => {
+            if (id1 === id2) return true;
+
+            const s1 = this.config.symbols[id1];
+            const s2 = this.config.symbols[id2];
+
+            // Helper to check one-way compatibility (Does A match B?)
+            const checkMatch = (source, target) => {
+                if (!source.matchesWith) return false;
+
+                // Ensure it's treated as an array even if defined as a string
+                const validTargets = Array.isArray(source.matchesWith)
+                    ? source.matchesWith
+                    : [source.matchesWith];
+
+                // 1. Check for Wildcard "ALL" or "*"
+                if (validTargets.includes('ALL') || validTargets.includes('*')) return true;
+
+                // 2. Check for specific Target Name
+                return validTargets.includes(target.name);
+            };
+
+            // Return TRUE if S1 acts as a wild for S2 OR if S2 acts as a wild for S1
+            return checkMatch(s1, s2) || checkMatch(s2, s1);
+        };
+
         // Helper: c=Column(x), r=Row(y)
         function explore(c, r, targetValue, currentCluster) {
             // Boundary checks
             if (c < 0 || c >= cols || r < 0 || r >= rows) return;
 
             // Check if visited or value mismatch
-            if (visited[c][r] || grid[c][r] !== targetValue) return;
+            if (visited[c][r]) return;
+
+            // UPDATED CHECK: Use compatibility instead of strict equality
+            const currentId = grid[c][r];
+            if (!areCompatible(targetValue, currentId)) return;
+
 
             visited[c][r] = true;
 
             // X is Column, Y is Row
-            currentCluster.push({ x: c, y: r, value: targetValue });
+            currentCluster.push({ x: c, y: r, value: currentId });
 
             for (const [dx, dy] of directions) {
                 explore(c + dx, r + dy, targetValue, currentCluster);
@@ -597,9 +637,9 @@ export default class SlotsBase {
         return positions.length > 0 ? positions : false
     }
 
-    simulateChangeSymbols(grid, toWhatId, selectFrom = []) {
+    simulateChangeSymbols(grid, which, selectFrom = []) {
         const moves = [];
-        const positions = this.contain(toWhatId, grid);
+        const positions = this.contain(which, grid);
 
         if (positions) {
             const newId = this.getRandomSymbolId({ firstSpin: false, gridToCheck: grid, selectFrom: selectFrom });

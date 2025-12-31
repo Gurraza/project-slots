@@ -509,74 +509,65 @@ export class Reel {
     // --------------------------------------------------------
     // ANTICIPATION VISUALS
     // --------------------------------------------------------
-
     anticipation() {
-        if (this.index === this.config.cols - 1) return
-        if (this.symbols.some(symb => this.config.symbols[symb.symbolId].anticipation)) {
-            this.game.reels.forEach((reel, index) => {
-                if (reel.state == "IDLE") {
-                    reel.symbols.forEach(symbol => {
-                        if (this.config.symbols[symbol.symbolId].anticipation) {
-                            // A. Make it bright (remove any previous tint)
-                            // symbol.tint = 0xFFFFFF;
+        // 1. If SlotsBase didn't flag this reel, do nothing.
+        // (Make sure you updated SlotsBase.js to set this flag!)
+        if (!this.shouldTriggerAnticipation) return;
 
-                            // B. Handle Expansion Animation
-                            // First, kill any existing animations on the scale to prevent conflicts
-                            gsap.killTweensOf(symbol.scale);
+        // 2. Don't run on the very last reel
+        if (this.index === this.config.cols - 1) return;
 
-                            // Reset the symbol to its "perfect fit" size first so we have a clean starting point
+        // 3. Loop through ALL reels to update visuals
+        this.game.reels.forEach((reel, index) => {
+            if (reel.state == "IDLE") {
+                reel.symbols.forEach(symbol => {
+
+                    // --- FIX: USE THE ID PASSED FROM SLOTSBASE ---
+                    // Don't check config.anticipation here. 
+                    // Only check if this symbol matches the specific one we are hunting.
+                    if (symbol.symbolId === this.anticipationSymbolId) {
+
+                        // A. Make it pop (Bounce effect)
+                        if (!gsap.isTweening(symbol.scale)) {
+                            // Reset to clean state
                             this.applySymbolStyle(symbol, symbol.symbolId);
-
-                            // Capture that base scale
                             const baseScaleX = symbol.scale.x;
                             const baseScaleY = symbol.scale.y;
 
-                            // Create a "breathing" pulse animation
-                            // expanding to 120% of its original size
                             gsap.to(symbol.scale, {
                                 x: baseScaleX * 1.2,
                                 y: baseScaleY * 1.2,
                                 duration: 0.6,
-                                yoyo: true,     // Go back and forth
-                                repeat: -1,     // Infinite loop
+                                yoyo: true,
+                                repeat: -1,
                                 ease: "sine.inOut"
                             });
-
-                        } else {
-                            // 2. Not the target? Darken it.
-                            // symbol.tint = 0x555555; // Dark Grey
-
-                            // gsap.to(symbol, {
-                            //     tint: 0x555555,
-                            //     duration: 0.3,
-                            //     ease: "power2.out"
-                            // });
+                        }
+                    } else {
+                        // B. Darken everything else
+                        // Only darken if we haven't already (optimization)
+                        if (symbol.alpha !== 0.5) { // Check whatever tint/alpha logic you use
                             gsap.to(symbol, {
-                                pixi: { tint: 0x555555 }, // Use the 'pixi' wrapper
+                                pixi: { tint: 0x555555 },
                                 duration: 0.3,
                                 ease: "power2.out"
                             });
-
-                            // Ensure no residual animations are running on non-targets
-                            gsap.killTweensOf(symbol.scale);
-
-                            // Reset size to normal if it was previously animating
-                            if (symbol.symbolId !== undefined) {
-                                this.applySymbolStyle(symbol, symbol.symbolId);
-                            }
                         }
-                    })
-                }
-                else {
-                    // reel.speed = this.config.spinSpeed / 2
+                    }
+                })
+            }
+            else {
+                // C. Slow down the spinning reels
+                // Only if not already slowed
+                if (reel.speed > this.config.spinSpeed / 2) {
                     gsap.to(reel, {
                         speed: this.config.spinSpeed / 2,
                         duration: 1,
                         ease: "power2.out"
                     });
                 }
-            })
-        }
+            }
+        })
     }
 
     clearAnticipation() {
