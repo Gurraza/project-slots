@@ -317,8 +317,116 @@ export default class SlotsBase {
 
         });
     }
-
     findClusters(grid) {
+        if (!grid || grid.length === 0) return [];
+        const rows = this.config.rows;
+        const cols = this.config.cols;
+
+        const visited = Array.from({ length: cols }, () => Array(rows).fill(false));
+        const clusters = [];
+
+        const directions = [
+            [0, 1], [0, -1], [1, 0], [-1, 0]
+        ];
+
+        // Hjälpfunktion för att se om en symbol är en Wild
+        const isWild = (id) => {
+            const s = this.config.symbols[id];
+            // Kollar om namnet är 'wild' ELLER om den matchar med '*'
+            return s.name === 'wild' || (s.matchesWith && (s.matchesWith.includes('*') || s.matchesWith.includes('ALL')));
+        };
+
+        const areCompatible = (targetId, neighborId) => {
+            if (targetId === neighborId) return true;
+
+            const sTarget = this.config.symbols[targetId]; // Symbolen vi letar efter (t.ex. Barbarian)
+            const sNeighbor = this.config.symbols[neighborId]; // Grannen vi kollar (t.ex. Wild)
+
+            if (sTarget.dontCluster || sNeighbor.dontCluster) return false;
+
+            // Kollar om grannen kan agera som målet
+            const checkMatch = (source, target) => {
+                if (!source.matchesWith) return false;
+                const validTargets = Array.isArray(source.matchesWith) ? source.matchesWith : [source.matchesWith];
+                if (validTargets.includes('ALL') || validTargets.includes('*')) return true;
+                return validTargets.includes(target.name);
+            };
+
+            // VIKTIGT: Vi kollar BÅDA hållen. 
+            // Är Barbarian ok med Wild? ELLER Är Wild ok med Barbarian?
+            return checkMatch(sTarget, sNeighbor) || checkMatch(sNeighbor, sTarget);
+        };
+
+        function explore(c, r, targetValue, currentCluster, localVisited) {
+            if (c < 0 || c >= cols || r < 0 || r >= rows) return;
+            if (visited[c][r] || localVisited.has(`${c},${r}`)) return;
+
+            const currentId = grid[c][r];
+
+            // Om vi letar efter Barbarians, och hittar en Archer -> Stopp.
+            // Om vi letar efter Barbarians, och hittar en Wild -> Kör på!
+            if (!areCompatible(targetValue, currentId)) return;
+
+            localVisited.add(`${c},${r}`);
+            currentCluster.push({ x: c, y: r, value: currentId });
+
+            for (const [dx, dy] of directions) {
+                explore(c + dx, r + dy, targetValue, currentCluster, localVisited);
+            }
+        }
+
+        for (let x = 0; x < cols; x++) {
+            for (let y = 0; y < rows; y++) {
+                if (!visited[x][y]) {
+                    const symbolId = grid[x][y];
+
+                    // --- NY LOGIK HÄR ---
+                    // Om vi står på en Wild, kolla om den har "riktiga" grannar (icke-wilds).
+                    // Om den har det, HOPPAR VI ÖVER ATT STARTA HÄR.
+                    // Vi låter den "riktiga" grannen (t.ex. Barbarian) starta sökningen när loopen kommer dit.
+                    if (isWild(symbolId)) {
+                        let hasSpecificNeighbor = false;
+                        for (const [dx, dy] of directions) {
+                            const nx = x + dx, ny = y + dy;
+                            if (nx >= 0 && nx < cols && ny >= 0 && ny < rows) {
+                                // Om grannen inte är visited OCH inte är Wild -> Då väntar vi på den!
+                                if (!visited[nx][ny] && !isWild(grid[nx][ny])) {
+                                    hasSpecificNeighbor = true;
+                                    break;
+                                }
+                            }
+                        }
+                        if (hasSpecificNeighbor) continue; // Skip! Låt Barbarian hitta denna Wild senare.
+                    }
+                    // --------------------
+
+                    const symbolConfig = this.config.symbols[symbolId];
+                    if (symbolConfig && symbolConfig.dontCluster && !(symbolConfig.clusterSize === 1)) {
+                        visited[x][y] = true;
+                        continue;
+                    }
+
+                    const currentCluster = [];
+                    const localVisited = new Set();
+
+                    // Starta sökningen med nuvarande symbol som "MÅL"
+                    explore(x, y, symbolId, currentCluster, localVisited);
+
+                    // Samma logik som förut för att godkänna klustret
+                    const requiredSize = (symbolConfig && symbolConfig.clusterSize) ? symbolConfig.clusterSize : this.config.clusterSize;
+
+                    if (currentCluster.length >= requiredSize) {
+                        clusters.push(currentCluster);
+                        // Lås dem globalt så ingen annan kan ta dem
+                        currentCluster.forEach(node => visited[node.x][node.y] = true);
+                    }
+                }
+            }
+        }
+
+        return clusters;
+    }
+    ffindClusters(grid) {
         if (!grid || grid.length === 0) return [];
         const rows = this.config.rows;
         const cols = this.config.cols;
@@ -338,6 +446,8 @@ export default class SlotsBase {
 
             const s1 = this.config.symbols[id1];
             const s2 = this.config.symbols[id2];
+
+            if (s1.dontCluster || s2.dontCluster) return false;
 
             // Helper to check one-way compatibility (Does A match B?)
             const checkMatch = (source, target) => {
@@ -360,12 +470,12 @@ export default class SlotsBase {
         };
 
         // Helper: c=Column(x), r=Row(y)
-        function explore(c, r, targetValue, currentCluster) {
+        function explore(c, r, targetValue, currentCluster, localVisited) {
             // Boundary checks
             if (c < 0 || c >= cols || r < 0 || r >= rows) return;
 
             // Check if visited or value mismatch
-            if (visited[c][r]) return;
+            if (visited[c][r] || localVisited.has(`${c},${r}`)) return;
 
             // UPDATED CHECK: Use compatibility instead of strict equality
             const currentId = grid[c][r];
@@ -373,12 +483,12 @@ export default class SlotsBase {
 
 
             visited[c][r] = true;
-
+            // localVisited.add(`${c},${r}`);
             // X is Column, Y is Row
             currentCluster.push({ x: c, y: r, value: currentId });
 
             for (const [dx, dy] of directions) {
-                explore(c + dx, r + dy, targetValue, currentCluster);
+                explore(c + dx, r + dy, targetValue, currentCluster, localVisited);
             }
         }
 
@@ -396,8 +506,21 @@ export default class SlotsBase {
                     }
 
                     const currentCluster = [];
-                    explore(x, y, symbolId, currentCluster);
+                    const localVisited = new Set();
+                    explore(x, y, symbolId, currentCluster, localVisited);
+                    const requiredSize = (symbolConfig && symbolConfig.clusterSize)
+                        ? symbolConfig.clusterSize
+                        : this.config.clusterSize;
 
+                    // if (currentCluster.length >= requiredSize) {
+                    //     // 5. IT IS A WINNER! NOW we mark them as visited globally.
+                    //     // This prevents other clusters from using them.
+                    //     clusters.push(currentCluster);
+
+                    //     currentCluster.forEach(node => {
+                    //         visited[node.x][node.y] = true;
+                    //     });
+                    // }
                     if (currentCluster.length > 0) {
                         clusters.push(currentCluster);
                     }
@@ -431,6 +554,9 @@ export default class SlotsBase {
         return rawClusters
     }
 
+    /**
+     * @returns {number[][]} A 2-D array of numeric ids.
+     */
     generateRandomResult() {
         // 1. Initialize an empty grid structure (Col x Row) filled with null/undefined
         const tempGrid = Array.from({ length: this.config.cols }, () =>

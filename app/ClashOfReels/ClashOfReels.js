@@ -75,6 +75,15 @@ const SYMBOLS = [
     },
 
 ];
+
+const wildCard = {
+    name: "wild",
+    weight: 500,
+    scale: 1,
+    path: "super_icon.png",
+    matchesWith: ["*"],
+}
+
 const clanCastle = {
     name: "clancastle",
     // landingEffect: "HEAVY_DROP",
@@ -101,7 +110,7 @@ const warden = {
     name: "warden",
     scale: 1,
     path: "Warden.png",
-    weight: [25],
+    weight: [5],
     dontCluster: true,
     onlyAppearOnRoll: true,
     matchEffect: "VIDEO_PLAY",
@@ -110,28 +119,9 @@ const warden = {
     clusterSize: 1,
     prio: true,
     videoPath: "warden_anim.mp4",
-    playbackRate: 2,
+    playbackRate: 3,
     payouts: { 0: 0, 1: 0.01, 2: 0.05, 3: 0.1, 4: 0.2, 5: 0.5, 6: 1.0, 7: 1.5, 8: 2.5, 9: 5.0, 10: 6, 11: 10, 12: 15, 13: 16, 14: 17, 15: 18, 16: 19 },
 }
-
-// const TownHallSymbol = {
-//     name: "townhall",
-//     weight: 5,
-//     scale: 0.8,
-//     dontCluster: true,
-//     textureAtLevel: [
-//         "/games/ClashOfReels/TH/Building_HV_Town_Hall_level_1.png",
-//         "/games/ClashOfReels/TH/Building_HV_Town_Hall_level_2.png",
-//         "/games/ClashOfReels/TH/Building_HV_Town_Hall_level_3.png",
-//         "/games/ClashOfReels/TH/Building_HV_Town_Hall_level_4.png",
-//         "/games/ClashOfReels/TH/Building_HV_Town_Hall_level_5.png",
-//         "/games/ClashOfReels/TH/Building_HV_Town_Hall_level_6.png",
-//         "/games/ClashOfReels/TH/Building_HV_Town_Hall_level_7.png",
-//         "/games/ClashOfReels/TH/Building_HV_Town_Hall_level_8.png",
-//         "/games/ClashOfReels/TH/Building_HV_Town_Hall_level_9.png",
-//         "/games/ClashOfReels/TH/Building_HV_Town_Hall_level_10.png",
-//     ],
-// }
 
 const townHallSymbols = [
     "Building_HV_Town_Hall_level_1.png",
@@ -222,6 +212,7 @@ SYMBOLS.push(clanCastle)
 SYMBOLS.push(warden)
 SYMBOLS.push(...townHallSymbols)
 SYMBOLS.push(...SUPER_SYMBOLS)
+SYMBOLS.push(wildCard)
 
 export default class ClashOfReels extends SlotsBase {
 
@@ -343,7 +334,10 @@ export default class ClashOfReels extends SlotsBase {
         const result = await super.spin();
 
         if (this.config.symbols.some(s => s.name == "townhall")) {
-            this.grid.flat().filter(id => id === this.config.symbols.find(s => s.name === 'townhall')).forEach(async (symbol) => console.log(symbol))// await this.triggerTownHallBonus(symbol))
+            this.config.symbols.forEach(symbol => {
+                console.log(this.contain(symbol.name.includes("townhall").id))
+            })
+            // this.grid.flat().filter(id => id === this.config.symbols.find(s => s.name === 'townhall')).forEach(async (symbol) => console.log(symbol))// await this.triggerTownHallBonus(symbol))
         }
         if (this.config.symbols.some(s => s.name == "treasure")) {
             this.grid.flat().filter(id => id === this.config.symbols.find(s => s.name === 'treasure').id).length >= 3 && await this.triggerMinesBonusRound();
