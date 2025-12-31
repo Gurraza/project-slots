@@ -4,70 +4,70 @@ import { Assets, Sprite, Graphics, Text, Container } from "pixi.js"
 import { MinesGame } from './MinesGame'; // Import the new game
 const SYMBOLS = [
     {
-        name: 'troop_barbarian',
-        weight: 50,
+        name: 'barbarian',
+        weight: 1000,
         group: "low_troop",
         scale: .9,
         payouts: { 4: 0.2, 5: 0.5, 6: 1.0, 7: 1.5, 8: 2.5, 9: 5.0, 10: 6, 11: 10, 7: 15 },
         path: "troops_icons/barbarian.png"
     },
     {
-        name: 'troop_archer',
-        weight: 50,
+        name: 'archer',
+        weight: 1000,
         group: "low_troop",
         scale: .9,
         payouts: { 4: 0.2, 5: 0.5, 6: 1.0, 7: 1.5, 8: 2.5, 9: 5.0, 10: 6, 11: 10, 7: 15 },
         path: "troops_icons/archer.png"
     },
     {
-        name: 'troop_goblin',
-        weight: 50,
+        name: 'goblin',
+        weight: 1000,
         group: "low_troop",
         scale: .9,
         payouts: { 4: 0.2, 5: 0.5, 6: 1.0, 7: 1.5, 8: 2.5, 9: 5.0, 10: 6, 11: 10, 7: 15 },
         path: "troops_icons/goblin.png"
     },
     {
-        name: 'troop_wizard',
-        weight: 35,
+        name: 'wizard',
+        weight: 800,
         scale: .9,
         payouts: { 4: 0.2, 5: 0.5, 6: 1.0, 7: 1.5, 8: 2.5, 9: 5.0, 10: 6, 11: 10, 7: 15 },
         path: "troops_icons/wizard.png"
     },
     {
-        name: 'troop_wallbreaker',
+        name: 'wallbreaker',
         weight: 0,
         scale: .9,
         payouts: { 4: 0.2, 5: 0.5, 6: 1.0, 7: 1.5, 8: 2.5, 9: 5.0, 10: 6, 11: 10, 7: 15 },
         path: "troops_icons/wallbreaker.png"
     },
     {
-        name: 'resource_gold',
-        weight: 100,
+        name: 'gold',
+        weight: 1000,
         group: "low_resource",
         scale: 4,
         payouts: { 4: 0.2, 5: 0.5, 6: 1.0, 7: 1.5, 8: 2.5, 9: 5.0, 10: 6, 11: 10, 7: 15 },
         path: "resource/gold.png"
     },
     {
-        name: 'resource_elixir',
-        weight: 100,
+        name: 'elixir',
+        weight: 1000,
         group: "low_resource",
         scale: 4,
         payouts: { 4: 0.2, 5: 0.5, 6: 1.0, 7: 1.5, 8: 2.5, 9: 5.0, 10: 6, 11: 10, 7: 15 },
         path: "resource/elixir.png"
     },
     {
-        name: 'resource_darkelixir',
-        weight: 100,
+        name: 'darkelixir',
+        weight: 1000,
         group: "low_resource",
         scale: 4,
         payouts: { 4: 0.2, 5: 0.5, 6: 1.0, 7: 1.5, 8: 2.5, 9: 5.0, 10: 6, 11: 10, 7: 15 },
         path: "resource/dark_elixir.png"
     },
     {
-        name: 'resource_gem',
-        weight: 70,
+        name: 'gem',
+        weight: 800,
         scale: .8,
         payouts: { 4: 0.2, 5: 0.5, 6: 1.0, 7: 1.5, 8: 2.5, 9: 5.0, 10: 6, 11: 10, 7: 15 },
         path: "resource/gem.png",
@@ -78,7 +78,7 @@ const clanCastle = {
     name: "clancastle",
     // landingEffect: "HEAVY_DROP",
     dontCluster: true,
-    weight: 30,
+    weight: 100,
     scale: 1.5,
     path: "clanCastle.png"
 }
@@ -87,7 +87,7 @@ const builder = {
     name: "builder",
     scale: 4,
     path: "Builder.png",
-    weight: [5],
+    weight: [25],
     onlyAppearOnRoll: true,
     matchEffect: "builder_match",
     explodingEffect: "builder_poof",
@@ -100,7 +100,7 @@ const warden = {
     name: "warden",
     scale: 1,
     path: "Warden.png",
-    weight: [1000],
+    weight: [25],
     dontCluster: true,
     onlyAppearOnRoll: true,
     matchEffect: "VIDEO_PLAY",
@@ -110,6 +110,7 @@ const warden = {
     prio: true,
     videoPath: "warden_anim.mp4",
     playbackRate: 2,
+    payouts: { 0: 0, 1: 0.01, 2: 0.05, 3: 0.1, 4: 0.2, 5: 0.5, 6: 1.0, 7: 1.5, 8: 2.5, 9: 5.0, 10: 6, 11: 10, 12: 15, 13: 16, 14: 17, 15: 18, 16: 19 },
 }
 
 // const TownHallSymbol = {
@@ -146,7 +147,7 @@ const townHallSymbols = [
     return {
         name: `townhall_${index + 1}`,
         group: "townhall",
-        weight: 10 - index,
+        weight: 10,
         scale: 0.8,
         dontCluster: true,
         path: `TH/${fileName}`
@@ -155,7 +156,7 @@ const townHallSymbols = [
 
 const treasureSymbol = {
     name: "treasure",
-    weight: [5, 4, 1],
+    weight: [150, 50, 25],
     scale: 1.4,
     onlyAppearOnRoll: true,
     path: "Treasury.png",
@@ -211,6 +212,11 @@ export default class ClashOfReels extends SlotsBase {
                 { name: "grass", path: "grass.png" },
                 { name: "mines_backgroundImage", path: "grass5b5.png" },
                 { name: "bomb", path: "bomb.png" },
+
+                { name: "super_barbarian", path: "bomb.png" },
+                { name: "super_archer", path: "bomb.png" },
+                { name: "super_goblin", path: "bomb.png" },
+                { name: "super_wizard", path: "bomb.png" },
             ],
         };
         super(rootContainer, app, myConfig);
@@ -218,7 +224,7 @@ export default class ClashOfReels extends SlotsBase {
             textureHidden: { texture: "grass", scale: .3 },
             backgroundImage: { texture: "mines_backgroundImage", scale: 1 },
             textureBomb: { texture: "bomb", scale: .6 },
-            textureGem: { texture: "resource_gem", scale: .6 },
+            textureGem: { texture: "gem", scale: .6 },
             cols: 5,
             rows: 5,
             bombsCount: 5
@@ -271,19 +277,11 @@ export default class ClashOfReels extends SlotsBase {
     // Update your spin loop to read the timeline data
     async onCascadeEvent(event) {
         console.log(event)
-        // If we calculated a win for this specific cascade step
-        if (event.stepWin > 0) {
-            this.globalMultiplier = event.totalWin
-            this.onMultiplierChange(this.globalMultiplier);
-            // TODO: Trigger a "Win Text" animation here
-            // e.g. this.showFloatingText(event.stepWin);
-        }
+
 
         if (event.wardenData) {
 
         }
-
-        // ... existing warden logic ...
     }
 
     async spin() {
@@ -344,13 +342,13 @@ export default class ClashOfReels extends SlotsBase {
                 let stepWin = 0;
 
                 // --- 3. CALCULATE PAYOUTS ---
-                rawClusters.forEach(cluster => {
+                rawClusters.forEach(cluster => { // {x: 2, y: 4, value: 6}
                     console.log("a raw cluster", cluster)
                     const symbolId = cluster[0].value;
                     const config = this.config.symbols[symbolId];
                     const count = cluster.length;
 
-                    if (config.payouts) {
+                    if (config.payouts && !config.dontCluster) {
                         let payout = config.payouts[count];
                         if (payout === undefined) {
                             const maxKey = Math.max(...Object.keys(config.payouts).map(Number));
@@ -384,6 +382,7 @@ export default class ClashOfReels extends SlotsBase {
                             const activeWardenPos = { x: c, y: this.config.rows - r - 1 };
                             const targets = [];
                             const resourceCandidates = {};
+                            let count = 0
 
                             // B. Find Potential Targets (Low Resources)
                             for (let tc = 0; tc < this.config.cols; tc++) {
@@ -399,14 +398,14 @@ export default class ClashOfReels extends SlotsBase {
                                     }
                                 }
                             }
-
-                            // C. Pick One Resource Type to Destroy
                             const foundIds = Object.keys(resourceCandidates);
                             if (foundIds.length > 0) {
                                 const randomId = foundIds[Math.floor(Math.random() * foundIds.length)];
                                 targets.push(...resourceCandidates[randomId]);
                             }
 
+                            totalWin += warden.payouts[targets.length]
+                            // C. Pick One Resource Type to Destroy
                             // D. Create Animation Data for Frontend
                             wardenData = {
                                 source: activeWardenPos,

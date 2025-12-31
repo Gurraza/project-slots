@@ -93,6 +93,11 @@ export default class SlotsBase {
                 await this.onCascadeEvent(event);
                 await this.triggerMatchAnimations(event.clusters);
                 await this.explodeAndCascade(event.clusters, event.replacements);
+
+                if (event.stepWin > 0) {
+                    this.globalMultiplier = event.totalWin
+                    this.onMultiplierChange(this.globalMultiplier);
+                }
                 this.grid = event.grid;
             }
         }
@@ -501,7 +506,10 @@ export default class SlotsBase {
 
     drawBackgroundCells() {
         const bgContainer = new Container();
-
+        // CONFIGURATION
+        const cellScale = 0.85; // 85% of the symbol size (Adjust this to make them smaller/larger)
+        const cornerRadius = 20; // Slightly larger radius often looks smoother
+        const strokeWidth = 5
         this.bgContainer = []
         for (let i = 0; i < this.config.cols; i++) {
             this.bgContainer.push([])
@@ -530,7 +538,7 @@ export default class SlotsBase {
                         bg.stroke({ width: 5, color: "gold", alpha: 1 });
                     } else {
                         // Idle: Faint Border
-                        bg.stroke({ width: 2, color: 0xcfb972, alpha: 0.3 });
+                        bg.stroke({ width: 3, color: 0xcfb972, alpha: 0.3, alignment: 1 });
                     }
                 };
 

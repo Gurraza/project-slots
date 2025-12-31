@@ -18,6 +18,7 @@ export default function PixiCanvas({ gameClass, gameState, onGameEvent, onGameRe
                 backgroundAlpha: 0,
                 resolution: window.devicePixelRatio || 1,
                 autoDensity: true,
+                antialias: true
             });
 
             containerRef.current.appendChild(app.canvas);
