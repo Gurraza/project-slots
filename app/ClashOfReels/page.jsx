@@ -42,7 +42,9 @@ export default function CasinoPage() {
 
             {/* 1. The Game Screen */}
             <div
-                className="w-full max-w-300 aspect-video absolute border-4 border-yellow-500 rounded-lg overflow-hidden"
+                className={
+                    "w-full max-w-300 absolute border-4 border-yellow-500 rounded-lg overflow-hidden"
+                }
                 style={{
                     backgroundImage: "url(" + ClashOfReels.backgroundImage + ")",
                     backgroundOrigin: "center",

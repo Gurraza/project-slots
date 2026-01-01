@@ -27,7 +27,14 @@ export default function PixiCanvas({ gameClass, gameState, onGameEvent, onGameRe
             const gameContainer = new PIXI.Container();
             app.stage.addChild(gameContainer);
 
-            gameInstanceRef.current = new gameClass(gameContainer, app);
+            const isMobile = window.innerWidth < 768;
+
+            const customConfig = isMobile
+                ? { width: 720, height: 1280, isMobile: true } // Portrait Mode for Mobile
+                : { width: 1280, height: 720, isMobile: false }; // Landscape Mode for Desktop
+
+
+            gameInstanceRef.current = new gameClass(gameContainer, app, customConfig);
 
             if (onGameReady) onGameReady(gameInstanceRef.current);
             if (gameInstanceRef.current.onStateChange) {
@@ -71,7 +78,8 @@ export default function PixiCanvas({ gameClass, gameState, onGameEvent, onGameRe
                         height: baseHeight, // e.g. 720
                         scale: scale,
                         x: x,
-                        y: y
+                        y: y,
+                        isMobile: isMobile // Useful info for UI
                     });
                 }
             };

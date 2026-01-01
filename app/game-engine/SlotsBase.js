@@ -26,6 +26,7 @@ export default class SlotsBase {
     constructor(rootContainer, app, config = {}) {
         this.stage = rootContainer;
         this.app = app;
+        this.seed = Math.floor(Math.random() * 0xFFFFFFFF); // Default random seed
         // Merge user config with defaults
         this.config = { ...DEFAULT_CONFIG, ...config };
         this.grid = Array.from({ length: this.config.cols }, () =>
@@ -73,11 +74,10 @@ export default class SlotsBase {
         this.processing = true;
 
         this.setMultiplier(0); // Visual update hook
-
         const timeline = this.calculateMoves();
 
-        console.log("PREDICTED GAME FLOW:", timeline);
         console.log("PREDICTED PAYOUT:", timeline[timeline.length - 1].totalWin || 0);
+        console.log("PREDICTED GAME FLOW:", timeline);
 
         this.grid = timeline[0].grid;
         await this.startSpin();
@@ -112,18 +112,19 @@ export default class SlotsBase {
         this.multiplierText = new Text({
             text: "0",
             style: {
-                fontFamily: this.config.font,
-                fontSize: 50,
-                fill: "gold",
-                stroke: { color: "black", width: 4 }, // Updated v8 syntax
-                dropShadow: true
+                fontFamily: this.config.font.family,
+                fontSize: this.config.font.size,
+                fill: this.config.font.fill,
+                stroke: this.config.font.stroke,//{ color: "black", width: 4 }, // Updated v8 syntax
+                dropShadow: this.config.font.dropShadow,//true
             }
         });
         this.multiplierText.visible = false
         this.multiplierText.anchor.set(0.5);
-        this.multiplierText.x = 1100; // Right side of screen
-        this.multiplierText.y = 100;
+        this.multiplierText.x = this.config.isMobile ? this.config.width / 2 : 1100; // Right side of screen
+        this.multiplierText.y = this.config.isMobile ? (this.config.height / 2 - this.config.rows * this.config.symbolHeight / 2 - 50) : 100;
         this.stage.addChild(this.multiplierText);
+        console.log(this.multiplierText)
     }
 
 
@@ -621,7 +622,7 @@ export default class SlotsBase {
 
         // 3. Shuffle the coordinates array (Fisher-Yates shuffle)
         for (let i = coordinates.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
+            const j = Math.floor(this.random() * (i + 1));
             [coordinates[i], coordinates[j]] = [coordinates[j], coordinates[i]];
         }
 
@@ -678,7 +679,7 @@ export default class SlotsBase {
         }
 
         const totalWeight = validSymbols.reduce((sum, symbol) => sum + getSymbolWeight(symbol), 0);
-        let randomNum = Math.random() * totalWeight;
+        let randomNum = this.random() * totalWeight;
 
 
         for (const symbol of validSymbols) {
@@ -690,13 +691,6 @@ export default class SlotsBase {
 
         console.log("FUQQQ")
         return validSymbols[0].id;
-    }
-
-    getRandomCell() {
-        return {
-            row: Math.floor(Math.random() * rows),
-            col: Math.floor(Math.random() * cols),
-        }
     }
 
     async explodeAndCascade(clusters, replacements) {
@@ -833,7 +827,7 @@ export default class SlotsBase {
         const groupSymbols = this.config.symbols.filter(s => s.group === groupName);
 
         // 2. Shuffle them
-        const shuffled = [...groupSymbols].sort(() => 0.5 - Math.random());
+        const shuffled = [...groupSymbols].sort(() => 0.5 - this.random());
 
         // 3. Remap Weights
         groupSymbols.forEach(symbol => {
@@ -1013,5 +1007,18 @@ export default class SlotsBase {
                 onComplete();
             });
         });
+    }
+
+    random() {
+        this.seed += 0x6D2B79F5;
+        let t = this.seed;
+        t = Math.imul(t ^ (t >>> 15), t | 1);
+        t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    }
+
+    // 3. Helper to set a specific seed manually
+    setSeed(val) {
+        this.seed = val;
     }
 }

@@ -245,7 +245,6 @@ export class Reel {
     }
 
     getRandomTexture() {
-        // const randomTex = this.config.symbols[Math.floor(Math.random() * this.config.symbols.length)].texture;
         const randomTex = this.config.symbols[this.game.getRandomSymbolId()].texture
         return randomTex;
     }

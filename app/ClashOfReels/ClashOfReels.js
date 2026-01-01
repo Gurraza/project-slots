@@ -138,7 +138,7 @@ const townHallSymbols = [
     return {
         name: `townhall_${index + 1}`,
         group: "townhall",
-        weight: 2,
+        weight: 10,
         scale: 0.8,
         dontCluster: true,
         path: `TH/${fileName}`,
@@ -218,7 +218,7 @@ SYMBOLS.push(wildCard)
 export default class ClashOfReels extends SlotsBase {
 
     static backgroundImage = "/games/ClashOfReels/background.jpg"
-    constructor(rootContainer, app) {
+    constructor(rootContainer, app, config = {}) {
         const myConfig = {
             width: 1280,
             height: 720,
@@ -255,7 +255,15 @@ export default class ClashOfReels extends SlotsBase {
                 { name: "bomb", path: "bomb.png" },
                 { name: "fireball", path: "Fireball.png" },
             ],
-            font: "cocFont",
+            font: {
+                family: "cocFont",
+                size: 50,
+                fill: "gold",
+                dropShadow: true,
+                stroke: { color: "black", width: 4 }
+            },
+
+            ...config
         };
         super(rootContainer, app, myConfig);
         this.minesBonus = new MinesGame(this.stage, app, {
@@ -394,6 +402,7 @@ export default class ClashOfReels extends SlotsBase {
             const wardenGlobal = this.stage.toLocal(wardenSprite.getGlobalPosition());
             const projectilePromises = targets.map(target => {
                 const targetReel = this.reels[target.x];
+                targetReel.sort()
                 const targetSprite = targetReel.symbols[target.y + 1];
 
                 if (!targetSprite) return Promise.resolve();
@@ -507,7 +516,7 @@ export default class ClashOfReels extends SlotsBase {
         // 3. Select One Type of Resource to Destroy
         const foundIds = Object.keys(resourceCandidates);
         if (foundIds.length > 0) {
-            const randomId = foundIds[Math.floor(Math.random() * foundIds.length)];
+            const randomId = foundIds[Math.floor(this.random() * foundIds.length)];
             targets.push(...resourceCandidates[randomId]);
         }
 
@@ -522,29 +531,14 @@ export default class ClashOfReels extends SlotsBase {
     }
 
     async spin() {
+        this.setSeed(115609550238)
+        console.log("This game has the seed:", this.seed)
         // if (true) { // Change to 'true' to force bonus every spin
         //     await this.triggerBonusRound();
         // }
         this.setActiveGroupVariants('low_troop', 2);
         this.setActiveGroupVariants('low_resource', 2);
         const result = await super.spin();
-
-        // if (this.config.symbols.some(s => s.name.includes("townhall")) && this.globalMultiplier > 0) {
-        //     let townHallMultipliers = 0
-        //     this.config.symbols.forEach(symbol => {
-        //         if (symbol.name.includes("townhall")) {
-        //             townHallMultipliers += symbol.multiplier
-        //         }
-        //     })
-
-        //     this.setMultiplier(this.globalMultiplier += this.globalMultiplier * townHallMultipliers); // Visual update hook
-
-        //     // this.grid.flat().filter(id => id === this.config.symbols.find(s => s.name === 'townhall')).forEach(async (symbol) => console.log(symbol))// await this.triggerTownHallBonus(symbol))
-        // }
-        // if (this.config.symbols.some(s => s.name == "treasure")) {
-        //     this.grid.flat().filter(id => id === this.config.symbols.find(s => s.name === 'treasure').id).length >= 3 && await this.triggerMinesBonusRound();
-        // }
-
 
         return { grid: this.grid, totalWin: this.globalMultiplier };
     }
@@ -570,7 +564,7 @@ export default class ClashOfReels extends SlotsBase {
             // const moves = this.simulateChangeSymbols(currentGrid, clanCastle.id, this.config.symbols.filter(s => s.group == "low_troop"));
             if (castlePositions) {
                 const lowTroops = this.config.symbols.filter(s => s.group == "low_troop" && s.weight != 0);
-                const randomBaseTroop = lowTroops[Math.floor(Math.random() * lowTroops.length)];
+                const randomBaseTroop = lowTroops[Math.floor(this.random() * lowTroops.length)];
                 // 2. Find its SUPER version
                 const superVersion = this.config.symbols.find(s =>
                     s.isSuper && s.matchesWith === randomBaseTroop.name
@@ -648,62 +642,6 @@ export default class ClashOfReels extends SlotsBase {
                         clustersToProcess[x].push(y);
                     }
                 });
-
-                // // --- 5. WARDEN LOGIC (The "Search & Destroy" Add-on) ---
-                // let wardenData = undefined;
-                // const wardenId = this.config.symbols.find(s => s.name === 'warden').id;
-
-                // // Scan grid to see if Warden is present
-                // for (let c = 0; c < this.config.cols; c++) {
-                //     for (let r = 0; r < this.config.rows; r++) {
-
-                //         if (currentGrid[c][r] === wardenId) {
-                //             // A. Setup Warden Position
-                //             // Note: Visual Y is flipped relative to Grid Y
-                //             const activeWardenPos = { x: c, y: this.config.rows - r - 1 };
-                //             const targets = [];
-                //             const resourceCandidates = {};
-                //             let count = 0
-
-                //             // B. Find Potential Targets (Low Resources)
-                //             for (let tc = 0; tc < this.config.cols; tc++) {
-                //                 for (let tr = 0; tr < this.config.rows; tr++) {
-                //                     if (tc === c && tr === r) continue; // Don't target self
-
-                //                     const tId = currentGrid[tc][tr];
-                //                     const tDef = this.config.symbols[tId];
-
-                //                     if (tDef && tDef.group === "low_resource") {
-                //                         if (!resourceCandidates[tId]) resourceCandidates[tId] = [];
-                //                         resourceCandidates[tId].push({ x: tc, y: tr });
-                //                     }
-                //                 }
-                //             }
-                //             const foundIds = Object.keys(resourceCandidates);
-                //             if (foundIds.length > 0) {
-                //                 const randomId = foundIds[Math.floor(Math.random() * foundIds.length)];
-                //                 targets.push(...resourceCandidates[randomId]);
-                //             }
-
-                //             totalWin += warden.payouts[targets.length]
-                //             wardenData = {
-                //                 source: activeWardenPos,
-                //                 targets: targets.map(t => ({
-                //                     x: t.x,
-                //                     y: this.config.rows - 1 - t.y
-                //                 }))
-                //             };
-
-                //             // E. ADD TARGETS TO EXPLOSION LIST
-                //             // This ensures they disappear and trigger a cascade
-                //             targets.forEach(t => {
-                //                 if (!clustersToProcess[t.x].includes(t.y)) {
-                //                     clustersToProcess[t.x].push(t.y);
-                //                 }
-                //             });
-                //         }
-                //     }
-                // }
 
                 // --- 6. CASCADE GENERATION ---
                 const replacements = this.generateReplacements(clustersToProcess, currentGrid);
@@ -1005,7 +943,7 @@ export default class ClashOfReels extends SlotsBase {
 
         // 2. Generate a random limit between 1 and maxSafeMoves (Inclusive)
         // This determines "How many times can I click before the game forces a bomb?"
-        const randomLimit = Math.floor(Math.random() * maxSafeMoves);
+        const randomLimit = Math.floor(this.random() * maxSafeMoves);
         const totalBonusWin = await this.minesBonus.play(1, randomLimit);
         if (this.globalMultiplier == 0) {
             this.onMultiplierChange(totalBonusWin); // Visual update hook
@@ -1094,8 +1032,8 @@ export default class ClashOfReels extends SlotsBase {
 
             for (let i = 0; i < shakes; i++) {
                 const decay = 1 - (i / shakes);
-                const x = (Math.random() * intensity * 2 - intensity) * decay;
-                const y = (Math.random() * intensity * 2 - intensity) * decay;
+                const x = (this.random() * intensity * 2 - intensity) * decay;
+                const y = (this.random() * intensity * 2 - intensity) * decay;
 
                 keyframes.push({
                     x: x,
