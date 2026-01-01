@@ -129,6 +129,7 @@ export default class SlotsBase {
 
     // Override the hook from SlotsBase
     setMultiplier(newVal) {
+        this.globalMultiplier = newVal
         if (!this.multiplierText) return;
         if (newVal === 0) {
             this.multiplierText.visible = false
