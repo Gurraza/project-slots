@@ -260,6 +260,9 @@ export default class ClashOfReels extends SlotsBase {
                 { name: "mines_backgroundImage", path: "grass5b5.png" },
                 { name: "bomb", path: "bomb.png" },
                 { name: "fireball", path: "Fireball.png" },
+                { name: "num_dot", path: "font/dot.png" },
+                { name: "num_x", path: "font/x.png" },
+                ...Array.from({ length: 10 }).map((_, i) => { return { name: "num_" + i, path: "font/" + i + ".png" } })
             ],
             font: {
                 family: "cocFont",

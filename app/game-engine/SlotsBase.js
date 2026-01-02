@@ -109,27 +109,125 @@ export default class SlotsBase {
 
 
     createUI() {
-        this.multiplierText = new Text({
-            text: "0",
-            style: {
-                fontFamily: this.config.font.family,
-                fontSize: this.config.font.size,
-                fill: this.config.font.fill,
-                stroke: this.config.font.stroke,//{ color: "black", width: 4 }, // Updated v8 syntax
-                dropShadow: this.config.font.dropShadow,//true
-            }
+        // REPLACE the old this.multiplierText logic with this:
+        this.multiplierContainer = new Container();
+        this.multiplierContainer.visible = false;
+
+        // Position logic (same as before)
+        this.multiplierContainer.x = this.config.isMobile ? this.config.width / 2 : 1100;
+        this.multiplierContainer.y = this.config.isMobile ? (this.config.height / 2 - this.config.rows * this.config.symbolHeight / 2 - 50) : 100;
+
+        this.stage.addChild(this.multiplierContainer);
+        // this.multiplierText = new Text({
+        //     text: "0",
+        //     style: {
+        //         fontFamily: this.config.font.family,
+        //         fontSize: this.config.font.size,
+        //         fill: this.config.font.fill,
+        //         stroke: this.config.font.stroke,//{ color: "black", width: 4 }, // Updated v8 syntax
+        //         dropShadow: this.config.font.dropShadow,//true
+        //     }
+        // });
+        // this.multiplierText.visible = false
+        // this.multiplierText.anchor.set(0.5);
+        // this.multiplierText.x = this.config.isMobile ? this.config.width / 2 : 1100; // Right side of screen
+        // this.multiplierText.y = this.config.isMobile ? (this.config.height / 2 - this.config.rows * this.config.symbolHeight / 2 - 50) : 100;
+        // this.stage.addChild(this.multiplierText);
+
+        Assets.load('/games/ClashOfReels/title.png').then((texture) => {
+            const centerX = this.config.width / 2;
+            const posY = 30;
+            // Shadow Settings
+            const shadowOffset = 5; // How far the shadow moves (px)
+            const shadowAlpha = 0.5; // How dark the shadow is (0 to 1)
+            const scale = .3
+            // A. Create the Shadow Sprite FIRST (so it's behind)
+            // We reuse the same texture so it has the exact same shape.
+            const shadow = new Sprite(texture);
+            shadow.anchor.set(0.5);
+            // Offset position slightly to the bottom-right
+            shadow.x = centerX + shadowOffset;
+            shadow.y = posY + shadowOffset;
+            // Make it look like a shadow
+            shadow.tint = 0x000000; // Turn the whole image black
+            shadow.alpha = shadowAlpha; // Make it semi-transparent
+            this.stage.addChild(shadow);
+
+
+            // B. Create the Main Title Sprite directly on top
+            this.title = new Sprite(texture);
+            this.title.anchor.set(0.5);
+            this.title.x = centerX;
+            this.title.y = posY;
+            this.title.scale = scale
+            shadow.scale = scale
+            this.stage.addChild(this.title);
         });
-        this.multiplierText.visible = false
-        this.multiplierText.anchor.set(0.5);
-        this.multiplierText.x = this.config.isMobile ? this.config.width / 2 : 1100; // Right side of screen
-        this.multiplierText.y = this.config.isMobile ? (this.config.height / 2 - this.config.rows * this.config.symbolHeight / 2 - 50) : 100;
-        this.stage.addChild(this.multiplierText);
-        console.log(this.multiplierText)
+
     }
 
+    setMultiplier(newVal) {
+        this.globalMultiplier = newVal;
+        if (!this.multiplierContainer) return;
+
+        if (newVal === 0) {
+            this.multiplierContainer.visible = false;
+            return;
+        }
+
+        this.multiplierContainer.visible = true;
+        this.multiplierContainer.removeChildren();
+
+        const formattedVal = Number(newVal).toFixed(2);
+        const textString = `x${formattedVal}`;
+
+        let currentX = 0;
+
+        // --- CONFIGURATION ---
+        const targetHeight = 50; // px. Similar to fontSize. Adjust this if too big/small!
+        const spacing = -7;      // px. Squeeze letters closer together.
+        // ---------------------
+
+        for (let i = 0; i < textString.length; i++) {
+            const char = textString[i];
+            let textureAlias = null;
+
+            if (char === '.') textureAlias = 'num_dot';
+            else if (char === 'x') textureAlias = 'num_x';
+            else if (!isNaN(char)) textureAlias = `num_${char}`;
+
+            if (textureAlias && Assets.get(textureAlias)) {
+                const texture = Assets.get(textureAlias);
+                const sprite = new Sprite(texture);
+
+                // 1. Calculate Scale based on desired height
+                // This ensures it fits regardless of how big the original PNG is
+                const scale = targetHeight / texture.height;
+                sprite.scale.set(scale);
+
+                sprite.x = currentX;
+                sprite.anchor.set(0, 1); // Anchor bottom-left to align baseline
+
+                this.multiplierContainer.addChild(sprite);
+
+                // 2. Advance X cursor based on the SCALED width
+                currentX += (sprite.width + spacing);
+            }
+        }
+
+        // 3. Re-center the container
+        // We set the pivot to the center of the newly created text block
+        this.multiplierContainer.pivot.set(this.multiplierContainer.width / 2, -targetHeight / 2);
+
+        // 4. Pop Animation
+        gsap.fromTo(this.multiplierContainer.scale,
+            { x: 1.5, y: 1.5 },
+            { x: 1, y: 1, duration: 0.5, ease: "elastic.out(1, 0.3)" }
+        );
+    }
 
     // Override the hook from SlotsBase
-    setMultiplier(newVal) {
+    ssetMultiplier(newVal) {
         this.globalMultiplier = newVal
         if (!this.multiplierText) return;
         if (newVal === 0) {

@@ -84,7 +84,7 @@ export default function CasinoPage() {
                                     + (isSpinning ? " cursor-not-allowed" : " cursor-pointer")
                                 }
                             >
-                                <span>SPIN</span>
+                                <span className='clash-text'>SPIN</span>
                                 <svg
                                     xmlns="http://www.w3.org/2000/svg"
                                     fill="none"
