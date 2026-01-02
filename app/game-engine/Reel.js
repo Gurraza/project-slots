@@ -66,9 +66,27 @@ export class Reel {
         }
     }
 
-    spin(resultData) {
+    async spin(resultData) {
         this.reset();
         this.state = 'ACCELERATING';
+        await new Promise(resolve => {
+            // Move the container UP by 50px (negative y)
+            gsap.to(this.container, {
+                y: this.game.config.windUp,
+                duration: 0.25,
+                ease: "back.out(1.5)", // Gives it a little overshoot pop
+                onComplete: () => {
+                    // Move it back to 0 while the symbols start moving down
+                    // This creates a seamless "snap back" effect
+                    gsap.to(this.container, {
+                        y: 0,
+                        duration: 0.15,
+                        ease: "power1.in"
+                    });
+                    resolve();
+                }
+            });
+        })
         gsap.to(this, {
             speed: this.config.spinSpeed,
             duration: .5,

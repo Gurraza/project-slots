@@ -14,7 +14,7 @@ export default function PixiCanvas({ gameClass, gameState, onGameEvent, onGameRe
 
             await app.init({
                 resizeTo: containerRef.current,
-                backgroundColor: 0x1099bb,
+                backgroundColor: 0,//0x1099bb,
                 backgroundAlpha: 0,
                 resolution: window.devicePixelRatio || 1,
                 autoDensity: true,
@@ -119,7 +119,7 @@ export default function PixiCanvas({ gameClass, gameState, onGameEvent, onGameRe
     return (
         <div
             ref={containerRef}
-            style={{ width: '100%', height: '100%', overflow: 'hidden' }}
+            style={{ width: '100%', height: '100%', overflow: 'hidden', outline: "none", userSelect: "none" }}
         />
     );
 };

@@ -100,7 +100,7 @@ const builder = {
     weight: [9999],
     onlyAppearOnRoll: true,
     matchEffect: "builder_match",
-    explodingEffect: "builder_poof",
+    explodeEffect: "builder_poof",
     clusterSize: 1,
     dontCluster: true,
     prio: true,
@@ -115,7 +115,7 @@ const warden = {
     onlyAppearOnRoll: true,
     // matchEffect: "VIDEO_PLAY",
     explodeEffect: "warden_explode",
-    // explodingEffect: "warden_poof",
+    // explodeEffect: "warden_poof",
     // clusterSize: 1,
     prio: true,
     videoPath: "warden_anim.mp4",
@@ -170,6 +170,7 @@ const SUPER_SYMBOLS = [
         payouts: { 3: 1.0, 4: 2.0, 5: 5.0 }, // Higher payouts?
         path: "super/super_barbarian.png", // Ensure this exists or use placeholder
         superAbility: "EXPLODE_NEIGHBORS",
+        explodeEffect: "CAMERA_SHAKE",
         multiplier: 2,
     },
     {
@@ -181,6 +182,7 @@ const SUPER_SYMBOLS = [
         payouts: { 3: 1.0, 4: 2.0, 5: 5.0 },
         path: "super/super_archer.png",
         superAbility: "SHOOT_ARROWS",
+        explodeEffect: "CAMERA_SHAKE",
         multiplier: 2,
     },
     {
@@ -192,6 +194,7 @@ const SUPER_SYMBOLS = [
         payouts: { 3: 1.0, 4: 2.0, 5: 5.0 },
         path: "super/super_goblin.png",
         superAbility: "EXPLODE_NEIGHBORS",
+        explodeEffect: "CAMERA_SHAKE",
         multiplier: 2,
     },
     {
@@ -203,6 +206,7 @@ const SUPER_SYMBOLS = [
         payouts: { 3: 1.0, 4: 2.0, 5: 5.0 },
         path: "super/super_wizard.png",
         superAbility: "EXPLODE_NEIGHBORS",
+        explodeEffect: "CAMERA_SHAKE",
         multiplier: 2,
     }
 ];
@@ -244,6 +248,8 @@ export default class ClashOfReels extends SlotsBase {
             mode: "normal",
             bounce: 0,
             bounceDuration: .5,
+            windUp: -40, // pixels
+            bounceUpBeforeAccelerating: 40, // pixels
             motionBlurStrength: .8,
             defaultLandingEffect: "HEAVY_LAND",
             defaultMatchEffect: "DEFAULT_MATCH_ANIMATION",
@@ -275,7 +281,6 @@ export default class ClashOfReels extends SlotsBase {
             rows: 5,
             bombsCount: 5
         });
-
         this.init()
     }
 
@@ -663,6 +668,7 @@ export default class ClashOfReels extends SlotsBase {
                 // Simple check: Is he on the board?
                 const wardenData = this.contain(warden.id, currentGrid)
                 if (wardenData) {
+                    actionOccurred = true;
 
                     // Use the helper to determine IF he has valid targets
                     const wardenAction = this.calculateWardenAction(currentGrid);
@@ -738,6 +744,7 @@ export default class ClashOfReels extends SlotsBase {
                 }
             }
         });
+
         if (townHallMultipliers > 0 && totalWin > 0) {
             timeline.push({
                 type: 'TOWNHALL_BONUS', // Unique identifier for the frontend
@@ -929,6 +936,35 @@ export default class ClashOfReels extends SlotsBase {
                     }
                 });
             }
+            else if (effect === "CAMERA_SHAKE") {
+                const whatToMove = this.stage
+                const startX = whatToMove.x
+                const startY = whatToMove.y
+                const duration = 0.5;   // Total time
+                const shakes = 15;      // How many rapid movements
+                const intensity = 5;    // Max pixel offset (Amplitutde)
+                const keyframes = [];
+
+                for (let i = 0; i < shakes; i++) {
+                    const decay = 1 - (i / shakes);
+                    const x = (Math.random() * intensity * 2 - intensity) * decay;
+                    const y = (Math.random() * intensity * 2 - intensity) * decay;
+
+                    keyframes.push({
+                        x: startX + x,
+                        y: startY + y,
+                        duration: duration / shakes
+                    });
+                }
+
+                keyframes.push({ x: startX, y: startY, rotation: 0, duration: 0.1, ease: "power2.out" });
+                await new Promise(resolve => {
+                    gsap.to(this.stage, {
+                        keyframes: keyframes,
+                        onComplete: resolve
+                    });
+                });
+            }
         })
     }
     async triggerMinesBonusRound() {
@@ -1025,30 +1061,6 @@ export default class ClashOfReels extends SlotsBase {
         const { type, origin, symbolName } = data;
 
         if (type === "EXPLODE_NEIGHBORS") {
-            const duration = 0.5;   // Total time
-            const shakes = 15;      // How many rapid movements
-            const intensity = 5;    // Max pixel offset (Amplitutde)
-            const keyframes = [];
-
-            for (let i = 0; i < shakes; i++) {
-                const decay = 1 - (i / shakes);
-                const x = (this.random() * intensity * 2 - intensity) * decay;
-                const y = (this.random() * intensity * 2 - intensity) * decay;
-
-                keyframes.push({
-                    x: x,
-                    y: y,
-                    duration: duration / shakes
-                });
-            }
-
-            keyframes.push({ x: 0, y: 0, rotation: 0, duration: 0.1, ease: "power2.out" });
-            await new Promise(resolve => {
-                gsap.to(this.stage, {
-                    keyframes: keyframes,
-                    onComplete: resolve
-                });
-            });
         }
         else if (type === "SHOOT_ARROWS") {
             console.log("Super Archer Logic Executing!");
