@@ -54,7 +54,9 @@ export default class SlotsBase {
         // Group for the reels to center them easily
         this.reelContainer = new Container();
         this.stage.addChild(this.reelContainer);
-        this.createUI()
+
+        this.ghostContainer = new Container();
+        this.stage.addChild(this.ghostContainer)
 
         this.initialGrid = this.generateRandomResult()
         // if (config.backgroundImage) {
@@ -72,41 +74,51 @@ export default class SlotsBase {
     }
 
     async spin() {
-        if (this.processing) return;
+        if (this.processing && this.config.mode === "normal") return;
         this.processing = true;
 
-        this.setMultiplier(0); // Visual update hook
-        const timeline = this.calculateMoves();
+        try {
 
-        console.log("PREDICTED PAYOUT:", timeline[timeline.length - 1].totalWin || 0);
-        console.log("PREDICTED GAME FLOW:", timeline);
+            this.setMultiplier(0);
+            const timeline = this.calculateMoves();
 
-        this.grid = timeline[0].grid;
-        await this.startSpin();
+            console.log("PREDICTED PAYOUT:", timeline[timeline.length - 1].totalWin || 0);
+            console.log("PREDICTED GAME FLOW:", timeline);
 
-        for (let i = 1; i < timeline.length; i++) {
-            await new Promise(r => setTimeout(r, this.config.timeBeforeProcessingGrid));
-            const event = timeline[i];
+            this.grid = timeline[0].grid;
+            await this.startSpin();
 
-            if (event.type === 'TRANSFORM') {
-                await this.playTransformAnimation(event.changes);
-            }
-            else if (event.type === 'CASCADE') {
-                await this.triggerMatchAnimations(event.clusters);
-                await this.onCascadeEvent(event);
-                await this.explodeAndCascade(event.clusters, event.replacements);
+            for (let i = 1; i < timeline.length; i++) {
+                await new Promise(r => setTimeout(r, this.config.timeBeforeProcessingGrid));
+                const event = timeline[i];
 
-                if (event.totalWin > 0) {
-                    this.setMultiplier(event.totalWin);
+                if (event.type === 'TRANSFORM') {
+                    await this.playTransformAnimation(event.changes);
                 }
-                this.grid = event.grid;
+                else if (event.type === 'CASCADE') {
+                    await this.triggerMatchAnimations(event.clusters);
+                    await this.onCascadeEvent(event);
+                    await this.explodeAndCascade(event.clusters, event.replacements);
+
+
+                    this.grid = event.grid;
+                }
+                else {
+                    await this.onCustomEvent(event)
+                }
             }
-            else {
-                await this.onCustomEvent(event)
-            }
+            return { grid: this.grid, timeline: timeline }
         }
-        this.processing = false;
-        return { grid: this.grid, timeline: timeline }
+        catch (error) {
+            console.error(error)
+            return null;
+        }
+        finally {
+            if (this.config.mode === "normal") {
+                this.processing = false;
+            }
+
+        }
     }
 
 
@@ -165,7 +177,6 @@ export default class SlotsBase {
             shadow.scale = scale
             this.stage.addChild(this.title);
         });
-
     }
 
     setMultiplier(newVal) {
@@ -430,6 +441,7 @@ export default class SlotsBase {
 
         // 4. Finally, build the visual grid
         this.createGrid();
+        this.createUI()
     }
 
     // 3. NEW GENERIC ANTICIPATION METHOD
@@ -818,8 +830,65 @@ export default class SlotsBase {
         }
         return await Promise.all(reel_promises);
     }
+    // You can now pass hex values (0x00FF00) or strings ("green", "#FF00FF") 
+    // depending on your Pixi version (v7+ supports strings natively).
+    drawBackgroundCells(backgroundColor = 0x000000) {
 
-    drawBackgroundCells() {
+        // 1. Check if we already have a container and remove it to prevent duplicates
+        if (this.backgroundCellsContainer) {
+            this.backgroundCellsContainer.destroy({ children: true });
+        }
+
+        const bgContainer = new Container();
+        this.backgroundCellsContainer = bgContainer; // Keep a reference to destroy later if needed
+
+        // CONFIGURATION
+        this.bgContainer = [];
+
+        // We remove the grayFilter because 'tint' is much more performant 
+        // and filters break batch rendering.
+
+        for (let i = 0; i < this.config.cols; i++) {
+            this.bgContainer.push([]);
+            for (let j = 0; j < this.config.rows; j++) {
+
+                const bg = new Sprite();
+                bg.texture = Assets.get("rage_spell_background");
+
+                // --- POSITIONING ---
+                const x = i * (this.config.symbolWidth + this.config.gapX);
+                const y = j * (this.config.symbolHeight + this.config.gapY);
+                const w = this.config.symbolWidth;
+                const h = this.config.symbolHeight;
+
+                bg.x = x;
+                bg.y = y;
+                bg.width = w;
+                bg.height = h;
+                bg.alpha = 0.7;
+
+                // --- COLORING ---
+                // This applies the color passed in the function argument
+                bg.tint = backgroundColor;
+
+                // --- MASKING ---
+                const mask = new Graphics()
+                    .roundRect(0, 0, w, h, 15)
+                    .fill("white"); // Color of mask doesn't matter, only alpha
+
+                mask.x = x;
+                mask.y = y;
+                bg.mask = mask;
+
+                this.bgContainer[i].push(bg);
+                bgContainer.addChild(bg);
+                bgContainer.addChild(mask);
+            }
+        }
+        // Add to reelContainer so it centers automatically with the game
+        this.reelContainer.addChildAt(bgContainer, 0);
+    }
+    ddrawBackgroundCells() {
         const bgContainer = new Container();
         // CONFIGURATION
         const cellScale = 0.85; // 85% of the symbol size (Adjust this to make them smaller/larger)
@@ -1279,5 +1348,85 @@ export default class SlotsBase {
     // 3. Helper to set a specific seed manually
     setSeed(val) {
         this.seed = val;
+    }
+
+    spawnGhost(originalSymbol) {
+        const ghost = new Sprite(originalSymbol.texture);
+        ghost.anchor.set(0.5);
+        ghost.width = originalSymbol.width;
+        ghost.height = originalSymbol.height;
+        const origin = this.stage.toLocal(originalSymbol.getGlobalPosition())
+        ghost.x = origin.x// originalSymbol.x;
+        ghost.y = origin.y//originalSymbol.y;
+
+        ghost.alpha = 1;
+
+        this.stage.addChild(ghost);
+
+        setTimeout(() => ghost.destroy(), 5000)
+        return ghost
+    }
+    playBonusTransition(textString) {
+        return new Promise((resolve) => {
+            // 1. Create the Container (Dark Overlay + Text)
+            const overlay = new Container();
+            overlay.alpha = 0;
+            this.stage.addChild(overlay);
+
+            // Dark Background
+            const bg = new Graphics();
+            bg.rect(0, 0, this.config.width, this.config.height).fill({ color: 0x000000, alpha: 0.7 });
+            overlay.addChild(bg);
+
+            // "BONUS" Text
+            // Inside playBonusTransition()
+
+            const text = new Text({
+                text: textString,
+                style: {
+                    fontFamily: "Arial",
+                    fontSize: 120,
+                    fontWeight: "bold",
+                    fill: "#FFD700",
+                    stroke: { color: "#4a3c31", width: 8 },
+                    dropShadow: true,
+                    dropShadowColor: '#000000',
+                    dropShadowBlur: 10,
+                    dropShadowAngle: Math.PI / 6,
+                    dropShadowDistance: 6,
+                    align: "center"
+                }
+            });
+            text.anchor.set(0.5);
+            text.x = this.config.width / 2;
+            text.y = this.config.height / 2;
+            text.scale.set(0); // Start tiny
+            overlay.addChild(text);
+
+            // 2. Animate Sequence
+            const tl = gsap.timeline({
+                onComplete: () => {
+                    // Cleanup and Resume
+                    overlay.destroy({ children: true });
+                    resolve();
+                }
+            });
+
+            // Fade In Overlay
+            tl.to(overlay, { alpha: 1, duration: 0.3 });
+
+            // Pop Text In (Elastic bounce)
+            tl.to(text.scale, { x: 1, y: 1, duration: 0.8, ease: "elastic.out(1, 0.3)" }, "-=0.1");
+
+            // Pulse / Shake for excitement
+            tl.to(text.scale, { x: 1.1, y: 1.1, duration: 0.1, yoyo: true, repeat: 3 });
+
+            // Wait a moment for player to read it
+            tl.to(text, { duration: 0.5 });
+
+            // Zoom Out / Fade Away
+            tl.to(text.scale, { x: 3, y: 3, duration: 0.3, ease: "power2.in" }, "exit");
+            tl.to(overlay, { alpha: 0, duration: 0.3 }, "exit");
+        });
     }
 }

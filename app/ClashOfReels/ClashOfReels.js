@@ -1,6 +1,6 @@
 import SlotsBase from '../game-engine/SlotsBase';
 import gsap from "gsap"
-import { Assets, Sprite, Graphics, Text, Container, ColorMatrixFilter } from "pixi.js"
+import { Assets, Sprite, Graphics, Text, Container, ColorMatrixFilter, FillGradient } from "pixi.js"
 import { MinesGame } from './MinesGame'; // Import the new game
 const SYMBOLS = [
     {
@@ -62,7 +62,7 @@ const SYMBOLS = [
         name: 'gold',
         weight: 1000,
         group: "low_resource",
-        scale: 4,
+        scale: 1,
         payouts: { 4: 0.2, 5: 0.5, 6: 1.0, 7: 1.5, 8: 2.5, 9: 5.0, 10: 6, 11: 10, 7: 15 },
         path: "resource/gold.png"
     },
@@ -70,7 +70,7 @@ const SYMBOLS = [
         name: 'elixir',
         weight: 1000,
         group: "low_resource",
-        scale: 4,
+        scale: .8,
         payouts: { 4: 0.2, 5: 0.5, 6: 1.0, 7: 1.5, 8: 2.5, 9: 5.0, 10: 6, 11: 10, 7: 15 },
         path: "resource/elixir.png"
     },
@@ -78,13 +78,14 @@ const SYMBOLS = [
         name: 'darkelixir',
         weight: 1000,
         group: "low_resource",
-        scale: 4,
+        scale: .8,
         payouts: { 4: 0.2, 5: 0.5, 6: 1.0, 7: 1.5, 8: 2.5, 9: 5.0, 10: 6, 11: 10, 7: 15 },
         path: "resource/dark_elixir.png"
     },
     {
         name: 'gem',
         weight: 800,
+        group: "low_resource",
         scale: .8,
         payouts: { 4: 0.2, 5: 0.5, 6: 1.0, 7: 1.5, 8: 2.5, 9: 5.0, 10: 6, 11: 10, 7: 15 },
         path: "resource/gem.png",
@@ -113,7 +114,7 @@ const builder = {
     name: "builder",
     scale: 1,
     path: "Builder.png",
-    weight: [9999],
+    weight: [5],
     onlyAppearOnRoll: true,
     matchEffect: "builder_match",
     explodeEffect: "builder_poof",
@@ -126,7 +127,7 @@ const warden = {
     name: "warden",
     scale: 1,
     path: "Warden.png",
-    weight: [9999],
+    weight: [5],
     dontCluster: true,
     onlyAppearOnRoll: true,
     // matchEffect: "VIDEO_PLAY",
@@ -164,8 +165,9 @@ const townHallSymbols = [
 
 const treasureSymbol = {
     name: "treasure",
-    weight: [100, 100, 100],
+    weight: [150, 50, 10],
     scale: 1.4,
+    group: "bonus_game",
     onlyAppearOnRoll: true,
     path: "Treasury.png",
     anticipation: {
@@ -174,6 +176,22 @@ const treasureSymbol = {
     },
     onePerReel: true,
     dontCluster: true,
+}
+
+const treasureGoblin = {
+    name: "treasureGoblin",
+    weight: [50000, 50000, 50000],
+    scale: 1.4,
+    group: "bonus_game",
+    onlyAppearOnRoll: true,
+    path: "treasure_goblin.png",
+    // anticipation: {
+    //     after: 2,
+    //     count: 15,
+    // },
+    onePerReel: true,
+    dontCluster: true,
+    explodeMatch: "TREASURE_GOBLIN_MATCH"
 }
 
 const SUPER_SYMBOLS = [
@@ -234,6 +252,7 @@ SYMBOLS.push(warden)
 SYMBOLS.push(...townHallSymbols)
 SYMBOLS.push(...SUPER_SYMBOLS)
 SYMBOLS.push(wildCard)
+SYMBOLS.push(treasureGoblin)
 
 export default class ClashOfReels extends SlotsBase {
 
@@ -292,11 +311,14 @@ export default class ClashOfReels extends SlotsBase {
                 { name: "low_troop", count: 2 },
                 { name: "high_troop", count: 2 },
                 { name: "low_resource", count: 2 },
+                { name: "bonus_game", count: 1 },
             ],
 
             ...config,
         };
+
         super(rootContainer, app, myConfig);
+
         this.minesBonus = new MinesGame(this.stage, app, {
             textureHidden: { texture: "grass", scale: .3 },
             backgroundImage: { texture: "mines_backgroundImage", scale: 1 },
@@ -306,20 +328,55 @@ export default class ClashOfReels extends SlotsBase {
             rows: 5,
             bombsCount: 5
         });
+
+        this.treasureGoblinConfig = {
+            freeSpins: 5,
+            multiplierIncrease: 2,
+            newSymbols: [
+                { name: "gem", weight: 500 },
+                { name: "gold", weight: 1500 },
+                { name: "elixir", weight: 1500 },
+                { name: "darkelixir", weight: 1000 },
+                { name: "treasureGoblin", weight: 20, clusterSize: 1 },
+                ...SYMBOLS.filter(s => s.group === "low_troop").map(s => ({ name: s.name, weight: 5400 / 6 }))
+            ],
+            resources: {
+                "gold": { icon: "gold", current: 0, max: 20, colorTop: "rgb(246, 220, 113)", colorBot: "rgb(232, 190, 16)" },
+                "elixir": { icon: "elixir", current: 0, max: 20, colorTop: "rgb(226, 145, 227)", colorBot: "rgb(193, 38, 193)" },
+                "darkelixir": { icon: "darkelixir", current: 0, max: 15, colorTop: "rgb(143, 130, 150)", colorBot: "rgb(41, 11, 52)" },
+                "gem": { icon: "gem", current: 0, max: 10, colorTop: "rgb(136, 237, 79)", colorBot: "rgb(23, 138, 26)" },
+            }
+        };
+
         this.init()
     }
 
     // Update your spin loop to read the timeline data
     async onCascadeEvent(event) {
-        // console.log(event)
+        console.log("cascade event", event)
 
 
         if (event.wardenData) {
 
         }
 
-        if (event.superAbility) {
+        else if (event.superAbility) {
             await this.triggerSuperAbility(event.superAbility);
+        }
+
+        else if (this.config.mode === "TREASURE_GOBLIN_BONUS_GAME") {
+
+            const count = event.explodedClusters.flat().filter(item => item.value === this.config.symbols.find(s => s.name === "treasureGoblin").id).length;
+            console.log("count", count)
+            if (count > 0) {
+                this.freeSpins += count
+            }
+            // this.treasureGoblinUpdateResourceUI(event)
+        }
+        else {
+            if (event.totalWin > 0) {
+                this.setMultiplier(event.totalWin);
+            }
         }
 
     }
@@ -411,7 +468,6 @@ export default class ClashOfReels extends SlotsBase {
 
                 // 3. Final Update (Only happens after all Town Halls are done)
                 this.setMultiplier(event.previousWin * sum)
-                // this.setMultiplier()
             }
 
             this.setMultiplier(event.totalWin);
@@ -505,6 +561,11 @@ export default class ClashOfReels extends SlotsBase {
         else if (event.type === "MINES_BONUS_GAME") {
             await this.triggerMinesBonusRound();
         }
+        else if (event.type === "TREASURE_GOBLIN_BONUS_GAME") {
+            this.config.mode = event.type
+            await this.triggerTreasureGoblinGame();
+        }
+        this.config.mode = "normal"
     }
 
     calculateWardenAction(grid) {
@@ -560,9 +621,9 @@ export default class ClashOfReels extends SlotsBase {
         };
     }
 
-    async spin() {
+    async spin(seed) {
 
-        this.setSeed(308584778882)
+        if (seed) this.setSeed(seed)
         console.log("This game has the seed:", this.seed)
         // if (true) { // Change to 'true' to force bonus every spin
         //     await this.triggerBonusRound();
@@ -586,8 +647,13 @@ export default class ClashOfReels extends SlotsBase {
             type: 'SPIN_START',
             grid: JSON.parse(JSON.stringify(currentGrid))
         });
+        const MAX_CASCADES = 50
 
         while (true) {
+            if (timeline.length > MAX_CASCADES) {
+                console.warn("Max cascades reached, breaking loop to save browser.");
+                break;
+            }
             let actionOccurred = false;
 
             // --- 1. Clan Castle Logic ---
@@ -688,6 +754,7 @@ export default class ClashOfReels extends SlotsBase {
                     totalWin: totalWin,
                     // wardenData: wardenData,
                     superAbility: superAbilityData,
+                    explodedClusters: rawClusters,
                 });
                 actionOccurred = true;
             }
@@ -729,17 +796,6 @@ export default class ClashOfReels extends SlotsBase {
                         const replacements = this.generateReplacements(clustersToProcess, currentGrid);
                         currentGrid = this.simulateCascade(currentGrid, clustersToProcess, replacements);
                         console.log("clustersToProcess", clustersToProcess)
-
-                        // Add warden to the clusters to remove
-                        // if (clustersToProcess[wardenData.x]) {
-                        //     clustersToProcess[wardenData.x].push(warden.y)
-                        // }
-                        // else {
-                        //     clustersToProcess[wardenData.x] = [warden.y]
-                        // }
-                        // clustersToProcess[wardenData.x] = clustersToProcess[wardenData.x] ? clustersToProcess[wardenData.x].push(wardenData.y)
-
-                        // D. Push the Cascade Event (Symbols fall into empty spots)
                         timeline.push({
                             type: 'CASCADE',
                             clusters: clustersToProcess,
@@ -747,7 +803,8 @@ export default class ClashOfReels extends SlotsBase {
                             grid: JSON.parse(JSON.stringify(currentGrid)),
                             stepWin: 0, // Win was already accredited in WARDEN_ABILITY
                             totalWin: totalWin,
-                            previousWin: totalWin
+                            previousWin: totalWin,
+                            explodedClusters: rawClusters,
                         });
                     }
                 }
@@ -755,8 +812,6 @@ export default class ClashOfReels extends SlotsBase {
 
             if (!actionOccurred) break;
         }
-
-
 
         /* TOWN HALL BONUS MULTIPLIER LOGIC */
         let townHallMultipliers = 0;
@@ -781,9 +836,17 @@ export default class ClashOfReels extends SlotsBase {
             });
         }
 
-        if (this.contain(treasureSymbol.id).length === 3) {
+        if (this.config.mode === "normal" && this.contain(treasureSymbol.id, currentGrid).length === 3) {
             timeline.push({
                 type: "MINES_BONUS_GAME",
+                grid: JSON.parse(JSON.stringify(currentGrid)),
+                totalWin: totalWin
+            })
+        }
+
+        if (this.config.mode === "normal" && this.contain(treasureGoblin.id, currentGrid).length === 3) {
+            timeline.push({
+                type: "TREASURE_GOBLIN_BONUS_GAME",
                 grid: JSON.parse(JSON.stringify(currentGrid)),
                 totalWin: totalWin
             })
@@ -863,6 +926,11 @@ export default class ClashOfReels extends SlotsBase {
                     }
                 }, "<"); // The "<" ensures this starts at the same time as the scale
             }
+            else if (effect === "TREASURE_GOBLIN_MATCH") {
+                const tl = gsap.timeline({ onComplete: resolve });
+                tl.to(sprite.scale, { x: sprite.scale.x * 1.2, y: sprite.scale.y * 1.2, duration: 0.1, yoyo: true, repeat: 3 })
+                    .to(sprite, { pixi: { tint: 0xFFD700 }, duration: 0.1, yoyo: true, repeat: 3 }, "<");
+            }
             else if (effect === "PULSE_GOLD") {
                 // Flash white and scale up
                 const tl = gsap.timeline({ onComplete: resolve });
@@ -940,9 +1008,45 @@ export default class ClashOfReels extends SlotsBase {
 
     handleSymbolExplode(effect, sprite, index) {
         return new Promise(async (resolve) => {
+            if (this.config.mode === "TREASURE_GOBLIN_BONUS_GAME") {
+                const symbolDef = this.config.symbols.find(s => s.id === sprite.symbolId);
+                const resourceTypes = ['gold', 'elixir', 'darkelixir', 'gem'];
 
+                if (symbolDef && resourceTypes.includes(symbolDef.name)) {
+                    const resourceType = symbolDef.name
+                    const targetElement = this.resourceTexts[resourceType] || this.resourceBars[resourceType].graphics;
+                    if (!targetElement) {
+                        resolve();
+                        return;
+                    }
+                    const ghost = this.spawnGhost(sprite)
+                    const to = this.stage.toLocal(targetElement.getGlobalPosition())
+
+                    const tl = gsap.timeline({
+                        onComplete: () => {
+                            ghost.destroy();
+                            console.log(resourceType)
+                            this.updateResource(resourceType, 1);
+                            gsap.fromTo(targetElement.scale, { x: 1.5, y: 1.5 }, { x: 1, y: 1, duration: 0.2 });
+
+                            resolve();
+                        }
+                    });
+
+                    tl.to(ghost, {
+                        x: to.x,
+                        y: to.y,
+                        rotation: Math.random() * 5,
+                        duration: 0.6,
+                        ease: "back.in(1.2)"
+                    });
+
+                    tl.to(ghost, { alpha: 0, duration: 0.1 }, ">-0.1");
+                    return;
+                }
+            }
             if (effect === "PARTICLES_GOLD") {
-                const ghost = this.reels[index].spawnGhost(sprite)
+                const ghost = this.spawnGhost(sprite)
                 gsap.to(ghost.scale, { x: 0, y: 0, duration: 0.4 });
                 gsap.to(ghost, {
                     rotation: 5, alpha: 0, duration: 0.4, onComplete: () => {
@@ -952,7 +1056,7 @@ export default class ClashOfReels extends SlotsBase {
                 });
             }
             else if (effect === "builder_poof") {
-                const ghost = this.reels[index].spawnGhost(sprite)
+                const ghost = this.spawnGhost(sprite)
                 gsap.to(ghost, {
                     alpha: 0,
                     y: ghost.y - 50,
@@ -996,7 +1100,7 @@ export default class ClashOfReels extends SlotsBase {
     }
     async triggerMinesBonusRound() {
         console.log("!!! ENTERING MINES BONUS !!!");
-        await this.playBonusTransition();
+        await this.playBonusTransition("BONUS ROUND\nMINES");
 
         await gsap.to(this.reelContainer, { alpha: 0.2, duration: 0.5 });
 
@@ -1009,80 +1113,80 @@ export default class ClashOfReels extends SlotsBase {
         const randomLimit = Math.floor(this.random() * maxSafeMoves);
         const totalBonusWin = await this.minesBonus.play(1, randomLimit);
         if (this.globalMultiplier == 0) {
-            this.onMultiplierChange(totalBonusWin); // Visual update hook
+            this.setMultiplier(totalBonusWin); // Visual update hook
         }
         else {
             this.setMultiplier(this.globalMultiplier * totalBonusWin); // Visual update hook
-
         }
-
 
         await gsap.to(this.reelContainer, { alpha: 1, duration: 0.5 });
     }
 
-    playBonusTransition() {
-        return new Promise((resolve) => {
-            // 1. Create the Container (Dark Overlay + Text)
-            const overlay = new Container();
-            overlay.alpha = 0;
-            this.stage.addChild(overlay);
+    async triggerTreasureGoblinGame() {
+        this.treasureGoblinWin = 0;
+        this.createResourceUI()
+        console.log("!!! ENTERING TREASURE GOBLIN BONUS !!!");
+        await this.playBonusTransition("BONUS ROUND\nTREASURE GOBLIN");
 
-            // Dark Background
-            const bg = new Graphics();
-            bg.rect(0, 0, this.config.width, this.config.height).fill({ color: 0x000000, alpha: 0.7 });
-            overlay.addChild(bg);
+        this.drawBackgroundCells("green")
 
-            // "BONUS" Text
-            // Inside playBonusTransition()
-
-            const text = new Text({
-                text: "BONUS ROUND\nMINES",
-                style: {
-                    fontFamily: "Arial",
-                    fontSize: 120,
-                    fontWeight: "bold",
-                    fill: "#FFD700", // <--- CHANGE THIS (Use a single string, remove the array)
-                    stroke: { color: "#4a3c31", width: 8 },
-                    dropShadow: true,
-                    dropShadowColor: '#000000',
-                    dropShadowBlur: 10,
-                    dropShadowAngle: Math.PI / 6,
-                    dropShadowDistance: 6,
-                    align: "center"
-                }
-            });
-            text.anchor.set(0.5);
-            text.x = this.config.width / 2;
-            text.y = this.config.height / 2;
-            text.scale.set(0); // Start tiny
-            overlay.addChild(text);
-
-            // 2. Animate Sequence
-            const tl = gsap.timeline({
-                onComplete: () => {
-                    // Cleanup and Resume
-                    overlay.destroy({ children: true });
-                    resolve();
-                }
-            });
-
-            // Fade In Overlay
-            tl.to(overlay, { alpha: 1, duration: 0.3 });
-
-            // Pop Text In (Elastic bounce)
-            tl.to(text.scale, { x: 1, y: 1, duration: 0.8, ease: "elastic.out(1, 0.3)" }, "-=0.1");
-
-            // Pulse / Shake for excitement
-            tl.to(text.scale, { x: 1.1, y: 1.1, duration: 0.1, yoyo: true, repeat: 3 });
-
-            // Wait a moment for player to read it
-            tl.to(text, { duration: 0.5 });
-
-            // Zoom Out / Fade Away
-            tl.to(text.scale, { x: 3, y: 3, duration: 0.3, ease: "power2.in" }, "exit");
-            tl.to(overlay, { alpha: 0, duration: 0.3 }, "exit");
+        this.freeSpins = this.treasureGoblinConfig.freeSpins
+        const original = this.config.symbols.map(s => {
+            return {
+                weight: s.weight,
+                anticipation: s.anticipation,
+                group: s.group
+            }
         });
+        this.config.symbols.forEach(s => {
+            s.weight = 0
+            s.group = undefined
+            s.anticipation = {
+                after: 999999
+            }
+        })
+        this.treasureGoblinConfig.newSymbols.forEach(newSymbol => {
+            const symbolToUpdate = this.config.symbols.find(s => s.name === newSymbol.name);
+
+            if (symbolToUpdate) {
+                symbolToUpdate.weight = newSymbol.weight;
+                symbolToUpdate.anticipation = undefined
+                symbolToUpdate.group = undefined
+                if (newSymbol.clusterSize) {
+                    symbolToUpdate.clusterSize = newSymbol.clusterSize;
+                }
+            }
+        });
+        // --- EMIT INITIAL COUNT ---
+        if (this.emitEvent) {
+            this.emitEvent({ type: 'FREE_SPINS_UPDATE', count: this.freeSpins, open: true });
+        }
+        await new Promise(r => setTimeout(r, 1000))
+
+        while (this.freeSpins > 0) {
+            this.freeSpins--
+            if (this.emitEvent) {
+                this.emitEvent({ type: 'FREE_SPINS_UPDATE', count: this.freeSpins, open: true });
+            }
+            const res = await this.spin()
+            if (this.freeSpins === 0) {
+                if (this.emitEvent) {
+                    this.emitEvent({ type: 'FREE_SPINS_UPDATE', count: this.freeSpins, open: false });
+                }
+            }
+            await new Promise(r => setTimeout(r, 500));
+        }
+        this.config.symbols.forEach((s, index) => {
+            s.weight = original[index].weight;
+            s.anticipation = original[index].anticipation
+            s.group = original[index].group
+        });
+
+        this.drawBackgroundCells("black")
+        await this.playBonusTransition(`TOTAL WIN\n${this.treasureGoblinWin.toFixed(2)}x`);
+        this.resourceContainer.destroy()
     }
+
 
     async triggerSuperAbility(data) {
         const { type, origin, symbolName } = data;
@@ -1093,5 +1197,244 @@ export default class ClashOfReels extends SlotsBase {
             console.log("Super Archer Logic Executing!");
             // Spawn arrow sprites flying across screen
         }
+    }
+
+    createResourceUI() {
+        this.resourceContainer = new Container();
+
+
+
+        // Position Logic
+        const marginX = this.config.isMobile ? 20 : 10;
+        const marginY = this.config.isMobile ? 60 : 40;
+        this.resourceContainer.x = this.config.width - marginX;
+        this.resourceContainer.y = marginY;
+        this.stage.addChild(this.resourceContainer);
+
+        this.resourceTexts = {};
+        this.resourceBars = {};
+
+        // Convert the config object keys into an array to iterate
+        const resourceKeys = Object.keys(this.treasureGoblinConfig.resources);
+        resourceKeys.forEach((key, index) => {
+            const resourceData = this.treasureGoblinConfig.resources[key];
+
+            this.createResourceBar({
+                type: key, // "gold", "elixir", etc.
+                icon: resourceData.icon,
+                colorTop: resourceData.colorTop,
+                colorBot: resourceData.colorBot,
+                y: index * 70,
+                initialVal: resourceData.current, // Read from Source of Truth
+                maxVal: resourceData.max          // Read from Source of Truth
+            });
+        });
+    }
+
+    createResourceBar({ type, icon, colorTop, colorBot, y, initialVal, maxVal }) {
+        const container = new Container();
+        container.y = y;
+
+        const barWidth = 250;
+        const barHeight = 35;
+        const radius = 5;
+        const gradient = new FillGradient({
+            start: { x: 0, y: 0 },
+            end: { x: 0, y: 1 },
+            textureSpace: 'local',
+            type: "linear",
+            colorStops: [
+                { offset: 0, color: colorTop },
+                { offset: .45, color: colorTop },
+                { offset: .55, color: colorBot },
+                { offset: 1, color: colorBot },
+            ],
+        });
+
+        // B. Background Bar
+        const bgBar = new Graphics();
+        bgBar.roundRect(-barWidth, 0, barWidth, barHeight, radius);
+        bgBar.fill({ color: 0x4a4a4a, alpha: 0.4 });
+        bgBar.stroke({ color: 0x000000, width: 2 });
+        container.addChild(bgBar);
+
+        // C. Fill Bar
+        const fillBar = new Graphics();
+
+        // --- MODULO CHANGE HERE ---
+        const safeMax = maxVal || 1;
+        // Use modulo to wrap the value. 
+        // e.g. if current is 25 and max is 20, percent is 0.25 (5/20)
+        const percent = (initialVal % safeMax) / safeMax;
+
+        const currentWidth = barWidth * percent;
+
+        if (currentWidth > 0) {
+            fillBar.roundRect(-currentWidth, 0, currentWidth, barHeight, radius).fill(gradient);
+        }
+
+        container.addChild(fillBar);
+
+        const maxText = new Text({
+            text: maxVal.toString(),
+            style: {
+                fontFamily: "cocFont",
+                fontSize: 12,
+                fill: "white",
+                stroke: { color: "black", width: 1 }
+            }
+        });
+
+        maxText.anchor.set(0, 0);
+        maxText.x = -barWidth + 5;
+        maxText.y = 2;
+        container.addChild(maxText);
+
+        // SAVE REFERENCE
+        this.resourceBars[type] = {
+            graphics: fillBar,
+            maxWidth: barWidth,
+            maxVal: maxVal,
+            fillStyle: gradient
+        };
+
+        // D. Value Text
+        const valueText = new Text({
+            text: initialVal.toLocaleString().replace(/,/g, " "),
+            style: {
+                fontFamily: "cocFont",
+                fontSize: 24,
+                fill: "white",
+                stroke: { color: "black", width: 3 },
+            }
+        });
+        valueText.anchor.set(1, 0.5);
+        valueText.x = -50;
+        valueText.y = barHeight / 2;
+        container.addChild(valueText);
+        this.resourceTexts[type] = valueText;
+
+        // E. Icon
+        if (Assets.get(icon)) {
+            const iconSprite = new Sprite(Assets.get(icon));
+            iconSprite.anchor.set(0.5);
+            iconSprite.x = -25;
+            iconSprite.y = barHeight / 2;
+            const scale = 50 / iconSprite.height;
+            iconSprite.scale.set(scale);
+            container.addChild(iconSprite);
+        }
+
+        this.resourceContainer.addChild(container);
+    }
+
+
+    updateResource(type, amountToAdd) {
+        const resourceData = this.treasureGoblinConfig.resources[type];
+
+        if (!resourceData || !this.resourceTexts[type]) {
+            return;
+        }
+
+        const startValue = resourceData.current;
+        const maxVal = resourceData.max;
+
+        // 1. Calculate "Level" BEFORE update
+        // e.g. 18/20 = Level 0.    25/20 = Level 1.
+        const startLevel = Math.floor(startValue / maxVal);
+
+        // 2. Update Source of Truth
+        resourceData.current += amountToAdd;
+        const endValue = resourceData.current;
+
+        // 3. Calculate "Level" AFTER update
+        const endLevel = Math.floor(endValue / maxVal);
+
+        // 4. Determine how many times we crossed the threshold
+        const levelDiff = endLevel - startLevel;
+
+        if (levelDiff > 0) {
+            const winToAdd = levelDiff * 5; // 5x per bar completion
+            this.treasureGoblinWin += winToAdd;
+
+            console.log(`Resource ${type} leveled up! +${winToAdd}x`);
+
+            // Trigger Visual Feedback for the win
+            this.showFloatingText(`+${winToAdd}x`, this.resourceBars[type].graphics);
+        }
+
+        // 5. GSAP Animation (Same as before)
+        const animProxy = { value: startValue };
+
+        gsap.to(animProxy, {
+            value: endValue,
+            duration: 0.8,
+            ease: "power2.in",
+            onUpdate: () => {
+                const currentVal = animProxy.value;
+                this.resourceTexts[type].text = Math.floor(currentVal).toLocaleString().replace(/,/g, " ");
+
+                if (this.resourceBars[type]) {
+                    const barData = this.resourceBars[type];
+                    // Modulo logic for the bar
+                    const remainder = currentVal % barData.maxVal;
+                    const percent = remainder / barData.maxVal;
+                    const currentWidth = barData.maxWidth * percent;
+
+                    barData.graphics.clear();
+                    if (currentWidth > 0.5) {
+                        barData.graphics
+                            .roundRect(-currentWidth, 0, currentWidth, 35, 5)
+                            .fill(barData.fillStyle);
+                    }
+                }
+            },
+            onComplete: () => {
+                this.resourceTexts[type].text = endValue.toLocaleString().replace(/,/g, " ");
+                // Final clean render to fix float inaccuracies
+                if (this.resourceBars[type]) {
+                    const barData = this.resourceBars[type];
+                    const remainder = endValue % barData.maxVal;
+                    const percent = remainder / barData.maxVal;
+                    const currentWidth = barData.maxWidth * percent;
+                    barData.graphics.clear();
+                    if (currentWidth > 0.5) {
+                        barData.graphics
+                            .roundRect(-currentWidth, 0, currentWidth, 35, 5)
+                            .fill(barData.fillStyle);
+                    }
+                }
+            }
+        });
+    }
+    showFloatingText(textStr, targetObject) {
+        const text = new Text({
+            text: textStr,
+            style: {
+                fontFamily: "cocFont",
+                fontSize: 40,
+                fill: "#FFFF00", // Bright Yellow
+                stroke: { color: "#000000", width: 4 },
+                dropShadow: true,
+                dropShadowDistance: 2
+            }
+        });
+
+        // Convert target position to global, then local to stage, or just parent it to the container
+        // Since resourceBars are inside resourceContainer, we can add this to resourceContainer too
+        const pos = targetObject.position;
+
+        text.anchor.set(0.5);
+        // Position it slightly to the left of the bar
+        text.x = pos.x - 280;
+        text.y = targetObject.parent.y + 17; // Align with bar center
+
+        this.resourceContainer.addChild(text);
+
+        // Animate: Pop up and fade out
+        gsap.timeline({ onComplete: () => text.destroy() })
+            .fromTo(text.scale, { x: 0, y: 0 }, { x: 1, y: 1, duration: 0.4, ease: "back.out(1.7)" })
+            .to(text, { y: text.y - 50, duration: 1, ease: "power1.out" }, "<")
+            .to(text, { alpha: 0, duration: 0.3 }, ">-0.3");
     }
 }

@@ -20,8 +20,3 @@ html,
 body {
     font-family: "cocFont", system-ui, -apple-system, Arial, sans-serif;
 }
-
-@theme {
-    --font-display: "Satoshi", "sans-serif";
-    --color-clash-yellow-100: rgb(255, 209, 16)
-}

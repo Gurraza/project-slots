@@ -28,8 +28,6 @@ export class Reel {
         this.explodedSymbols = []
 
         this.cascadeResolve = null;
-        this.ghostContainer = new PIXI.Container();
-        this.container.addChild(this.ghostContainer)
         this.initSymbols();
 
         this.blurFilter = new PIXI.BlurFilter();
@@ -110,7 +108,6 @@ export class Reel {
         this.state = "IDLE"
         this.targetsShown = 0
         this.symbolsRotated = 0
-        this.ghostContainer.removeChildren();
     }
 
     update(delta) {
@@ -371,39 +368,7 @@ export class Reel {
         };
     }
 
-    spawnGhost(originalSymbol) {
-        const ghost = new PIXI.Sprite(originalSymbol.texture);
-        ghost.anchor.set(0.5);
-        ghost.width = originalSymbol.width;
-        ghost.height = originalSymbol.height;
-        ghost.x = originalSymbol.x;
-        ghost.y = originalSymbol.y;
 
-        // Start visible
-        ghost.alpha = 1;
-
-        this.ghostContainer.addChild(ghost);
-
-        // Convert ms to seconds for GSAP
-        // const duration = this.config.ghostTime / 1000;
-        // gsap.to(ghost.scale, {
-        //     x: ghost.scale.x * 1.3, // Expand bigger (2.5x)
-        //     y: ghost.scale.y * 1.3,
-        //     duration: duration,
-        //     ease: "expo.out"
-
-        // });
-        // gsap.to(ghost, {
-        //     alpha: 0,
-        //     duration: duration * 0.5,
-        //     delay: duration * 0.3, // Keep it visible for the first 30% of the movement
-        //     ease: "power2.in",     // Fade out accelerates
-        //     onComplete: () => {
-        //         ghost.destroy();
-        //     }
-        // });
-        return ghost
-    }
 
     // 1. New Helper: Applies size while respecting aspect ratio + custom scale
     applySymbolStyle(sprite, symbolId) {

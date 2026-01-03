@@ -11,12 +11,15 @@ export default function CasinoPage() {
     const [isSpinning, setIsSpinning] = useState(false);
     const fadeTimerRef = useRef(null)
     const [showWin, setShowWin] = useState(false)
+    const [freeSpins, setFreeSpins] = useState(0)
+    const [freeSpinOpen, setFreeSpinOpen] = useState(false)
 
     const handleSpin = async () => {
         setIsSpinning(true);
         if (gameRef.current && gameRef.current.startSpin) {
             setWinAmount(0);
-            const result = await gameRef.current.spin();
+            //672289205338
+            const result = await gameRef.current.spin(672289205338);
             // 3. Update UI with the final win
             // Adjust 'result.totalWin' depending on exactly what your class returns
             if (result && typeof result.totalWin === 'number' && result.totalWin > 0) {
@@ -28,6 +31,23 @@ export default function CasinoPage() {
             }
 
             setIsSpinning(false);
+        }
+    };
+
+    const handleGameEvent = (event) => {
+        // Log all events for debugging
+        console.log('Event from Pixi:', event);
+
+        // Check for your specific event type
+        if (event && event.type === 'FREE_SPINS_UPDATE') {
+            if (event.open == true) {
+                setFreeSpinOpen(true)
+            }
+            else {
+
+                setFreeSpinOpen(false)
+            }
+            setFreeSpins(event.count);
         }
     };
 
@@ -56,7 +76,7 @@ export default function CasinoPage() {
                     gameClass={ClashOfReels}
                     gameState={gameState}
                     onGameReady={(g) => (gameRef.current = g)}
-                    onGameEvent={(e) => console.log('Event from Pixi:', e)}
+                    onGameEvent={handleGameEvent}
                     onResize={(metrics) => setLayout(metrics)}
                 />
                 {layout && (
@@ -75,34 +95,28 @@ export default function CasinoPage() {
                     >
 
                         <div className="absolute w-full h-full pointer-events-none">
+                            <span className='text-white' style={{ fontFamily: "cocFont" }}></span>
                             {/* Spin Button */}
-                            <button
-                                onClick={handleSpin}
-                                style={{ pointerEvents: 'auto' }} // Re-enable clicks for the button
-                                className={
-                                    "absolute flex outline-red-500 auto items-center justify-center flex-row flex-nowrap gap-2 bottom-10 shadow-[0_0_15px_rgba(234,179,8,0.6)] active:scale-95 transition-all "
-                                    + (isSpinning ? " cursor-not-allowed scale-95 grayscale-100" : " cursor-pointer")
-                                    + (layout.isMobile ? " w-70 left-1/2 -translate-x-1/2" : " w-50 right-10")
-                                }
-                            >
-                                {/* <span>SPIN</span> */}
-                                <img className='w-full h-auto' src="/games/ClashOfReels/spin_button.png" />
-                                {/* <svg
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    fill="none"
-                                    viewBox="0 0 24 24"
-                                    strokeWidth={3}
-                                    stroke="currentColor"
-                                    // 'animate-spin' handles the rotation, conditional on state
-                                    className={`w-8 h-8 ${isSpinning ? 'animate-spin' : ''}`}
+                            <div className={
+                                'absolute flex flex-col justify-center items-center bottom-20'
+                                + (layout.isMobile ? " w-70 left-1/2 -translate-x-1/2" : " w-50 right-10")
+
+                            }>
+                                <button
+                                    onClick={handleSpin}
+                                    style={{ pointerEvents: 'auto' }} // Re-enable clicks for the button
+                                    className={
+                                        "ransition-all absolute bottom-0 z-10"
+                                        + (isSpinning ? " cursor-not-allowed scale-95 grayscale-100" : " cursor-pointer")
+                                    }
                                 >
-                                    <path
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"
-                                    />
-                                </svg> */}
-                            </button>
+                                    <img className='w-full h-auto' src="/games/ClashOfReels/spin_button.png" />
+                                </button>
+                                <div className={'absolute transition-all scale-95 ' + (freeSpinOpen ? "-bottom-14.25" : "bottom-0")}>
+                                    <img className='w-full h-auto ' src="/games/ClashOfReels/free_spins_remaining.png" />
+                                    <span className='absolute text-white right-6 bottom-2.5' style={{ fontFamily: "cocFont" }}>{freeSpins}</span>
+                                </div>
+                            </div>
 
                             {/* Top Left Stats Container */}
                             <div className="absolute top-5 left-5 flex flex-col gap-2 items-start">
@@ -121,6 +135,15 @@ export default function CasinoPage() {
                                 </div>
 
                             </div>
+                            {/* <div className='absolute bottom-5 left-5 flex flex-col gap-2 items-start'>
+                                <button
+                                    className='text-black pointer-events-auto rounded-md bg-amber-200 px-4 py-2 cursor-pointer'
+                                    onClick={() => {
+                                        gameRef.current.forceSymbol("treasureGoblin")
+                                    }}>
+                                    force treasure_goblin
+                                </button>
+                            </div> */}
                         </div>
                     </div>
                 )}
