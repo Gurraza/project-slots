@@ -43,12 +43,12 @@ export default function CasinoPage() {
             {/* 1. The Game Screen */}
             <div
                 className={
-                    "w-full max-w-300 absolute border-4 border-yellow-500 rounded-lg overflow-hidden"
+                    "w-full max-w-300 absolute bg-center border-4 border-yellow-500 rounded-lg overflow-hidden"
                 }
                 style={{
                     backgroundImage: "url(" + ClashOfReels.backgroundImage + ")",
-                    backgroundOrigin: "center",
-                    backgroundSize: "cover"
+                    // backgroundOrigin: "center",
+                    backgroundSize: "cover",
                 }}
 
             >
@@ -80,12 +80,14 @@ export default function CasinoPage() {
                                 onClick={handleSpin}
                                 style={{ pointerEvents: 'auto' }} // Re-enable clicks for the button
                                 className={
-                                    "absolute flex items-center justify-center flex-row flex-nowrap gap-2 bottom-10 right-10 bg-yellow-500 hover:bg-yellow-400 text-black font-bold py-4 px-8 rounded-full text-2xl shadow-[0_0_15px_rgba(234,179,8,0.6)] border-4 border-yellow-200 active:scale-95 transition-transform "
-                                    + (isSpinning ? " cursor-not-allowed" : " cursor-pointer")
+                                    "absolute flex outline-red-500 auto items-center justify-center flex-row flex-nowrap gap-2 bottom-10 shadow-[0_0_15px_rgba(234,179,8,0.6)] active:scale-95 transition-all "
+                                    + (isSpinning ? " cursor-not-allowed scale-95 grayscale-100" : " cursor-pointer")
+                                    + (layout.isMobile ? " w-70 left-1/2 -translate-x-1/2" : " w-50 right-10")
                                 }
                             >
-                                <span className='clash-text'>SPIN</span>
-                                <svg
+                                {/* <span>SPIN</span> */}
+                                <img className='w-full h-auto' src="/games/ClashOfReels/spin_button.png" />
+                                {/* <svg
                                     xmlns="http://www.w3.org/2000/svg"
                                     fill="none"
                                     viewBox="0 0 24 24"
@@ -99,7 +101,7 @@ export default function CasinoPage() {
                                         strokeLinejoin="round"
                                         d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"
                                     />
-                                </svg>
+                                </svg> */}
                             </button>
 
                             {/* Top Left Stats Container */}

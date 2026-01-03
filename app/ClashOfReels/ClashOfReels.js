@@ -30,10 +30,26 @@ const SYMBOLS = [
     {
         name: 'wizard',
         weight: 800,
-        group: "low_troop",
+        group: "high_troop",
         scale: .9,
         payouts: { 4: 0.2, 5: 0.5, 6: 1.0, 7: 1.5, 8: 2.5, 9: 5.0, 10: 6, 11: 10, 7: 15 },
         path: "troops_icons/wizard.png"
+    },
+    {
+        name: 'pekka',
+        weight: 800,
+        group: "high_troop",
+        scale: .9,
+        payouts: { 4: 0.2, 5: 0.5, 6: 1.0, 7: 1.5, 8: 2.5, 9: 5.0, 10: 6, 11: 10, 7: 15 },
+        path: "troops_icons/pekka.png"
+    },
+    {
+        name: 'dragon',
+        weight: 800,
+        group: "high_troop",
+        scale: .9,
+        payouts: { 4: 0.2, 5: 0.5, 6: 1.0, 7: 1.5, 8: 2.5, 9: 5.0, 10: 6, 11: 10, 7: 15 },
+        path: "troops_icons/dragon.png"
     },
     {
         name: 'wallbreaker',
@@ -229,8 +245,8 @@ export default class ClashOfReels extends SlotsBase {
             cols: 7,
             rows: 7,
             pathPrefix: "/games/ClashOfReels/",
-            symbolWidth: 80,
-            symbolHeight: 80,
+            symbolWidth: config.isMobile ? 100 : 80,
+            symbolHeight: config.isMobile ? 100 : 80,
             spinSpeed: 25,
             spinAcceleration: 1,
             spinDeacceleration: 0.9,
@@ -262,6 +278,7 @@ export default class ClashOfReels extends SlotsBase {
                 { name: "fireball", path: "Fireball.png" },
                 { name: "num_dot", path: "font/dot.png" },
                 { name: "num_x", path: "font/x.png" },
+                { name: "rage_spell_background", path: "rage_spell_background.png" },
                 ...Array.from({ length: 10 }).map((_, i) => { return { name: "num_" + i, path: "font/" + i + ".png" } })
             ],
             font: {
@@ -271,8 +288,13 @@ export default class ClashOfReels extends SlotsBase {
                 dropShadow: true,
                 stroke: { color: "black", width: 4 }
             },
+            groups: [
+                { name: "low_troop", count: 2 },
+                { name: "high_troop", count: 2 },
+                { name: "low_resource", count: 2 },
+            ],
 
-            ...config
+            ...config,
         };
         super(rootContainer, app, myConfig);
         this.minesBonus = new MinesGame(this.stage, app, {
@@ -358,8 +380,8 @@ export default class ClashOfReels extends SlotsBase {
                 bonusText.scale.set(0);
                 this.stage.addChild(bonusText);
 
-                const destX = this.multiplierText ? this.multiplierText.x : this.config.width - 100;
-                const destY = this.multiplierText ? this.multiplierText.y : 100;
+                const destX = this.multiplierText ? this.stage.toLocal(this.multiplierText.getGlobalPosition()).x : this.config.width - 100;
+                const destY = this.multiplierText ? this.stage.toLocal(this.multiplierText.getGlobalPosition()).y : 100;
 
                 // --- C. AWAIT COMPLETION ---
                 // The loop pauses here until this specific text flies and destroys itself
@@ -539,13 +561,15 @@ export default class ClashOfReels extends SlotsBase {
     }
 
     async spin() {
-        this.setSeed(115609550238)
+
+        this.setSeed(308584778882)
         console.log("This game has the seed:", this.seed)
         // if (true) { // Change to 'true' to force bonus every spin
         //     await this.triggerBonusRound();
         // }
-        this.setActiveGroupVariants('low_troop', 2);
-        this.setActiveGroupVariants('low_resource', 2);
+        // this.setActiveGroupVariants('low_troop', 2);
+        // this.setActiveGroupVariants('high_troop', 2);
+        // this.setActiveGroupVariants('low_resource', 2);
         const result = await super.spin();
 
         return { grid: this.grid, totalWin: this.globalMultiplier };

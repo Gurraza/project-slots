@@ -357,7 +357,7 @@ export class Reel {
                 texture: null
             }
         }
-        const id = this.game.getRandomSymbolId({ firstSpin: false })
+        const id = this.game.getRandomSymbolId({ firstSpin: true, gridToCheck: this.game.initialGrid, coldIndex: this.index })
         return {
             id: id,
             texture: this.config.symbols[id].texture
