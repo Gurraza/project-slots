@@ -4,6 +4,8 @@ import { Assets, Sprite, Graphics, Text, Container, ColorMatrixFilter, FillGradi
 import { MinesGame } from './MinesGame'; // Import the new game
 import { EagleArtilleryFeature } from './features/EagleArtilleryFeature';
 import { ClanCastleFeature } from './features/ClanCastleFeature';
+import { WardenFeature } from './features/WardenFeature';
+
 const SYMBOLS = [
     {
         name: 'barbarian',
@@ -121,7 +123,7 @@ const warden = {
     name: "warden",
     scale: 1,
     path: "Warden.png",
-    weight: [5],
+    weight: [0],
     dontCluster: true,
     onlyAppearOnRoll: true,
     // matchEffect: "VIDEO_PLAY",
@@ -287,7 +289,6 @@ export default class ClashOfReels extends SlotsBase {
                 { name: "grass", path: "grass.png" },
                 { name: "mines_backgroundImage", path: "grass5b5.png" },
                 { name: "bomb", path: "bomb.png" },
-                { name: "fireball", path: "Fireball.png" },
                 { name: "num_dot", path: "font/dot.png" },
                 { name: "num_x", path: "font/x.png" },
                 { name: "rage_spell_background", path: "rage_spell_background.png" },
@@ -301,9 +302,9 @@ export default class ClashOfReels extends SlotsBase {
                 stroke: { color: "black", width: 4 }
             },
             groups: [
-                { name: "low_troop", count: 2 },
-                { name: "high_troop", count: 2 },
-                { name: "low_resource", count: 2 },
+                { name: "low_troop", count: 3 },
+                { name: "high_troop", count: 3 },
+                { name: "low_resource", count: 4 },
                 { name: "bonus_game", count: 1 },
             ],
 
@@ -342,6 +343,7 @@ export default class ClashOfReels extends SlotsBase {
         };
         this.registerFeature(new EagleArtilleryFeature(this))
         this.registerFeature(new ClanCastleFeature(this))
+        this.registerFeature(new WardenFeature(this))
 
         this.init()
     }
@@ -653,7 +655,9 @@ export default class ClashOfReels extends SlotsBase {
 
             // 1. Hook: Pre-Process (Clan Castle)
             for (const feature of this.features) {
-                if (feature.onGridPreProcess(currentGrid, timeline)) actionOccurred = true;
+                if (feature.onGridPreProcess(currentGrid, timeline)) {
+                    actionOccurred = true;
+                }
             }
 
             // --- 2. CLUSTER SEARCH ---
@@ -662,7 +666,11 @@ export default class ClashOfReels extends SlotsBase {
 
             if (rawClusters.length > 0) {
                 // 3. Hook: Clusters Found (Super Troops)
-                this.features.forEach(f => f.onClustersFound(rawClusters, currentGrid, timeline));
+                this.features.forEach(f => {
+                    if (f.onClustersFound(rawClusters, currentGrid, timeline)) {
+                        actionOccurred = true
+                    }
+                });
                 let stepWin = 0;
                 let superAbilityData = null; // To store ability info
                 // --- 3. CALCULATE PAYOUTS ---

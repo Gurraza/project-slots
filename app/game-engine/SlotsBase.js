@@ -1080,6 +1080,7 @@ export default class SlotsBase {
         const targetId = this.config.symbols.find(s => s.name === name).id;
         return grid.flat().includes(targetId);
     }
+
     async playSymbolVideo(targetSprite, videoAlias) {
         return new Promise((resolve) => {
             if (!Assets.get(videoAlias)) {
@@ -1091,7 +1092,7 @@ export default class SlotsBase {
             const videoTexture = Assets.get(videoAlias);
             const videoSource = videoTexture.source;
             const videoElement = videoSource.resource;
-            videoElement.playbackRate = this.config.symbols[targetSprite.symbolId].playbackRate || 1
+            // videoElement.playbackRate = this.config.symbols[targetSprite.symbolId].playbackRate || 1
 
             // 1. Wait for dimensions to load so we can calculate the 10px cut
             if (videoTexture.width === 0 || videoTexture.height === 0) {
@@ -1104,7 +1105,7 @@ export default class SlotsBase {
             }
 
             // --- CALCULATE PIXEL CUT ---
-            const pixelsToCut = 10; // <--- CHANGE THIS VALUE TO CUT MORE/LESS
+            const pixelsToCut = 50; // <--- CHANGE THIS VALUE TO CUT MORE/LESS
             const trimX = pixelsToCut / videoTexture.width;
             const trimY = pixelsToCut / videoTexture.height;
 
@@ -1194,6 +1195,7 @@ export default class SlotsBase {
             const ratioY = this.config.symbolHeight / videoTexture.height;
             const finalScale = ratioY * baseConfigScale;
             videoSprite.scale.set(finalScale);
+            videoElement.playbackRate = symbolConfig.playbackRate//this.config.symbols[targetSprite.symbolId].playbackRate || 1
 
             this.stage.addChild(videoSprite);
             targetSprite.alpha = 0;

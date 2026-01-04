@@ -1,20 +1,27 @@
 // features/GameFeature.js
 
 export default class GameFeature {
-    constructor(game, type) {
+    constructor(game, type, featureSymbol) {
         this.game = game;
         this.type = type
+        this.featureSymbol = featureSymbol
         this.config = this.game.config
     }
 
-    // --- CONFIGURATION ---
-    getSymbols() { return []; } // Return new symbol definitions
+    getSymbols() {
+        return [
+            this.featureSymbol
+        ];
+    }
     getAssets() { return []; }  // Return list of images/sounds to load
-    async init() { }             // Setup UI containers (like Resource Bars)
+
+    async init() {
+        this.id = this.config.symbols.find(s => s.name === this.featureSymbol.name).id
+    }
 
     // --- SIMULATION HOOKS (The Math/Logic Loop) ---
     // Called once at the very start of a spin (good for forcing symbols or resetting state)
-    onSpinStart(grid) { }
+    onSpinStart(grid) { return false }
 
     // Called every time the grid settles (before checking for matches)
     // Use this for "Transformation" logic (like Clan Castle turning into troops)
@@ -22,7 +29,7 @@ export default class GameFeature {
 
     // Called when standard clusters are found. 
     // Use this for "Super Abilities" (Super Archer shooting arrows)
-    onClustersFound(clusters, grid, timeline) { }
+    onClustersFound(clusters, grid, timeline) { return false }
 
     // Called when NO clusters are found (Grid is idle). 
     // This is the "Warden Hook" - allowing action when the game would otherwise end.
@@ -31,7 +38,7 @@ export default class GameFeature {
 
     // Called at the very end of logic calculation.
     // Use this for global multipliers (Town Hall) or triggering Bonus Games (Mines)
-    onSpinEnd(grid, timeline, totalWin) { }
+    onSpinEnd(grid, timeline, totalWin) { return false }
 
 
     // --- VISUAL HOOKS (The Animation Loop) ---
@@ -48,4 +55,12 @@ export default class GameFeature {
 
     // Called when a symbol is destroyed (e.g., Soul flying to UI bar)
     async onSymbolExplode(sprite, symbolDef) { }
+
+    applyGrid(originalGrid, newGrid) {
+        for (let i = 0; i < originalGrid.length; i++) {
+            // We assume 2D arrays (cols x rows)
+            // This replaces the entire column array content
+            originalGrid[i] = [...newGrid[i]];
+        }
+    }
 }

@@ -1,6 +1,6 @@
 import GameFeature from "@/app/game-engine/GameFeature";
 
-const clanCastleSymbol = {
+const featureSymbol = {
     name: "clancastle",
     dontCluster: true,
     weight: 500,
@@ -10,24 +10,12 @@ const clanCastleSymbol = {
 
 export class ClanCastleFeature extends GameFeature {
     constructor(game) {
-        super(game, "CLAN_CASTLE")
+        super(game, "CLAN_CASTLE", featureSymbol)
         this.game = game
-    }
-
-    async init() {
-        this.id = this.config.symbols.find(s => s.name === clanCastleSymbol.name).id
-    }
-
-
-    getSymbols() {
-        return [
-            clanCastleSymbol
-        ];
     }
 
     onGridPreProcess(grid, timeline) {
         const castlePositions = this.game.contain(this.id, grid)
-        // const moves = this.simulateChangeSymbols(currentGrid, clanCastle.id, this.config.symbols.filter(s => s.group == "low_troop"));
         if (castlePositions) {
             const lowTroops = this.config.symbols.filter(s => s.group == "low_troop" && s.weight != 0);
             const randomBaseTroop = lowTroops[Math.floor(this.game.random() * lowTroops.length)];
@@ -63,8 +51,6 @@ export class ClanCastleFeature extends GameFeature {
             promises.push(this.game.insertIntoGrid({ x: change.x, y: change.y }, change.newId));
         });
         await Promise.all(promises);
-
-        return false;
     }
 
 }
