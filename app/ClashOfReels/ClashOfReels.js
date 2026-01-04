@@ -103,14 +103,6 @@ const wildCard = {
     matchesWith: ["*"],
 }
 
-const clanCastle = {
-    name: "clancastle",
-    // landingEffect: "HEAVY_DROP",
-    dontCluster: true,
-    weight: 200,
-    scale: 1.5,
-    path: "clanCastle.png"
-}
 
 const builder = {
     name: "builder",
@@ -249,7 +241,6 @@ const SUPER_SYMBOLS = [
 
 SYMBOLS.push(treasureSymbol)
 SYMBOLS.push(builder)
-SYMBOLS.push(clanCastle)
 SYMBOLS.push(warden)
 SYMBOLS.push(...townHallSymbols)
 SYMBOLS.push(...SUPER_SYMBOLS)
@@ -663,39 +654,6 @@ export default class ClashOfReels extends SlotsBase {
             // 1. Hook: Pre-Process (Clan Castle)
             for (const feature of this.features) {
                 if (feature.onGridPreProcess(currentGrid, timeline)) actionOccurred = true;
-            }
-
-            // --- 1. Clan Castle Logic ---
-            const castlePositions = this.contain(clanCastle.id, currentGrid)
-            // const moves = this.simulateChangeSymbols(currentGrid, clanCastle.id, this.config.symbols.filter(s => s.group == "low_troop"));
-            if (castlePositions) {
-                const lowTroops = this.config.symbols.filter(s => s.group == "low_troop" && s.weight != 0);
-                const randomBaseTroop = lowTroops[Math.floor(this.random() * lowTroops.length)];
-                // 2. Find its SUPER version
-                const superVersion = this.config.symbols.find(s =>
-                    s.isSuper && s.matchesWith === randomBaseTroop.name
-                );
-                // Default to normal if super not found (safety)
-                const transformId = superVersion ? superVersion.id : randomBaseTroop.id;
-
-                const moves = [];
-                castlePositions.forEach(pos => {
-                    moves.push({ x: pos.x, y: pos.y, newId: transformId });
-                    currentGrid[pos.x][pos.y] = transformId;
-                });
-                // moves.forEach(move => {
-                //     if (currentGrid[move.x] && currentGrid[move.x][move.y] !== undefined) {
-                //         currentGrid[move.x][move.y] = move.newId;
-                //     }
-                // });
-
-                timeline.push({
-                    type: 'TRANSFORM',
-                    changes: moves,
-
-                    grid: JSON.parse(JSON.stringify(currentGrid))
-                });
-                actionOccurred = true;
             }
 
             // --- 2. CLUSTER SEARCH ---

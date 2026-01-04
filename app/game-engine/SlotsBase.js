@@ -90,10 +90,7 @@ export default class SlotsBase {
                 await new Promise(r => setTimeout(r, this.config.timeBeforeProcessingGrid));
                 const event = timeline[i];
 
-                if (event.type === 'TRANSFORM') {
-                    await this.playTransformAnimation(event.changes);
-                }
-                else if (event.type === 'CASCADE') {
+                if (event.type === 'CASCADE') {
                     await this.triggerMatchAnimations(event.clusters);
                     await this.onCascadeEvent(event);
                     await this.explodeAndCascade(event.clusters, event.replacements);
@@ -274,15 +271,6 @@ export default class SlotsBase {
         return Promise.resolve();
     }
 
-    async playTransformAnimation(changes) {
-        const promises = [];
-        changes.forEach(change => {
-            // We can insert directly because 'change' has {x, y, newId}
-            // insertIntoGrid handles the visual promise
-            promises.push(this.insertIntoGrid({ x: change.x, y: change.y }, change.newId));
-        });
-        await Promise.all(promises);
-    }
     // Virtual Helper: Cascade
     // Replicates the logic: Remove Exploded -> Append New (Bottom Fill/Slide Up logic)
     simulateCascade(grid, clusters, replacements) {
