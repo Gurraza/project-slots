@@ -288,14 +288,10 @@ export class Reel {
                 this.explodedSymbols.push(symbolToExplode)
 
                 const config = this.config.symbols[symbolToExplode.symbolId];
-                if (this.game.handleSymbolExplode) {
-                    // Trigger fire/particles/fade
-                    const effectName = config.explodeEffect
-                    this.game.handleSymbolExplode(effectName, symbolToExplode, this.index);
-                } else {
-                    // Fallback to your old default ghost logic if no handler exists
-                    // this.spawnGhost(symbolToExplode);
-                }
+
+                // Trigger fire/particles/fade
+                const effectName = config.explodeEffect
+                this.game.handleSymbolExplode(effectName, symbolToExplode, this.index);
             }
 
             // goes through all exploded symbols and sets every symbol above it to move down one

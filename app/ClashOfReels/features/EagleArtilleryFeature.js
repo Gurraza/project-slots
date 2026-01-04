@@ -9,7 +9,7 @@ const featureSymbol = {
     dontCluster: true,
     onlyAppearOnRoll: true,
     // matchEffect: "VIDEO_PLAY",
-    explodeEffect: "warden_explode",
+    // explodeEffect: "warden_explode",
     // explodeEffect: "warden_poof",
     // clusterSize: 1,
     prio: true,

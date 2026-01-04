@@ -4,7 +4,7 @@ import { MinesGame } from "../MinesGame";
 
 const featureSymbol = {
     name: "treasure",
-    weight: [150000, 150000, 150000],
+    weight: [150, 50, 10],
     scale: 1.4,
     // group: "bonus_game",
     onlyAppearOnRoll: true,
@@ -53,7 +53,9 @@ export class MinesFeature extends GameFeature {
                 grid: JSON.parse(JSON.stringify(grid)),
                 totalWin: totalWin
             })
+            return true
         }
+        return false
     }
 
     async onCustomEvent(event) {

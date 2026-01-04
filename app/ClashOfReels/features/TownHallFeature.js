@@ -64,7 +64,9 @@ export class TownHallFeature extends GameFeature {
                 multiplier: multiplierSum,
                 totalWin: totalWin * multiplierSum
             });
+            return true
         }
+        return false
     }
 
     async onCustomEvent(event) {

@@ -1231,7 +1231,9 @@ export default class SlotsBase {
 
     spawnGhost(originalSymbol) {
         const ghost = new Sprite(originalSymbol.texture);
-        ghost.anchor.set(0.5);
+        ghost.anchor.x = originalSymbol.anchor.x;
+        ghost.anchor.y = originalSymbol.anchor.y;
+        // ghost.anchor.set(0.5);
         ghost.width = originalSymbol.width;
         ghost.height = originalSymbol.height;
         const origin = this.stage.toLocal(originalSymbol.getGlobalPosition())
@@ -1242,7 +1244,10 @@ export default class SlotsBase {
 
         this.stage.addChild(ghost);
 
-        setTimeout(() => ghost.destroy(), 5000)
+        // Safety cleanup if animation fails
+        setTimeout(() => {
+            if (!ghost.destroyed) ghost.destroy()
+        }, 5000);
         return ghost
     }
     playBonusTransition(textString) {
