@@ -4,6 +4,7 @@ export default class GameFeature {
     constructor(game, type) {
         this.game = game;
         this.type = type
+        this.config = this.game.config
     }
 
     // --- CONFIGURATION ---

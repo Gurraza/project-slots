@@ -32,23 +32,14 @@ export default class SlotsBase {
         this.grid = Array.from({ length: this.config.cols }, () =>
             Array.from({ length: this.config.rows }, () => 0)
         );
+        this.initialGrid = Array.from({ length: this.config.cols }, () =>
+            Array.from({ length: this.config.rows }, () => 0)
+        );
         this.reels = [];
         this.state = 'IDLE';
         this.timeSinceStart = 0;
         console.log("CONFIG", this.config)
-        this.config.symbols = this.config.symbols.map((symbol, index) => {
-            const fixedSymbol = symbol
-            fixedSymbol.id = index
-            fixedSymbol.baseWeight = fixedSymbol.weight
-            fixedSymbol.landingEffect = symbol.landingEffect ? symbol.landingEffect : this.config.defaultLandingEffect
-            fixedSymbol.matchEffect = symbol.matchEffect ? symbol.matchEffect : this.config.defaultMatchEffect
-            fixedSymbol.explodeEffect = symbol.explodeEffect ? symbol.explodeEffect : this.config.defaultExplodeEffect
-            if (fixedSymbol.path) return {
-                ...fixedSymbol,
-                path: (this.config.pathPrefix + fixedSymbol.path)
-            }
-            else return fixedSymbol
-        });
+        this.features = [];
         console.log("SYMBOLS", this.config.symbols)
 
         // Group for the reels to center them easily
@@ -58,8 +49,6 @@ export default class SlotsBase {
         this.ghostContainer = new Container();
         this.stage.addChild(this.ghostContainer)
 
-        this.initialGrid = this.generateRandomResult()
-        this.features = []; // <--- ADD THIS
         // if (config.backgroundImage) {
         //     Assets.add({ alias: 'background', src: config.backgroundImage });
 
@@ -72,16 +61,14 @@ export default class SlotsBase {
         //         this.stage.addChildAt(backgroundSprite, 0); // Add as the first child
         //     })
         // }
+
     }
 
     // Add this method to SlotsBase class
     registerFeature(feature) {
         this.features.push(feature);
-        // Merge feature symbols into config immediately (optional, but convenient)
-        if (feature.getSymbols) {
-            const newSymbols = feature.getSymbols();
-            this.config.symbols.push(...newSymbols);
-        }
+        const newSymbols = feature.getSymbols();
+        this.config.symbols.push(...newSymbols);
     }
 
     async spin() {
@@ -411,6 +398,28 @@ export default class SlotsBase {
     }
 
     async init() {
+
+        this.config.symbols = this.config.symbols.map((symbol, index) => {
+            const fixedSymbol = symbol
+            fixedSymbol.id = index
+            fixedSymbol.baseWeight = fixedSymbol.weight
+            fixedSymbol.landingEffect = symbol.landingEffect ? symbol.landingEffect : this.config.defaultLandingEffect
+            fixedSymbol.matchEffect = symbol.matchEffect ? symbol.matchEffect : this.config.defaultMatchEffect
+            fixedSymbol.explodeEffect = symbol.explodeEffect ? symbol.explodeEffect : this.config.defaultExplodeEffect
+            if (fixedSymbol.path) return {
+                ...fixedSymbol,
+                path: (this.config.pathPrefix + fixedSymbol.path)
+            }
+            else return fixedSymbol
+        });
+        await this.loadAssets()
+        this.features.forEach(f => f.init());
+        this.initialGrid = this.generateRandomResult()
+        this.createGrid();
+        this.createUI()
+    }
+
+    async loadAssets() {
         // 1. Register all assets with Pixi
         const aliases = [];
         this.config.symbols.forEach(symbol => {
@@ -468,10 +477,6 @@ export default class SlotsBase {
             // For multi-level symbols, we don't assign a default 'texture' property yet,
             // or we assign the first one as default.
         });
-
-        // 4. Finally, build the visual grid
-        this.createGrid();
-        this.createUI()
     }
 
     // 3. NEW GENERIC ANTICIPATION METHOD

@@ -3,6 +3,7 @@ import gsap from "gsap"
 import { Assets, Sprite, Graphics, Text, Container, ColorMatrixFilter, FillGradient } from "pixi.js"
 import { MinesGame } from './MinesGame'; // Import the new game
 import { EagleArtilleryFeature } from './features/EagleArtilleryFeature';
+import { ClanCastleFeature } from './features/ClanCastleFeature';
 const SYMBOLS = [
     {
         name: 'barbarian',
@@ -348,24 +349,14 @@ export default class ClashOfReels extends SlotsBase {
                 "gem": { icon: "gem", current: 0, max: 10, colorTop: "rgb(136, 237, 79)", colorBot: "rgb(23, 138, 26)" },
             }
         };
-        this.features = [
-            new EagleArtilleryFeature(this)
-        ];
-        this.features.forEach(f => {
-            this.config.symbols = [...this.config.symbols, ...f.getSymbols()];
-        });
+        this.registerFeature(new EagleArtilleryFeature(this))
+        this.registerFeature(new ClanCastleFeature(this))
+
         this.init()
-        this.features.forEach(f => f.init());
     }
 
     // Update your spin loop to read the timeline data
     async onCascadeEvent(event) {
-        console.log("cascade event", event)
-
-        for (const feature of this.features) {
-            // If a feature returns true, it means it handled the event completely
-            if (await feature.onCascadeEvent(event)) return;
-        }
         if (event.wardenData) {
 
         }
