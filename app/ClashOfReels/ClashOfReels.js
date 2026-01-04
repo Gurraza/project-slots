@@ -2,6 +2,7 @@ import SlotsBase from '../game-engine/SlotsBase';
 import gsap from "gsap"
 import { Assets, Sprite, Graphics, Text, Container, ColorMatrixFilter, FillGradient } from "pixi.js"
 import { MinesGame } from './MinesGame'; // Import the new game
+import { EagleArtilleryFeature } from './features/EagleArtilleryFeature';
 const SYMBOLS = [
     {
         name: 'barbarian',
@@ -155,7 +156,7 @@ const townHallSymbols = [
     return {
         name: `townhall_${index + 1}`,
         group: "townhall",
-        weight: 10,
+        weight: 3,
         scale: 0.8,
         dontCluster: true,
         path: `TH/${fileName}`,
@@ -165,7 +166,7 @@ const townHallSymbols = [
 
 const treasureSymbol = {
     name: "treasure",
-    weight: [150, 50, 10],
+    weight: [150, 25, 10],
     scale: 1.4,
     group: "bonus_game",
     onlyAppearOnRoll: true,
@@ -180,15 +181,15 @@ const treasureSymbol = {
 
 const treasureGoblin = {
     name: "treasureGoblin",
-    weight: [50000, 50000, 50000],
+    weight: [150, 25, 10],
     scale: 1.4,
     group: "bonus_game",
     onlyAppearOnRoll: true,
     path: "treasure_goblin.png",
-    // anticipation: {
-    //     after: 2,
-    //     count: 15,
-    // },
+    anticipation: {
+        after: 2,
+        count: 15,
+    },
     onePerReel: true,
     dontCluster: true,
     explodeMatch: "TREASURE_GOBLIN_MATCH"
@@ -347,15 +348,24 @@ export default class ClashOfReels extends SlotsBase {
                 "gem": { icon: "gem", current: 0, max: 10, colorTop: "rgb(136, 237, 79)", colorBot: "rgb(23, 138, 26)" },
             }
         };
-
+        this.features = [
+            new EagleArtilleryFeature(this)
+        ];
+        this.features.forEach(f => {
+            this.config.symbols = [...this.config.symbols, ...f.getSymbols()];
+        });
         this.init()
+        this.features.forEach(f => f.init());
     }
 
     // Update your spin loop to read the timeline data
     async onCascadeEvent(event) {
         console.log("cascade event", event)
 
-
+        for (const feature of this.features) {
+            // If a feature returns true, it means it handled the event completely
+            if (await feature.onCascadeEvent(event)) return;
+        }
         if (event.wardenData) {
 
         }
@@ -647,18 +657,25 @@ export default class ClashOfReels extends SlotsBase {
             type: 'SPIN_START',
             grid: JSON.parse(JSON.stringify(currentGrid))
         });
-        const MAX_CASCADES = 50
 
-        while (true) {
-            if (timeline.length > MAX_CASCADES) {
-                console.warn("Max cascades reached, breaking loop to save browser.");
+        this.features.forEach(f => f.onSpinStart(currentGrid));
+        const MAX_CYCLES = 50
+        let cycles = 0
+        while (cycles < MAX_CYCLES) {
+            cycles++
+            if (cycles == MAX_CYCLES) {
+                console.warn("Max cycles reached, breaking loop to save browser.");
                 break;
             }
             let actionOccurred = false;
 
+            // 1. Hook: Pre-Process (Clan Castle)
+            for (const feature of this.features) {
+                if (feature.onGridPreProcess(currentGrid, timeline)) actionOccurred = true;
+            }
+
             // --- 1. Clan Castle Logic ---
             const castlePositions = this.contain(clanCastle.id, currentGrid)
-
             // const moves = this.simulateChangeSymbols(currentGrid, clanCastle.id, this.config.symbols.filter(s => s.group == "low_troop"));
             if (castlePositions) {
                 const lowTroops = this.config.symbols.filter(s => s.group == "low_troop" && s.weight != 0);
@@ -695,6 +712,8 @@ export default class ClashOfReels extends SlotsBase {
             const rawClusters = this.findClusters(currentGrid);
 
             if (rawClusters.length > 0) {
+                // 3. Hook: Clusters Found (Super Troops)
+                this.features.forEach(f => f.onClustersFound(rawClusters, currentGrid, timeline));
                 let stepWin = 0;
                 let superAbilityData = null; // To store ability info
                 // --- 3. CALCULATE PAYOUTS ---
@@ -759,6 +778,14 @@ export default class ClashOfReels extends SlotsBase {
                 actionOccurred = true;
             }
             else {
+                // 4. Hook: Grid Idle (The Warden)
+                // Only runs if no clusters were found
+                for (const feature of this.features) {
+                    if (feature.onGridIdle(currentGrid, timeline)) {
+                        actionOccurred = true;
+                        break; // Restart loop immediately if grid changed
+                    }
+                }
                 // Simple check: Is he on the board?
                 const wardenData = this.contain(warden.id, currentGrid)
                 if (wardenData) {
@@ -851,6 +878,8 @@ export default class ClashOfReels extends SlotsBase {
                 totalWin: totalWin
             })
         }
+
+        this.features.forEach(f => f.onSpinEnd(currentGrid, timeline, totalWin));
 
         timeline.forEach((event, index) => {
             if (event.totalWin === undefined) {

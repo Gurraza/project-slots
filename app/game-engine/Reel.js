@@ -333,20 +333,6 @@ export class Reel {
         this.symbols = this.symbols.sort((a, b) => a.y - b.y).reverse();
     }
 
-    debugSquare(y) {
-        const w = this.config.symbolWidth / 3;
-        const h = this.config.symbolHeight / 3;
-        const container = new PIXI.Container();
-        container.x = 0
-        container.y = y - this.slotHeight / 2
-        const bg = new PIXI.Graphics();
-        bg.roundRect(0, 0, w, h, 15);
-        bg.fill("red");
-        bg.stroke({ width: 3, color: 0xcfb972 });
-        container.addChild(bg);
-        this.container.addChild(container)
-    }
-
     getRandomSymbolData(invisibleFlyby) {
         if (invisibleFlyby && !this.forceVisible) {
             return {
@@ -367,8 +353,6 @@ export class Reel {
             texture: this.config.symbols[id].texture
         };
     }
-
-
 
     // 1. New Helper: Applies size while respecting aspect ratio + custom scale
     applySymbolStyle(sprite, symbolId) {

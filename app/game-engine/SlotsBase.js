@@ -59,6 +59,7 @@ export default class SlotsBase {
         this.stage.addChild(this.ghostContainer)
 
         this.initialGrid = this.generateRandomResult()
+        this.features = []; // <--- ADD THIS
         // if (config.backgroundImage) {
         //     Assets.add({ alias: 'background', src: config.backgroundImage });
 
@@ -71,6 +72,16 @@ export default class SlotsBase {
         //         this.stage.addChildAt(backgroundSprite, 0); // Add as the first child
         //     })
         // }
+    }
+
+    // Add this method to SlotsBase class
+    registerFeature(feature) {
+        this.features.push(feature);
+        // Merge feature symbols into config immediately (optional, but convenient)
+        if (feature.getSymbols) {
+            const newSymbols = feature.getSymbols();
+            this.config.symbols.push(...newSymbols);
+        }
     }
 
     async spin() {
@@ -105,6 +116,12 @@ export default class SlotsBase {
                 }
                 else {
                     await this.onCustomEvent(event)
+                    for (const feature of this.features) {
+                        if (feature.type === event.type) {
+                            await feature.onCustomEvent(event);
+                            break
+                        }
+                    }
                 }
             }
             return { grid: this.grid, timeline: timeline }
@@ -404,6 +421,7 @@ export default class SlotsBase {
                     aliases.push(alias);
                 });
             }
+
             else if (symbol.path) {
                 Assets.add({ alias: symbol.name, src: symbol.path });
                 aliases.push(symbol.name);
@@ -424,6 +442,18 @@ export default class SlotsBase {
                 aliases.push(asset.name);
             });
         }
+
+        this.features.forEach(feature => {
+            if (feature.getAssets) {
+                const assets = feature.getAssets();
+                assets.forEach(asset => {
+                    Assets.add({ alias: asset.alias, src: this.config.pathPrefix + asset.src });
+                    aliases.push(asset.alias);
+                });
+            }
+            // Initialize the feature (create UI, etc.)
+            if (feature.init) feature.init();
+        });
 
         // 2. WAIT for all assets to finish downloading (Critical Step)
         await Assets.load(aliases);
