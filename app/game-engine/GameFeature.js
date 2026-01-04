@@ -1,11 +1,13 @@
 // features/GameFeature.js
 
 export default class GameFeature {
-    constructor(game, type, featureSymbol) {
+    constructor(game, type, featureSymbol = []) {
         this.game = game;
         this.type = type
         this.featureSymbol = featureSymbol
         this.config = this.game.config
+        this.stage = this.game.stage
+        this.reels = this.game.reels
     }
 
     getSymbols() {

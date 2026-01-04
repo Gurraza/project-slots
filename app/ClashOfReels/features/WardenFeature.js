@@ -88,6 +88,7 @@ export class WardenFeature extends GameFeature {
         // 1. Locate the Warden Sprite
         const { source, targets, stepWin } = event;
         const wardenReel = this.game.reels[source.x];
+        wardenReel.sort()
         const wardenSprite = wardenReel.symbols[source.y + 1]; // Offset due to Reel buffer
 
         if (!wardenSprite) return;
