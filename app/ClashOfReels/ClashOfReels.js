@@ -7,6 +7,7 @@ import { WardenFeature } from './features/WardenFeature';
 import { TownHallFeature } from './features/TownHallFeature';
 import { MinesFeature } from './features/MinesFeature';
 import { TreasureGoblinFeature } from './features/TreasureGoblinFeature';
+import { SuperTroopFeature } from './features/SuperTroopFeature';
 
 const SYMBOLS = [
     {
@@ -122,59 +123,8 @@ const builder = {
 }
 
 
-const SUPER_SYMBOLS = [
-    {
-        name: 'super_barbarian',
-        matchesWith: 'barbarian', // Critical for clustering
-        isSuper: true,
-        weight: 0, // 0 weight because they only appear via Clan Castle
-        scale: .9,
-        payouts: { 3: 1.0, 4: 2.0, 5: 5.0 }, // Higher payouts?
-        path: "super/super_barbarian.png", // Ensure this exists or use placeholder
-        superAbility: "EXPLODE_NEIGHBORS",
-        explodeEffect: "CAMERA_SHAKE",
-        multiplier: 2,
-    },
-    {
-        name: 'super_archer',
-        matchesWith: 'archer',
-        isSuper: true,
-        weight: 0,
-        scale: .9,
-        payouts: { 3: 1.0, 4: 2.0, 5: 5.0 },
-        path: "super/super_archer.png",
-        superAbility: "SHOOT_ARROWS",
-        explodeEffect: "CAMERA_SHAKE",
-        multiplier: 2,
-    },
-    {
-        name: 'super_goblin',
-        matchesWith: 'goblin',
-        isSuper: true,
-        weight: 0,
-        scale: .9,
-        payouts: { 3: 1.0, 4: 2.0, 5: 5.0 },
-        path: "super/super_goblin.png",
-        superAbility: "EXPLODE_NEIGHBORS",
-        explodeEffect: "CAMERA_SHAKE",
-        multiplier: 2,
-    },
-    {
-        name: 'super_wizard',
-        matchesWith: 'wizard',
-        isSuper: true,
-        weight: 0,
-        scale: .9,
-        payouts: { 3: 1.0, 4: 2.0, 5: 5.0 },
-        path: "super/super_wizard.png",
-        superAbility: "EXPLODE_NEIGHBORS",
-        explodeEffect: "CAMERA_SHAKE",
-        multiplier: 2,
-    }
-];
 
 SYMBOLS.push(builder)
-SYMBOLS.push(...SUPER_SYMBOLS)
 SYMBOLS.push(wildCard)
 
 export default class ClashOfReels extends SlotsBase {
@@ -262,6 +212,7 @@ export default class ClashOfReels extends SlotsBase {
         this.registerFeature(new TownHallFeature(this))
         this.registerFeature(new MinesFeature(this))
         this.registerFeature(new TreasureGoblinFeature(this))
+        this.registerFeature(new SuperTroopFeature(this))
 
         this.init()
     }
@@ -269,16 +220,9 @@ export default class ClashOfReels extends SlotsBase {
     // Update your spin loop to read the timeline data
     async onCascadeEvent(event) {
 
-        if (event.superAbility) {
-            await this.triggerSuperAbility(event.superAbility);
-        }
-
-
         if (event.totalWin > 0) {
             this.setMultiplier(event.totalWin);
         }
-
-
     }
 
     async onCustomEvent(event) {
@@ -336,7 +280,6 @@ export default class ClashOfReels extends SlotsBase {
                     }
                 });
                 let stepWin = 0;
-                let superAbilityData = null; // To store ability info
                 // --- 3. CALCULATE PAYOUTS ---
                 rawClusters.forEach(cluster => { // [{x: 2, y: 4, value: 6}]
                     const baseNode = cluster.find(node => !this.config.symbols[node.value].isSuper);
@@ -351,23 +294,6 @@ export default class ClashOfReels extends SlotsBase {
                             if (count > maxKey) payout = config.payouts[maxKey];
                         }
                         if (payout) stepWin += payout;
-                    }
-
-                    const superSymbol = cluster.find(node => this.config.symbols[node.value].isSuper);
-
-                    if (superSymbol) {
-                        const superConfig = this.config.symbols[superSymbol.value];
-                        console.log("SUPER TRIGGERED:", superConfig.name);
-
-                        // Define what happens here or store data for the frontend
-                        superAbilityData = {
-                            type: superConfig.superAbility, // e.g., "EXPLODE_NEIGHBORS"
-                            origin: { x: superSymbol.x, y: superSymbol.y },
-                            symbolName: superConfig.name
-                        };
-
-                        // Logic for ability (example: increase win multiplier)
-                        stepWin *= superConfig.multiplier
                     }
                 });
                 totalWin += stepWin;
@@ -392,8 +318,6 @@ export default class ClashOfReels extends SlotsBase {
                     grid: JSON.parse(JSON.stringify(currentGrid)),
                     stepWin: stepWin,
                     totalWin: totalWin,
-                    // wardenData: wardenData,
-                    superAbility: superAbilityData,
                     explodedClusters: rawClusters,
                 });
                 actionOccurred = true;
@@ -609,17 +533,6 @@ export default class ClashOfReels extends SlotsBase {
             await gsap.to(this.stage, {
                 keyframes: keyframes,
             });
-        }
-    }
-
-    async triggerSuperAbility(data) {
-        const { type, origin, symbolName } = data;
-
-        if (type === "EXPLODE_NEIGHBORS") {
-        }
-        else if (type === "SHOOT_ARROWS") {
-            console.log("Super Archer Logic Executing!");
-            // Spawn arrow sprites flying across screen
         }
     }
 }

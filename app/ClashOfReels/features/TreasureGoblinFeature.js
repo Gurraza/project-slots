@@ -4,7 +4,7 @@ import { Sprite, Assets, Container, Text, Graphics, FillGradient } from "pixi.js
 
 const featureSymbol = {
     name: "treasureGoblin",
-    weight: [500000, 500000, 50000000],
+    weight: [5, 5, 5],
     scale: 1.4,
     // group: "bonus_game",
     onlyAppearOnRoll: true,
