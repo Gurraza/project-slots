@@ -119,23 +119,6 @@ const builder = {
     prio: true,
 }
 
-const warden = {
-    name: "warden",
-    scale: 1,
-    path: "Warden.png",
-    weight: [0],
-    dontCluster: true,
-    onlyAppearOnRoll: true,
-    // matchEffect: "VIDEO_PLAY",
-    explodeEffect: "warden_explode",
-    // explodeEffect: "warden_poof",
-    // clusterSize: 1,
-    prio: true,
-    videoPath: "warden_anim.mp4",
-    playbackRate: 3,
-    payouts: { 0: 0, 1: 0.01, 2: 0.05, 3: 0.1, 4: 0.2, 5: 0.5, 6: 1.0, 7: 1.5, 8: 2.5, 9: 5.0, 10: 6, 11: 10, 12: 15, 13: 16, 14: 17, 15: 18, 16: 19 },
-}
-
 const townHallSymbols = [
     "Building_HV_Town_Hall_level_1.png",
     "Building_HV_Town_Hall_level_2.png",
@@ -243,7 +226,6 @@ const SUPER_SYMBOLS = [
 
 SYMBOLS.push(treasureSymbol)
 SYMBOLS.push(builder)
-SYMBOLS.push(warden)
 SYMBOLS.push(...townHallSymbols)
 SYMBOLS.push(...SUPER_SYMBOLS)
 SYMBOLS.push(wildCard)
@@ -350,11 +332,8 @@ export default class ClashOfReels extends SlotsBase {
 
     // Update your spin loop to read the timeline data
     async onCascadeEvent(event) {
-        if (event.wardenData) {
 
-        }
-
-        else if (event.superAbility) {
+        if (event.superAbility) {
             await this.triggerSuperAbility(event.superAbility);
         }
 
@@ -466,92 +445,6 @@ export default class ClashOfReels extends SlotsBase {
 
             this.setMultiplier(event.totalWin);
         }
-        else if (event.type === "WARDEN_ABILITY") {
-            // 1. Locate the Warden Sprite
-            const { source, targets, stepWin } = event;
-            const wardenReel = this.reels[source.x];
-            const wardenSprite = wardenReel.symbols[source.y + 1]; // Offset due to Reel buffer
-
-            if (!wardenSprite) return;
-
-            // 2. Play Video (Warden Casts Spell)
-            // We handle the video play here manually instead of relying on 'matchEffect'
-            await this.playSymbolVideo(wardenSprite, "warden_anim");
-
-            // 3. Fire Projectiles to Targets
-            const wardenGlobal = this.stage.toLocal(wardenSprite.getGlobalPosition());
-            const projectilePromises = targets.map(target => {
-                const targetReel = this.reels[target.x];
-                targetReel.sort()
-                const targetSprite = targetReel.symbols[target.y + 1];
-
-                if (!targetSprite) return Promise.resolve();
-                const targetGlobal = this.stage.toLocal(targetSprite.getGlobalPosition());
-
-                return new Promise(resolve => {
-                    const texture = Assets.get("fireball") || Assets.get("gem");
-                    const orb = new Sprite(texture);
-                    orb.anchor.set(0.5);
-
-                    // 1. Calculate the Target Scale manually
-                    // e.g., if you want 80px and texture is 1000px, target is 0.08
-                    const targetScaleX = this.config.symbolWidth / texture.width;
-                    const targetScaleY = this.config.symbolHeight / texture.height;
-
-                    // 2. Start invisible (scale 0)
-                    orb.scale.set(0);
-                    orb.position.set(wardenGlobal.x, wardenGlobal.y - 50);
-                    orb.alpha = 0;
-
-                    // Optional: Rotate towards target
-                    const dx = targetGlobal.x - orb.x;
-                    const dy = targetGlobal.y - orb.y;
-                    orb.rotation = Math.atan2(dy, dx);
-
-                    this.stage.addChild(orb);
-
-                    const tl = gsap.timeline({
-                        onComplete: () => {
-                            orb.destroy();
-                            gsap.to(targetSprite, { x: targetSprite.x + 5, duration: 0.05, yoyo: true, repeat: 3 });
-                            resolve();
-                        }
-                    });
-
-                    // 3. Animate to the TARGET SCALE, not 1
-                    tl.to(orb.scale, {
-                        x: targetScaleX,
-                        y: targetScaleY,
-                        duration: 0.2,
-                        ease: "back.out(1.2)" // Adds a nice "pop" effect
-                    });
-                    tl.to(orb, { alpha: 1, duration: 0.1 }, "<");
-
-                    // Fly
-                    tl.to(orb, {
-                        x: targetGlobal.x,
-                        y: targetGlobal.y,
-                        duration: 0.4,
-                        ease: "power1.in"
-                    });
-
-                    // Impact Flash (Scale up relative to the target size, e.g., 2x the small size)
-                    tl.to(orb.scale, {
-                        x: targetScaleX * 2,
-                        y: targetScaleY * 2,
-                        duration: 0.1
-                    });
-                    tl.to(orb, { alpha: 0, duration: 0.1 }, "<");
-                });
-            });
-
-            await Promise.all(projectilePromises);
-
-            // 4. Update Win UI
-            if (event.totalWin > 0) {
-                this.setMultiplier(event.totalWin);
-            }
-        }
         else if (event.type === "MINES_BONUS_GAME") {
             await this.triggerMinesBonusRound();
         }
@@ -560,59 +453,6 @@ export default class ClashOfReels extends SlotsBase {
             await this.triggerTreasureGoblinGame();
         }
         this.config.mode = "normal"
-    }
-
-    calculateWardenAction(grid) {
-        const wardenId = this.config.symbols.find(s => s.name === 'warden').id;
-        let wardenFound = null;
-
-        // 1. Find Warden Position
-        for (let c = 0; c < this.config.cols; c++) {
-            for (let r = 0; r < this.config.rows; r++) {
-                if (grid[c][r] === wardenId) {
-                    // Store logic coordinates
-                    wardenFound = { x: c, y: r };
-                    break;
-                }
-            }
-            if (wardenFound) break;
-        }
-
-        if (!wardenFound) return null;
-
-        // 2. Find Targets (Low Resources)
-        const targets = [];
-        const resourceCandidates = {};
-
-        for (let c = 0; c < this.config.cols; c++) {
-            for (let r = 0; r < this.config.rows; r++) {
-                if (c === wardenFound.x && r === wardenFound.y) continue; // Skip self
-
-                const tId = grid[c][r];
-                const tDef = this.config.symbols[tId];
-
-                if (tDef && tDef.group === "low_resource") {
-                    if (!resourceCandidates[tId]) resourceCandidates[tId] = [];
-                    resourceCandidates[tId].push({ x: c, y: r });
-                }
-            }
-        }
-
-        // 3. Select One Type of Resource to Destroy
-        const foundIds = Object.keys(resourceCandidates);
-        if (foundIds.length > 0) {
-            const randomId = foundIds[Math.floor(this.random() * foundIds.length)];
-            targets.push(...resourceCandidates[randomId]);
-        }
-
-        if (targets.length === 0) return null;
-
-        // 4. Return the Action Data
-        return {
-            source: wardenFound, // Logic coordinates {x, y}
-            targets: targets,    // Logic coordinates [{x, y}]
-            win: warden.payouts[targets.length] || 0
-        };
     }
 
     async spin(seed) {
@@ -741,55 +581,6 @@ export default class ClashOfReels extends SlotsBase {
                     if (feature.onGridIdle(currentGrid, timeline)) {
                         actionOccurred = true;
                         break; // Restart loop immediately if grid changed
-                    }
-                }
-                // Simple check: Is he on the board?
-                const wardenData = this.contain(warden.id, currentGrid)
-                if (wardenData) {
-                    actionOccurred = true;
-
-                    // Use the helper to determine IF he has valid targets
-                    const wardenAction = this.calculateWardenAction(currentGrid);
-
-                    if (wardenAction) {
-                        totalWin += wardenAction.win;
-
-                        // A. Push the Ability Event (Video + Projectiles)
-                        timeline.push({
-                            type: 'WARDEN_ABILITY',
-                            source: wardenAction.source,
-                            targets: wardenAction.targets,
-                            stepWin: wardenAction.win,
-                            totalWin: totalWin,
-                        });
-
-                        // B. Calculate the Resulting Explosion (The targets die)
-                        const clustersToProcess = Array.from({ length: this.config.cols }, () => []);
-                        wardenAction.targets.forEach(t => {
-                            if (!clustersToProcess[t.x].includes(t.y)) {
-                                clustersToProcess[t.x].push(t.y);
-                            }
-                        });
-
-                        const source = wardenAction.source;
-                        if (!clustersToProcess[source.x].includes(source.y)) {
-                            clustersToProcess[source.x].push(source.y);
-                        }
-
-                        // C. Simulate the resulting Cascade
-                        const replacements = this.generateReplacements(clustersToProcess, currentGrid);
-                        currentGrid = this.simulateCascade(currentGrid, clustersToProcess, replacements);
-                        console.log("clustersToProcess", clustersToProcess)
-                        timeline.push({
-                            type: 'CASCADE',
-                            clusters: clustersToProcess,
-                            replacements: replacements,
-                            grid: JSON.parse(JSON.stringify(currentGrid)),
-                            stepWin: 0, // Win was already accredited in WARDEN_ABILITY
-                            totalWin: totalWin,
-                            previousWin: totalWin,
-                            explodedClusters: rawClusters,
-                        });
                     }
                 }
             }
@@ -930,9 +721,6 @@ export default class ClashOfReels extends SlotsBase {
 
                 await this.playSymbolVideo(sprite, videoAlias);
                 resolve();
-            }
-            else if (effect === "warden_match") {
-                resolve()
             }
             else if (effect === "builder_match") {
                 const hammerTexture = Assets.get("hammer");

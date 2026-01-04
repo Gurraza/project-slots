@@ -14,7 +14,6 @@ const featureSymbol = {
     // explodeEffect: "warden_poof",
     // clusterSize: 1,
     prio: true,
-    videoPath: "warden_anim.mp4",
     playbackRate: 3,
     payouts: { 0: 0, 1: 0.01, 2: 0.05, 3: 0.1, 4: 0.2, 5: 0.5, 6: 1.0, 7: 1.5, 8: 2.5, 9: 5.0, 10: 6, 11: 10, 12: 15, 13: 16, 14: 17, 15: 18, 16: 19 },
 }
@@ -28,6 +27,7 @@ export class WardenFeature extends GameFeature {
     getAssets() {
         return [
             { alias: "fireball", src: "Fireball.png" },
+            { alias: "warden_anim", src: "warden_anim.mp4" },
         ];
     }
 

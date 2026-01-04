@@ -400,8 +400,8 @@ export default class SlotsBase {
             }
             else return fixedSymbol
         });
-        await this.loadAssets()
         this.features.forEach(f => f.init());
+        await this.loadAssets()
         this.initialGrid = this.generateRandomResult()
         this.createGrid();
         this.createUI()
@@ -422,13 +422,6 @@ export default class SlotsBase {
             else if (symbol.path) {
                 Assets.add({ alias: symbol.name, src: symbol.path });
                 aliases.push(symbol.name);
-            }
-
-            if (symbol.videoPath) {
-                const videoAlias = symbol.name + "_anim";
-                // Pixi V8 Assets automatically detects .mp4
-                Assets.add({ alias: videoAlias, src: this.config.pathPrefix + symbol.videoPath });
-                aliases.push(videoAlias);
             }
         });
 
