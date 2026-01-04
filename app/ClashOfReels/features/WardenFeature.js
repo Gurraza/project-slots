@@ -3,13 +3,12 @@ import { Assets, Sprite } from "pixi.js";
 import gsap from "gsap";
 
 const featureSymbol = {
-    name: "wardenn",
+    name: "warden",
     scale: 1,
     path: "Warden.png",
     weight: [5],
     dontCluster: true,
     onlyAppearOnRoll: true,
-    // matchEffect: "VIDEO_PLAY",
     // explodeEffect: "warden_explode",
     // explodeEffect: "warden_poof",
     // clusterSize: 1,

@@ -9,6 +9,7 @@ export default class GameFeature {
         this.config = this.game.config
         this.stage = this.game.stage
         this.reels = this.game.reels
+        this.effects = []
     }
 
     getSymbols() {
@@ -58,6 +59,10 @@ export default class GameFeature {
 
     // Called when a symbol is destroyed (e.g., Soul flying to UI bar)
     async onSymbolExplode(sprite, symbolDef) { }
+
+    async playEffect(effect, sprite, symbol) {
+
+    }
 
     applyGrid(originalGrid, newGrid) {
         for (let i = 0; i < originalGrid.length; i++) {

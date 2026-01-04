@@ -153,19 +153,13 @@ export class Reel {
                 // 1. Trigger Custom Effects and get their Promise
                 const effectsPromise = this.triggerLandingEffects();
 
-                // 2. Handle Bounce Logic
-                let bouncePromise = Promise.resolve(); // Default to instant resolve
-                if (this.config.bounce && this.config.bounce > 0) {
-                    // We modify performLandingBounce to return a Promise
-                    bouncePromise = this.performLandingBounce();
-                } else {
-                    this.state = 'IDLE';
-                    // Ensure y is perfect if not bouncing
-                    this.container.y = 0;
-                }
+                this.state = 'IDLE';
+                // Ensure y is perfect if not bouncing
+                this.container.y = 0;
+
 
                 // 3. WAIT for BOTH (Bounce + Custom Effects) before finishing the spin
-                Promise.all([effectsPromise, bouncePromise]).then(() => {
+                Promise.all([effectsPromise]).then(() => {
                     if (this.spinResolve) {
                         this.spinResolve(this.targetResult);
                         this.spinResolve = null;

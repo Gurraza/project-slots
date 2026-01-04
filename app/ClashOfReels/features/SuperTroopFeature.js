@@ -54,6 +54,9 @@ const featureSymbols = [
 export class SuperTroopFeature extends GameFeature {
     constructor(game) {
         super(game, "SUPER_TROOP_FEATURE", null)
+        this.effects = [
+            "CAMERA_SHAKE"
+        ]
     }
 
     getSymbols() {
@@ -93,6 +96,37 @@ export class SuperTroopFeature extends GameFeature {
         });
 
         return abilityTriggered;
+    }
+
+    async playEffect(effect, sprite, symbol) {
+        if (effect === "CAMERA_SHAKE") {
+            const whatToMove = this.stage
+            const startX = whatToMove.x
+            const startY = whatToMove.y
+            const duration = 0.5;   // Total time
+            const shakes = 15;      // How many rapid movements
+            const intensity = 5;    // Max pixel offset (Amplitutde)
+            const keyframes = [];
+
+            for (let i = 0; i < shakes; i++) {
+                const decay = 1 - (i / shakes);
+                const x = (Math.random() * intensity * 2 - intensity) * decay;
+                const y = (Math.random() * intensity * 2 - intensity) * decay;
+
+                keyframes.push({
+                    x: startX + x,
+                    y: startY + y,
+                    duration: duration / shakes
+                });
+            }
+
+            keyframes.push({ x: startX, y: startY, rotation: 0, duration: 0.1, ease: "power2.out" });
+
+
+            await gsap.to(this.stage, {
+                keyframes: keyframes,
+            });
+        }
     }
 
 

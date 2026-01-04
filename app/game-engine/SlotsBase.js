@@ -90,14 +90,12 @@ export default class SlotsBase {
 
                 if (event.type === 'CASCADE') {
                     await this.triggerMatchAnimations(event.clusters);
-                    await this.onCascadeEvent(event);
                     await this.explodeAndCascade(event.clusters, event.replacements);
 
 
                     this.grid = event.grid;
                 }
                 else {
-                    await this.onCustomEvent(event)
                     for (const feature of this.features) {
                         if (feature.type === event.type) {
                             await feature.onCustomEvent(event);
@@ -259,14 +257,6 @@ export default class SlotsBase {
             { x: 1.5, y: 1.5 },
             { x: 1, y: 1, duration: 0.5, ease: "elastic.out(1, 0.3)" }
         );
-    }
-
-    // Virtual Method: Defaults to resolve immediately
-    async onCascadeEvent(event) {
-        return Promise.resolve();
-    }
-    async onCustomEvent(event) {
-        return Promise.resolve();
     }
 
     // Virtual Helper: Cascade
@@ -603,133 +593,6 @@ export default class SlotsBase {
         }
 
         return clusters;
-    }
-    ffindClusters(grid) {
-        if (!grid || grid.length === 0) return [];
-        const rows = this.config.rows;
-        const cols = this.config.cols;
-
-        const visited = Array.from({ length: cols }, () => Array(rows).fill(false)); // [Col][Row]
-        const clusters = [];
-
-        const directions = [
-            [0, 1],  // Down (y+1)
-            [0, -1], // Up (y-1)
-            [1, 0],  // Right (x+1)
-            [-1, 0]  // Left (x-1)
-        ];
-
-        const areCompatible = (id1, id2) => {
-            if (id1 === id2) return true;
-
-            const s1 = this.config.symbols[id1];
-            const s2 = this.config.symbols[id2];
-
-            if (s1.dontCluster || s2.dontCluster) return false;
-
-            // Helper to check one-way compatibility (Does A match B?)
-            const checkMatch = (source, target) => {
-                if (!source.matchesWith) return false;
-
-                // Ensure it's treated as an array even if defined as a string
-                const validTargets = Array.isArray(source.matchesWith)
-                    ? source.matchesWith
-                    : [source.matchesWith];
-
-                // 1. Check for Wildcard "ALL" or "*"
-                if (validTargets.includes('ALL') || validTargets.includes('*')) return true;
-
-                // 2. Check for specific Target Name
-                return validTargets.includes(target.name);
-            };
-
-            // Return TRUE if S1 acts as a wild for S2 OR if S2 acts as a wild for S1
-            return checkMatch(s1, s2) || checkMatch(s2, s1);
-        };
-
-        // Helper: c=Column(x), r=Row(y)
-        function explore(c, r, targetValue, currentCluster, localVisited) {
-            // Boundary checks
-            if (c < 0 || c >= cols || r < 0 || r >= rows) return;
-
-            // Check if visited or value mismatch
-            if (visited[c][r] || localVisited.has(`${c},${r}`)) return;
-
-            // UPDATED CHECK: Use compatibility instead of strict equality
-            const currentId = grid[c][r];
-            if (!areCompatible(targetValue, currentId)) return;
-
-
-            visited[c][r] = true;
-            // localVisited.add(`${c},${r}`);
-            // X is Column, Y is Row
-            currentCluster.push({ x: c, y: r, value: currentId });
-
-            for (const [dx, dy] of directions) {
-                explore(c + dx, r + dy, targetValue, currentCluster, localVisited);
-            }
-        }
-
-        // FIXED LOOP ORDER: Iterate Cols (x) first, then Rows (y)
-        // Because grid is defined as grid[x][y]
-        for (let x = 0; x < cols; x++) {
-            for (let y = 0; y < rows; y++) {
-                if (!visited[x][y]) {
-                    const symbolId = grid[x][y];
-                    const symbolConfig = this.config.symbols.find(s => s.id === symbolId);
-
-                    if (symbolConfig && symbolConfig.dontCluster && !(symbolConfig && symbolConfig.clusterSize === 1)) {
-                        visited[x][y] = true;
-                        continue;
-                    }
-
-                    const currentCluster = [];
-                    const localVisited = new Set();
-                    explore(x, y, symbolId, currentCluster, localVisited);
-                    const requiredSize = (symbolConfig && symbolConfig.clusterSize)
-                        ? symbolConfig.clusterSize
-                        : this.config.clusterSize;
-
-                    // if (currentCluster.length >= requiredSize) {
-                    //     // 5. IT IS A WINNER! NOW we mark them as visited globally.
-                    //     // This prevents other clusters from using them.
-                    //     clusters.push(currentCluster);
-
-                    //     currentCluster.forEach(node => {
-                    //         visited[node.x][node.y] = true;
-                    //     });
-                    // }
-                    if (currentCluster.length > 0) {
-                        clusters.push(currentCluster);
-                    }
-                }
-            }
-        }
-        const rawClusters = clusters.filter(cluster => {
-            // Get the symbol ID from the first item in the cluster
-            const symbolId = cluster[0].value;
-            const symbolConfig = this.config.symbols.find(s => s.id === symbolId);
-
-            // Determine the required size for THIS specific symbol
-            // Fallback to global config if not defined
-            const requiredSize = (symbolConfig && symbolConfig.clusterSize)
-                ? symbolConfig.clusterSize
-                : this.config.clusterSize;
-
-            return cluster.length >= requiredSize;
-        });
-        // const rawClusters = clusters.filter(i => i.length >= this.config.clusterSize);
-
-        // Convert to array of columns containing rows to explode
-        // const formattedClusters = Array.from({ length: cols }, () => []);
-        // rawClusters.flat().forEach(({ x, y }) => {
-        //     // x is Column Index, y is Row Index
-        //     formattedClusters[x].push(y);
-        // });
-
-        // if (formattedClusters.every(arr => arr.length === 0)) return [];
-        // return formattedClusters;
-        return rawClusters
     }
 
     applyGroups() {

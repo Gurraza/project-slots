@@ -9,10 +9,10 @@ const featureSymbol = {
     // group: "bonus_game",
     onlyAppearOnRoll: true,
     path: "treasure_goblin.png",
-    // anticipation: {
-    //     after: 2,
-    //     count: 15,
-    // },
+    anticipation: {
+        after: 2,
+        count: 15,
+    },
     onePerReel: true,
     dontCluster: true,
     explodeMatch: "TREASURE_GOBLIN_MATCH"
@@ -25,10 +25,10 @@ export class TreasureGoblinFeature extends GameFeature {
         this.bonusConfig = {
             freeSpins: 5,
             newSymbols: [
-                { name: "gem", weight: 500, explodeEffect: this.type },
-                { name: "gold", weight: 1500, explodeEffect: this.type },
-                { name: "elixir", weight: 1500, explodeEffect: this.type },
-                { name: "darkelixir", weight: 1000, explodeEffect: this.type },
+                { name: "gem", weight: 500, explodeEffect: "RESOURCE_TRAVEL_TO_UI" },
+                { name: "gold", weight: 1500, explodeEffect: "RESOURCE_TRAVEL_TO_UI" },
+                { name: "elixir", weight: 1500, explodeEffect: "RESOURCE_TRAVEL_TO_UI" },
+                { name: "darkelixir", weight: 1000, explodeEffect: "RESOURCE_TRAVEL_TO_UI" },
                 { name: "treasureGoblin", weight: 20, clusterSize: 1 },
                 ...this.config.symbols.filter(s => s.group === "low_troop").map(s => ({ name: s.name, weight: 5400 / 6 }))
             ],
@@ -39,6 +39,11 @@ export class TreasureGoblinFeature extends GameFeature {
                 "gem": { icon: "gem", current: 0, max: 10, colorTop: "rgb(136, 237, 79)", colorBot: "rgb(23, 138, 26)" },
             }
         };
+
+        this.effects = [
+            "TREASURE_GOBLIN_MATCH",
+            "RESOURCE_TRAVEL_TO_UI"
+        ]
     }
 
     onSpinEnd(grid, timeline, totalWin) {
@@ -369,10 +374,17 @@ export class TreasureGoblinFeature extends GameFeature {
             .to(text, { alpha: 0, duration: 0.3 }, ">-0.3");
     }
 
-    async onSymbolExplode(sprite, symbolDef) {
-        if (this.config.mode !== this.type) return null;
-        if (this.bonusConfig.resources[symbolDef.name]) {
-            const resourceType = symbolDef.name
+
+    async playEffect(effect, sprite, symbol) {
+
+        if (effect === "TREASURE_GOBLIN_MATCH") {
+            const tl = gsap.timeline({});
+            tl.to(sprite.scale, { x: sprite.scale.x * 1.2, y: sprite.scale.y * 1.2, duration: 0.1, yoyo: true, repeat: 3 })
+            tl.to(sprite, { pixi: { tint: 0xFFD700 }, duration: 0.1, yoyo: true, repeat: 3 }, "<");
+            await tl
+        }
+        else if (effect === "RESOURCE_TRAVEL_TO_UI") {
+            const resourceType = symbol.name
             const targetElement = this.resourceTexts[resourceType]
             if (!targetElement) {
                 return;
@@ -397,32 +409,6 @@ export class TreasureGoblinFeature extends GameFeature {
             })
             tl.to(ghost, { alpha: 0, duration: 0.1 }, ">-0.1");
             await tl
-            return;
         }
-
-
-        return null
-        // // 2. Check if the symbol is a resource
-        // const symbolDef = this.config.symbols.find(s => s.id === sprite.symbolId);
-        // console.log(symbolDef)
-        // if (this.bonusConfig.resources[symbolDef.name]) {
-
-        //     // 3. Run the collection animation
-        //     // Note: We return a promise, but usually resource collection happens 
-        //     // in parallel to the game continuing, so you might verify if Reel.js awaits this.
-        //     // If you want it to block the cascade, await the timeline.
-
-        //     return new Promise(resolve => {
-        //         const ghost = this.game.spawnGhost(sprite);
-        //         const target = this.resourceTexts[symbolDef.name]; // Find UI target
-        //         const to = this.game.stage.toLocal(target.getGlobalPosition());
-
-        //         gsap.timeline({ onComplete: () => { ghost.destroy(); resolve(); } })
-        //             .to(ghost, { x: to.x, y: to.y, rotation: 5, duration: 0.6, ease: "back.in(1.2)" })
-        //             .to(ghost, { alpha: 0, duration: 0.1 }, ">-0.1");
-        //     });
-        // }
-
-        // return null;
     }
 }
