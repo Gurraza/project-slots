@@ -1,11 +1,11 @@
 import SlotsBase from '../game-engine/SlotsBase';
 import gsap from "gsap"
 import { Assets, Sprite, Graphics, Text, Container, ColorMatrixFilter, FillGradient } from "pixi.js"
-import { MinesGame } from './MinesGame'; // Import the new game
 import { EagleArtilleryFeature } from './features/EagleArtilleryFeature';
 import { ClanCastleFeature } from './features/ClanCastleFeature';
 import { WardenFeature } from './features/WardenFeature';
 import { TownHallFeature } from './features/TownHallFeature';
+import { MinesFeature } from './features/MinesFeature';
 
 const SYMBOLS = [
     {
@@ -120,21 +120,6 @@ const builder = {
     prio: true,
 }
 
-const treasureSymbol = {
-    name: "treasure",
-    weight: [150, 25, 10],
-    scale: 1.4,
-    group: "bonus_game",
-    onlyAppearOnRoll: true,
-    path: "Treasury.png",
-    anticipation: {
-        after: 2,
-        count: 15,
-    },
-    onePerReel: true,
-    dontCluster: true,
-}
-
 const treasureGoblin = {
     name: "treasureGoblin",
     weight: [150, 25, 10],
@@ -202,7 +187,6 @@ const SUPER_SYMBOLS = [
     }
 ];
 
-SYMBOLS.push(treasureSymbol)
 SYMBOLS.push(builder)
 SYMBOLS.push(...SUPER_SYMBOLS)
 SYMBOLS.push(wildCard)
@@ -245,9 +229,6 @@ export default class ClashOfReels extends SlotsBase {
             defaultExplodeEffect: "PARTICLES_GOLD",
             extraAssets: [
                 { name: "hammer", path: "Hammer.png" },
-                { name: "grass", path: "grass.png" },
-                { name: "mines_backgroundImage", path: "grass5b5.png" },
-                { name: "bomb", path: "bomb.png" },
                 { name: "num_dot", path: "font/dot.png" },
                 { name: "num_x", path: "font/x.png" },
                 { name: "rage_spell_background", path: "rage_spell_background.png" },
@@ -261,9 +242,9 @@ export default class ClashOfReels extends SlotsBase {
                 stroke: { color: "black", width: 4 }
             },
             groups: [
-                { name: "low_troop", count: 2 },
-                { name: "high_troop", count: 2 },
-                { name: "low_resource", count: 2 },
+                { name: "low_troop", count: 3 },
+                { name: "high_troop", count: 3 },
+                { name: "low_resource", count: 4 },
                 { name: "bonus_game", count: 1 },
             ],
 
@@ -271,16 +252,6 @@ export default class ClashOfReels extends SlotsBase {
         };
 
         super(rootContainer, app, myConfig);
-
-        this.minesBonus = new MinesGame(this.stage, app, {
-            textureHidden: { texture: "grass", scale: .3 },
-            backgroundImage: { texture: "mines_backgroundImage", scale: 1 },
-            textureBomb: { texture: "bomb", scale: .6 },
-            textureGem: { texture: "gem", scale: .6 },
-            cols: 5,
-            rows: 5,
-            bombsCount: 5
-        });
 
         this.treasureGoblinConfig = {
             freeSpins: 5,
@@ -304,6 +275,7 @@ export default class ClashOfReels extends SlotsBase {
         this.registerFeature(new ClanCastleFeature(this))
         this.registerFeature(new WardenFeature(this))
         this.registerFeature(new TownHallFeature(this))
+        this.registerFeature(new MinesFeature(this))
 
         this.init()
     }
@@ -333,10 +305,7 @@ export default class ClashOfReels extends SlotsBase {
     }
 
     async onCustomEvent(event) {
-        if (event.type === "MINES_BONUS_GAME") {
-            await this.triggerMinesBonusRound();
-        }
-        else if (event.type === "TREASURE_GOBLIN_BONUS_GAME") {
+        if (event.type === "TREASURE_GOBLIN_BONUS_GAME") {
             this.config.mode = event.type
             await this.triggerTreasureGoblinGame();
         }
@@ -476,14 +445,6 @@ export default class ClashOfReels extends SlotsBase {
             if (!actionOccurred) break;
         }
 
-        if (this.config.mode === "normal" && this.contain(treasureSymbol.id, currentGrid).length === 3) {
-            timeline.push({
-                type: "MINES_BONUS_GAME",
-                grid: JSON.parse(JSON.stringify(currentGrid)),
-                totalWin: totalWin
-            })
-        }
-
         if (this.config.mode === "normal" && this.contain(treasureGoblin.id, currentGrid).length === 3) {
             timeline.push({
                 type: "TREASURE_GOBLIN_BONUS_GAME",
@@ -491,7 +452,6 @@ export default class ClashOfReels extends SlotsBase {
                 totalWin: totalWin
             })
         }
-        totalWin = 50
         this.features.forEach(f => f.onSpinEnd(currentGrid, timeline, totalWin));
 
         timeline.forEach((event, index) => {
@@ -736,29 +696,6 @@ export default class ClashOfReels extends SlotsBase {
                 });
             }
         })
-    }
-    async triggerMinesBonusRound() {
-        console.log("!!! ENTERING MINES BONUS !!!");
-        await this.playBonusTransition("BONUS ROUND\nMINES");
-
-        await gsap.to(this.reelContainer, { alpha: 0.2, duration: 0.5 });
-
-        const totalTiles = this.minesBonus.config.cols * this.minesBonus.config.rows;
-        const bombCount = this.minesBonus.config.bombsCount || 5; // Default safety
-        const maxSafeMoves = totalTiles - bombCount;
-
-        // 2. Generate a random limit between 1 and maxSafeMoves (Inclusive)
-        // This determines "How many times can I click before the game forces a bomb?"
-        const randomLimit = Math.floor(this.random() * maxSafeMoves);
-        const totalBonusWin = await this.minesBonus.play(1, randomLimit);
-        if (this.globalMultiplier == 0) {
-            this.setMultiplier(totalBonusWin); // Visual update hook
-        }
-        else {
-            this.setMultiplier(this.globalMultiplier * totalBonusWin); // Visual update hook
-        }
-
-        await gsap.to(this.reelContainer, { alpha: 1, duration: 0.5 });
     }
 
     async triggerTreasureGoblinGame() {

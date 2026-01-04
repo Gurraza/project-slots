@@ -38,9 +38,7 @@ export default class SlotsBase {
         this.reels = [];
         this.state = 'IDLE';
         this.timeSinceStart = 0;
-        console.log("CONFIG", this.config)
         this.features = [];
-        console.log("SYMBOLS", this.config.symbols)
 
         // Group for the reels to center them easily
         this.reelContainer = new Container();
@@ -405,6 +403,9 @@ export default class SlotsBase {
         this.initialGrid = this.generateRandomResult()
         this.createGrid();
         this.createUI()
+
+        console.log("CONFIG", this.config)
+        console.log("SYMBOLS", this.config.symbols)
     }
 
     async loadAssets() {

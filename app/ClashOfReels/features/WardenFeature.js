@@ -6,7 +6,7 @@ const featureSymbol = {
     name: "wardenn",
     scale: 1,
     path: "Warden.png",
-    weight: [99999],
+    weight: [5],
     dontCluster: true,
     onlyAppearOnRoll: true,
     // matchEffect: "VIDEO_PLAY",
@@ -21,7 +21,6 @@ const featureSymbol = {
 export class WardenFeature extends GameFeature {
     constructor(game) {
         super(game, "WARDEN_FEATURE", featureSymbol)
-        this.game = game
     }
 
     getAssets() {

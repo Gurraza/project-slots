@@ -3,7 +3,7 @@ import GameFeature from "@/app/game-engine/GameFeature";
 const featureSymbol = {
     name: "clancastle",
     dontCluster: true,
-    weight: 500,
+    weight: 100,
     scale: 1.4,
     path: "clanCastle.png"
 }
@@ -11,7 +11,6 @@ const featureSymbol = {
 export class ClanCastleFeature extends GameFeature {
     constructor(game) {
         super(game, "CLAN_CASTLE", featureSymbol)
-        this.game = game
     }
 
     onGridPreProcess(grid, timeline) {

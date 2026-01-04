@@ -17,7 +17,7 @@ const featureSymbols = [
     return {
         name: `townhall_${index + 1}`,
         group: "townhall",
-        weight: 100,
+        weight: 5,
         scale: 0.8,
         dontCluster: true,
         path: `TH/${fileName}`,
@@ -27,7 +27,7 @@ const featureSymbols = [
 
 export class TownHallFeature extends GameFeature {
     constructor(game) {
-        super(game, "TOWNHALL_FEATURE")
+        super(game, "TOWNHALL_FEATURE", null)
     }
 
     getSymbols() {
@@ -45,7 +45,6 @@ export class TownHallFeature extends GameFeature {
     }
 
     onSpinEnd(grid, timeline, totalWin) {
-        console.log(totalWin, this.townHallIdMap)
         if (totalWin <= 0) return false;
         let multiplierSum = 0;
 

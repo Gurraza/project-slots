@@ -3,6 +3,7 @@
 export default class GameFeature {
     constructor(game, type, featureSymbol = []) {
         this.game = game;
+        this.app = game.app
         this.type = type
         this.featureSymbol = featureSymbol
         this.config = this.game.config

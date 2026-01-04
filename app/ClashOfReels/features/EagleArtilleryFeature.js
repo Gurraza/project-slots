@@ -21,6 +21,5 @@ const featureSymbol = {
 export class EagleArtilleryFeature extends GameFeature {
     constructor(game) {
         super(game, "EAGLE_ARTILLERY", featureSymbol)
-        this.game = game
     }
 }
