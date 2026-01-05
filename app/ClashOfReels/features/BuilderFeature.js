@@ -1,12 +1,12 @@
 import GameFeature from "@/app/game-engine/GameFeature";
 import gsap from "gsap"
-import { Sprite } from "pixi.js"
+import { Sprite, Assets } from "pixi.js"
 
 const featureSymbol = {
     name: "builder",
     scale: 1,
     path: "Builder.png",
-    weight: [50000],
+    weight: [5],
     onlyAppearOnRoll: true,
     matchEffect: "builder_match",
     clusterSize: 1,
@@ -16,7 +16,7 @@ const featureSymbol = {
 
 export class BuilderFeature extends GameFeature {
     constructor(game) {
-        super(game, "BUILDER_FEATURE", this.featureSymbol)
+        super(game, "BUILDER_FEATURE", featureSymbol)
         this.effects = [
             "builder_match"
         ]
@@ -24,7 +24,7 @@ export class BuilderFeature extends GameFeature {
 
     getAssets() {
         return [
-            { name: "hammer", path: "Hammer.png" },
+            { alias: "hammer", src: "Hammer.png" },
         ]
     }
 

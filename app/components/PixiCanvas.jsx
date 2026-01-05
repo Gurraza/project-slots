@@ -79,7 +79,8 @@ export default function PixiCanvas({ gameClass, gameState, onGameEvent, onGameRe
                         scale: scale,
                         x: x,
                         y: y,
-                        isMobile: isMobile // Useful info for UI
+                        isMobile: isMobile, // Useful info for UI
+                        aspectRatio: baseWidth / baseHeight
                     });
                 }
             };

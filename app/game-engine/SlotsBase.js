@@ -47,18 +47,27 @@ export default class SlotsBase {
         this.ghostContainer = new Container();
         this.stage.addChild(this.ghostContainer)
 
-        // if (config.backgroundImage) {
-        //     Assets.add({ alias: 'background', src: config.backgroundImage });
+        if (config.backgroundImage) {
+            Assets.add({ alias: 'background', src: config.backgroundImage });
 
-        //     Assets.load('background').then((texture) => {
-        //         const backgroundSprite = new Sprite(texture);
-        //         backgroundSprite.anchor.set(0)
-        //         backgroundSprite.x = 0
-        //         backgroundSprite.y = 0
-        //         backgroundSprite.setSize(this.config.width, this.config.height)
-        //         this.stage.addChildAt(backgroundSprite, 0); // Add as the first child
-        //     })
-        // }
+            Assets.load('background').then((texture) => {
+                const bg = new Sprite(texture);
+                bg.anchor.set(0.5);
+
+                // 2) Position in the middle of the screen
+                bg.x = this.config.width / 2;
+                bg.y = this.config.height / 2;
+
+                // 3) Scale like CSS background-size: cover
+                const scale = Math.max(
+                    this.config.width / texture.width,
+                    this.config.height / texture.height
+                );
+
+                bg.scale.set(scale);
+                this.stage.addChildAt(bg, 0); // Add as the first child
+            })
+        }
 
     }
 

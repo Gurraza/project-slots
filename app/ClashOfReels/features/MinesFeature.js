@@ -6,7 +6,7 @@ const featureSymbol = {
     name: "treasure",
     weight: [150, 50, 10],
     scale: 1.4,
-    // group: "bonus_game",
+    group: "bonus_game",
     onlyAppearOnRoll: true,
     path: "Treasury.png",
     anticipation: {

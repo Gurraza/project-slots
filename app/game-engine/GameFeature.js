@@ -51,18 +51,8 @@ export default class GameFeature {
     // Return true if you handled the animation (preventing default behavior).
     async onCustomEvent(event) { return false; }
 
-    // Called specifically when a symbol lands (e.g., heavy drop effects)
-    async onSymbolLand(sprite, symbolDef) { }
-
-    // Called specifically when a symbol is part of a win (e.g., Builder Hammer)
-    async onSymbolMatch(sprite, symbolDef) { }
-
-    // Called when a symbol is destroyed (e.g., Soul flying to UI bar)
-    async onSymbolExplode(sprite, symbolDef) { }
-
-    async playEffect(effect, sprite, symbol) {
-
-    }
+    // Inject own effects into the game.
+    async playEffect(effect, sprite, symbol) { }
 
     applyGrid(originalGrid, newGrid) {
         for (let i = 0; i < originalGrid.length; i++) {

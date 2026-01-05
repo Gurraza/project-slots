@@ -4,9 +4,9 @@ import { Sprite, Assets, Container, Text, Graphics, FillGradient } from "pixi.js
 
 const featureSymbol = {
     name: "treasureGoblin",
-    weight: [5, 5, 5],
+    weight: [150, 75, 25],
     scale: 1.4,
-    // group: "bonus_game",
+    group: "bonus_game",
     onlyAppearOnRoll: true,
     path: "treasure_goblin.png",
     anticipation: {
@@ -304,7 +304,7 @@ export class TreasureGoblinFeature extends GameFeature {
         gsap.to(animProxy, {
             value: endValue,
             duration: 0.8,
-            ease: "power2.in",
+            ease: "power1.out",
             onUpdate: () => {
                 const currentVal = animProxy.value;
                 this.resourceTexts[type].text = Math.floor(currentVal).toLocaleString().replace(/,/g, " ");
@@ -376,7 +376,7 @@ export class TreasureGoblinFeature extends GameFeature {
 
 
     async playEffect(effect, sprite, symbol) {
-
+        console.log("effect", effect)
         if (effect === "TREASURE_GOBLIN_MATCH") {
             const tl = gsap.timeline({});
             tl.to(sprite.scale, { x: sprite.scale.x * 1.2, y: sprite.scale.y * 1.2, duration: 0.1, yoyo: true, repeat: 3 })

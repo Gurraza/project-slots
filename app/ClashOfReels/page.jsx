@@ -61,17 +61,7 @@ export default function CasinoPage() {
         <div className="flex flex-col items-center relative justify-center min-h-screen bg-black">
 
             {/* 1. The Game Screen */}
-            <div
-                className={
-                    "w-full max-w-300 absolute bg-center border-4 border-yellow-500 rounded-lg overflow-hidden"
-                }
-                style={{
-                    backgroundImage: "url(" + ClashOfReels.backgroundImage + ")",
-                    // backgroundOrigin: "center",
-                    backgroundSize: "cover",
-                }}
-
-            >
+            <div className={"w-full h-full inset-0 absolute"}>
                 <PixiCanvas
                     gameClass={ClashOfReels}
                     gameState={gameState}

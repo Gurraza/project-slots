@@ -8,6 +8,7 @@ import { TownHallFeature } from './features/TownHallFeature';
 import { MinesFeature } from './features/MinesFeature';
 import { TreasureGoblinFeature } from './features/TreasureGoblinFeature';
 import { SuperTroopFeature } from './features/SuperTroopFeature';
+import { BuilderFeature } from './features/BuilderFeature';
 
 const SYMBOLS = [
     {
@@ -104,16 +105,15 @@ const SYMBOLS = [
         path: "super_icon.png",
         matchesWith: ["*"],
     }
-
 ];
 
 export default class ClashOfReels extends SlotsBase {
 
-    static backgroundImage = "/games/ClashOfReels/background.jpg"
     constructor(rootContainer, app, config = {}) {
         const myConfig = {
             width: 1280,
             height: 720,
+            backgroundImage: "/games/ClashOfReels/background.jpg",
             cols: 7,
             rows: 7,
             pathPrefix: "/games/ClashOfReels/",
@@ -136,7 +136,7 @@ export default class ClashOfReels extends SlotsBase {
             mode: "normal",
             bounce: 0,
             bounceDuration: .5,
-            windUp: -40, // pixels
+            windUp: -10, // pixels
             bounceUpBeforeAccelerating: 40, // pixels
             motionBlurStrength: .8,
             defaultLandingEffect: "DEFAULT_LAND",
@@ -156,10 +156,10 @@ export default class ClashOfReels extends SlotsBase {
                 stroke: { color: "black", width: 4 }
             },
             groups: [
-                { name: "low_troop", count: 3 },
-                { name: "high_troop", count: 3 },
-                { name: "low_resource", count: 4 },
-                { name: "bonus_game", count: 1 },
+                { name: "low_troop", count: 2 },
+                { name: "high_troop", count: 2 },
+                { name: "low_resource", count: 2 },
+                { name: "bonus_game", count: 2 },
             ],
 
             ...config,
@@ -174,6 +174,7 @@ export default class ClashOfReels extends SlotsBase {
         this.registerFeature(new MinesFeature(this))
         this.registerFeature(new TreasureGoblinFeature(this))
         this.registerFeature(new SuperTroopFeature(this))
+        this.registerFeature(new BuilderFeature(this))
 
         this.init()
     }
@@ -190,10 +191,8 @@ export default class ClashOfReels extends SlotsBase {
     calculateMoves() {
         const timeline = [];
         let currentGrid = this.generateRandomResult();
+        let totalWin = 0;
 
-        let totalWin = 0; // Track total win for this spin
-
-        // ... timeline initialization ...
         timeline.push({
             type: 'SPIN_START',
             grid: JSON.parse(JSON.stringify(currentGrid))
@@ -298,16 +297,13 @@ export default class ClashOfReels extends SlotsBase {
         for (let i = 0; i < this.features.length; i++) {
             if (this.features[i].effects.find(s => s == effect)) {
                 const symbolDef = this.config.symbols.find(s => sprite.symbolId === s.id)
-                const p = await this.features[i].onSymbolLand(sprite, symbolDef);
+                const p = await this.features[i].playEffect(effect, sprite, symbolDef);
                 if (p) return p;
             }
         }
 
         if (effect === "DEFAULT_LAND") {
-            const baseX = sprite.scale.x;
-            const baseY = sprite.scale.y;
             const restingY = sprite.y;
-
             const tl = gsap.timeline();
             tl.to(sprite, {
                 y: restingY + 6,
@@ -327,7 +323,7 @@ export default class ClashOfReels extends SlotsBase {
         for (let i = 0; i < this.features.length; i++) {
             if (this.features[i].effects.find(s => s == effect)) {
                 const symbolDef = this.config.symbols.find(s => sprite.symbolId === s.id)
-                const p = await this.features[i].onSymbolMatch(sprite, symbolDef);
+                const p = await this.features[i].playEffect(effect, sprite, symbolDef);
                 if (p) return p;
             }
         }
@@ -341,7 +337,6 @@ export default class ClashOfReels extends SlotsBase {
 
             const tl = gsap.timeline({
                 onComplete: () => {
-                    // Cleanup: Reset filters and Z-Index
                     sprite.filters = null;
                     sprite.zIndex = originalZIndex;
                     return
@@ -372,11 +367,10 @@ export default class ClashOfReels extends SlotsBase {
     }
 
     async handleSymbolExplode(effect, sprite) {
-
         for (let i = 0; i < this.features.length; i++) {
             if (this.features[i].effects.find(s => s == effect)) {
                 const symbolDef = this.config.symbols.find(s => sprite.symbolId === s.id)
-                const p = await this.features[i].onSymbolExplode(effect, sprite, symbolDef);
+                const p = await this.features[i].playEffect(effect, sprite, symbolDef);
                 if (p) return p;
             }
         }

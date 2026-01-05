@@ -32,7 +32,7 @@ export class ClanCastleFeature extends GameFeature {
             });
 
             timeline.push({
-                type: 'CLAN_CASTLE',
+                type: this.type,
                 changes: moves,
 
                 grid: JSON.parse(JSON.stringify(grid))

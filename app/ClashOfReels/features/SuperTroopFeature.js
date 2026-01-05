@@ -1,4 +1,5 @@
 import GameFeature from "@/app/game-engine/GameFeature";
+import gsap from "gsap"
 
 const featureSymbols = [
     {
