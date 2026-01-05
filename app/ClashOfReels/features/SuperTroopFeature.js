@@ -69,7 +69,7 @@ export class SuperTroopFeature extends GameFeature {
 
     }
 
-    onClustersFound(clusters, grid, timeline) {
+    onClustersResolve(clusters, grid, timeline) {
         let abilityTriggered = false;
 
         clusters.forEach(cluster => {

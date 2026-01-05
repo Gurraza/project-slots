@@ -87,7 +87,7 @@ export class Reel {
         })
         gsap.to(this, {
             speed: this.config.spinSpeed,
-            duration: .5,
+            duration: this.config.spinAcceleration,
             ease: "power2.out",
             onStart: () => this.state = "SPINNING"
         });
@@ -433,33 +433,6 @@ export class Reel {
             });
             // For now, resolve immediately
             // resolve();
-        });
-    }
-
-    performLandingBounce() {
-        this.state = 'BOUNCING';
-        const bounceAmount = this.config.bounce || 30;
-        const duration = this.config.bounceDuration || 0.5;
-
-        return new Promise((resolve) => {
-            const tl = gsap.timeline({
-                onComplete: () => {
-                    this.state = 'IDLE';
-                    this.container.y = 0;
-                    resolve(); // Resolve the promise when bounce is done
-                }
-            });
-
-            tl.to(this.container, {
-                y: bounceAmount,
-                duration: duration * 0.4,
-                ease: "power2.out"
-            })
-                .to(this.container, {
-                    y: 0,
-                    duration: duration * 0.6,
-                    ease: "back.out(1.2)"
-                });
         });
     }
     // --------------------------------------------------------

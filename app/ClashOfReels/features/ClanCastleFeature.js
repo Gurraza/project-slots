@@ -34,7 +34,6 @@ export class ClanCastleFeature extends GameFeature {
             timeline.push({
                 type: this.type,
                 changes: moves,
-
                 grid: JSON.parse(JSON.stringify(grid))
             });
             return true

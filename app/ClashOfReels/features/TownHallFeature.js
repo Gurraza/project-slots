@@ -44,8 +44,7 @@ export class TownHallFeature extends GameFeature {
         });
     }
 
-    onSpinEnd(grid, timeline, totalWin) {
-        if (totalWin <= 0) return false;
+    onSpinEnd(grid, timeline) {
         let multiplierSum = 0;
 
         for (let c = 0; c < this.config.cols; c++) {
@@ -62,7 +61,7 @@ export class TownHallFeature extends GameFeature {
                 type: this.type, // Unique identifier for the frontend
                 grid: JSON.parse(JSON.stringify(grid)), // Maintain grid state
                 multiplier: multiplierSum,
-                totalWin: totalWin * multiplierSum
+                win: multiplierSum
             });
             return true
         }

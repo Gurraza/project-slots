@@ -5,11 +5,11 @@ const featureSymbol = {
     name: "eagleartillery",
     scale: 5,
     path: "Star.png",
-    weight: [5],
+    weight: [5000],
     dontCluster: true,
     onlyAppearOnRoll: true,
     explodeEffect: "ARTILLERY_STRIKE",
-    payouts: { 0: 0, 1: 0.01, 2: 0.05, 3: 0.1, 4: 0.2, 5: 0.5, 6: 1.0, 7: 1.5, 8: 2.5, 9: 5.0, 10: 6, 11: 10, 12: 15, 13: 16, 14: 17, 15: 18, 16: 19 },
+    payouts: { 1: 2 },
 }
 
 export class EagleArtilleryFeature extends GameFeature {
@@ -64,21 +64,8 @@ export class EagleArtilleryFeature extends GameFeature {
         });
         const clustersToProcess = Array.from({ length: this.config.cols }, () => []);
         clustersToProcess[source.x].push(source.y);
-        // 7. Calculate Cascade (Gravity filling the Eagle's hole)
-        const replacements = this.game.generateReplacements(clustersToProcess, grid);
-        const nextGrid = this.game.simulateCascade(grid, clustersToProcess, replacements);
-        this.applyGrid(grid, nextGrid);
-        timeline.push({
-            type: 'CASCADE',
-            clusters: clustersToProcess,
-            replacements: replacements,
-            grid: JSON.parse(JSON.stringify(nextGrid)),
-            stepWin: 0,
-            totalWin: timeline[timeline.length - 1]?.totalWin || 0
-        });
+        this.game.explode(grid, clustersToProcess, timeline, featureSymbol.payouts[1])
         return true
-
-
     }
 
     async onCustomEvent(event) {

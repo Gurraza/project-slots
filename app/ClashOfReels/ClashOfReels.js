@@ -9,6 +9,7 @@ import { MinesFeature } from './features/MinesFeature';
 import { TreasureGoblinFeature } from './features/TreasureGoblinFeature';
 import { SuperTroopFeature } from './features/SuperTroopFeature';
 import { BuilderFeature } from './features/BuilderFeature';
+import { ClusterEngineFeature } from './features/ClusterFeature';
 
 const SYMBOLS = [
     {
@@ -108,46 +109,21 @@ const SYMBOLS = [
 ];
 
 export default class ClashOfReels extends SlotsBase {
-
     constructor(rootContainer, app, config = {}) {
         const myConfig = {
+            // Layout
             width: 1280,
             height: 720,
-            backgroundImage: "/games/ClashOfReels/background.jpg",
-            cols: 7,
-            rows: 7,
-            pathPrefix: "/games/ClashOfReels/",
             symbolWidth: config.isMobile ? 100 : 80,
             symbolHeight: config.isMobile ? 100 : 80,
-            spinSpeed: 25,
-            spinAcceleration: 1,
-            spinDeacceleration: 0.9,
-            staggerTime: 100,
             gapX: 5,
             gapY: 5,
-            symbolsBeforeStop: 12,
-            symbols: SYMBOLS,
-            clusterSize: 4,
-            timeBeforeProcessingGrid: 400,
-            delayBeforeCascading: 600,
-            ghostTime: 400,
-            replaceTime: .6,
-            invisibleFlyby: false,
-            mode: "normal",
-            bounce: 0,
-            bounceDuration: .5,
-            windUp: -10, // pixels
-            bounceUpBeforeAccelerating: 40, // pixels
+
+            // Visuals
+            backgroundImage: "/games/ClashOfReels/background.jpg",
+            symbolsBeforeStop: 15,
+            invisibleFlyby: true,
             motionBlurStrength: .8,
-            defaultLandingEffect: "DEFAULT_LAND",
-            defaultMatchEffect: "DEFAULT_MATCH",
-            defaultExplodeEffect: "DEFAULT_EXPLODE",
-            extraAssets: [
-                { name: "num_dot", path: "font/dot.png" },
-                { name: "num_x", path: "font/x.png" },
-                { name: "rage_spell_background", path: "rage_spell_background.png" },
-                ...Array.from({ length: 10 }).map((_, i) => { return { name: "num_" + i, path: "font/" + i + ".png" } })
-            ],
             font: {
                 family: "cocFont",
                 size: 50,
@@ -155,6 +131,27 @@ export default class ClashOfReels extends SlotsBase {
                 dropShadow: true,
                 stroke: { color: "black", width: 4 }
             },
+            extraAssets: [
+                { name: "num_dot", path: "font/dot.png" },
+                { name: "num_x", path: "font/x.png" },
+                { name: "rage_spell_background", path: "rage_spell_background.png" },
+                ...Array.from({ length: 10 }).map((_, i) => { return { name: "num_" + i, path: "font/" + i + ".png" } })
+            ],
+
+            // Speed
+            spinSpeed: 35,
+            spinAcceleration: .5,
+            spinDeacceleration: 0.9,
+            staggerTime: 100,
+            timeBeforeProcessingGrid: 200,
+            delayBeforeCascading: 200,
+            replaceTime: .2,
+            windUp: -5, // pixels
+
+            // Game Logic
+            cols: 7,
+            rows: 7,
+            clusterSize: 5,
             groups: [
                 { name: "low_troop", count: 2 },
                 { name: "high_troop", count: 2 },
@@ -162,11 +159,19 @@ export default class ClashOfReels extends SlotsBase {
                 { name: "bonus_game", count: 2 },
             ],
 
+            // Behind The Scenes
+            pathPrefix: "/games/ClashOfReels/",
+            symbols: SYMBOLS,
+            mode: "normal",
+            defaultLandingEffect: "DEFAULT_LAND",
+            defaultMatchEffect: "DEFAULT_MATCH",
+            defaultExplodeEffect: "DEFAULT_EXPLODE",
             ...config,
         };
 
         super(rootContainer, app, myConfig);
 
+        this.registerFeature(new ClusterEngineFeature(this))
         this.registerFeature(new EagleArtilleryFeature(this))
         this.registerFeature(new ClanCastleFeature(this))
         this.registerFeature(new WardenFeature(this))
@@ -191,14 +196,16 @@ export default class ClashOfReels extends SlotsBase {
     calculateMoves() {
         const timeline = [];
         let currentGrid = this.generateRandomResult();
-        let totalWin = 0;
 
         timeline.push({
             type: 'SPIN_START',
-            grid: JSON.parse(JSON.stringify(currentGrid))
+            grid: JSON.parse(JSON.stringify(currentGrid)),
+            win: 0,
         });
 
+        // 1. Hook: Right when spin is started
         this.features.forEach(f => f.onSpinStart(currentGrid));
+
         const MAX_CYCLES = 50
         let cycles = 0
         while (cycles < MAX_CYCLES) {
@@ -209,17 +216,14 @@ export default class ClashOfReels extends SlotsBase {
             }
             let actionOccurred = false;
 
-            // 1. Hook: Pre-Process (Clan Castle)
+            // 2. Hook: Pre-Process (Clan Castle)
             for (const feature of this.features) {
                 if (feature.onGridPreProcess(currentGrid, timeline)) {
                     actionOccurred = true;
                 }
             }
 
-            // --- 2. CLUSTER SEARCH ---
-            // Because Warden has clusterSize: 1, he will trigger this block even if alone
             const rawClusters = this.findClusters(currentGrid);
-
             if (rawClusters.length > 0) {
                 // 3. Hook: Clusters Found (Super Troops)
                 this.features.forEach(f => {
@@ -227,68 +231,34 @@ export default class ClashOfReels extends SlotsBase {
                         actionOccurred = true
                     }
                 });
-                let stepWin = 0;
-                // --- 3. CALCULATE PAYOUTS ---
-                rawClusters.forEach(cluster => { // [{x: 2, y: 4, value: 6}]
-                    const baseNode = cluster.find(node => !this.config.symbols[node.value].isSuper);
-                    const payoutId = baseNode ? baseNode.value : cluster[0].value;
-                    const config = this.config.symbols[payoutId];
-                    const count = cluster.length;
 
-                    if (config.payouts && !config.dontCluster) {
-                        let payout = config.payouts[count];
-                        if (payout === undefined) {
-                            const maxKey = Math.max(...Object.keys(config.payouts).map(Number));
-                            if (count > maxKey) payout = config.payouts[maxKey];
-                        }
-                        if (payout) stepWin += payout;
+                // 4. Hook: Clusters Found (Super Troops)
+                this.features.forEach(f => {
+                    if (f.onClustersResolve(rawClusters, currentGrid, timeline)) {
+                        actionOccurred = true
                     }
                 });
-                totalWin += stepWin;
-                const clustersToProcess = Array.from({ length: this.config.cols }, () => []);
-                rawClusters.flat().forEach(({ x, y }) => {
-                    if (!clustersToProcess[x].includes(y)) {
-                        clustersToProcess[x].push(y);
-                    }
-                });
-                const replacements = this.generateReplacements(clustersToProcess, currentGrid);
-                currentGrid = this.simulateCascade(currentGrid, clustersToProcess, replacements);
-
-                timeline.push({
-                    type: 'CASCADE',
-                    clusters: clustersToProcess,
-                    replacements: replacements,
-                    grid: JSON.parse(JSON.stringify(currentGrid)),
-                    stepWin: stepWin,
-                    totalWin: totalWin,
-                    explodedClusters: rawClusters,
-                });
-                actionOccurred = true;
             }
             else {
-                // 4. Hook: Grid Idle (The Warden)
-                // Only runs if no clusters were found
+                // 5. Hook: Grid Idle (The Warden) Only runs if no clusters were found
                 for (const feature of this.features) {
                     if (feature.onGridIdle(currentGrid, timeline)) {
                         actionOccurred = true;
-                        break; // Restart loop immediately if grid changed
+                        break;
                     }
                 }
             }
-
             if (!actionOccurred) break;
         }
-        this.features.forEach(f => f.onSpinEnd(currentGrid, timeline, totalWin));
 
+        // 6. Hook: When game is ended
+        this.features.forEach(f => f.onSpinEnd(currentGrid, timeline));
+
+        let totalWin = 0
         timeline.forEach((event, index) => {
-            if (event.totalWin === undefined) {
-                // If it's the first item, default to 0. 
-                // Otherwise, copy the value from the previous item.
-                event.totalWin = index === 0 ? 0 : timeline[index - 1].totalWin;
-            }
-            if (event.previousWin === undefined) {
-                event.previousWin = index === 0 ? 0 : timeline[index - 1].totalWin
-            }
+            event.previousWin = totalWin
+            totalWin += (event.win || 0)
+            event.totalWin = totalWin
         });
         return timeline
     }
@@ -346,7 +316,7 @@ export default class ClashOfReels extends SlotsBase {
             tl.to(sprite.scale, {
                 x: sprite.scale.x * 1.2,
                 y: sprite.scale.y * 1.2,
-                duration: 0.2,
+                duration: 0.1,
                 yoyo: true,
                 repeat: 3,
                 ease: "sine.inOut"
@@ -354,7 +324,7 @@ export default class ClashOfReels extends SlotsBase {
             const flash = { intensity: 1 };
             tl.to(flash, {
                 intensity: 1.8,
-                duration: 0.2,
+                duration: 0.1,
                 yoyo: true,
                 repeat: 3,
                 ease: "sine.inOut",

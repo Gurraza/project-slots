@@ -75,56 +75,53 @@ export default class SlotsBase {
     registerFeature(feature) {
         this.features.push(feature);
         const newSymbols = feature.getSymbols();
-        this.config.symbols.push(...newSymbols);
+        if (newSymbols) {
+            this.config.symbols.push(...newSymbols);
+        }
     }
 
     async spin() {
         if (this.processing && this.config.mode === "normal") return;
         this.processing = true;
 
-        try {
+        this.setMultiplier(0);
+        const timeline = this.calculateMoves();
 
-            this.setMultiplier(0);
-            const timeline = this.calculateMoves();
+        console.log("PREDICTED PAYOUT:", timeline[timeline.length - 1].totalWin || 0);
+        console.log("PREDICTED GAME FLOW:", timeline);
 
-            console.log("PREDICTED PAYOUT:", timeline[timeline.length - 1].totalWin || 0);
-            console.log("PREDICTED GAME FLOW:", timeline);
+        this.grid = timeline[0].grid;
+        await this.startSpin();
 
-            this.grid = timeline[0].grid;
-            await this.startSpin();
+        for (let i = 1; i < timeline.length; i++) {
+            await new Promise(r => setTimeout(r, this.config.timeBeforeProcessingGrid));
+            const event = timeline[i];
 
-            for (let i = 1; i < timeline.length; i++) {
-                await new Promise(r => setTimeout(r, this.config.timeBeforeProcessingGrid));
-                const event = timeline[i];
-
-                if (event.type === 'CASCADE') {
-                    await this.triggerMatchAnimations(event.clusters);
-                    await this.explodeAndCascade(event.clusters, event.replacements);
+            if (event.type === 'EXPLODE') {
+                await this.triggerMatchAnimations(event.clusters);
+                await this.explodeAndCascade(event.clusters, event.replacements);
+                this.setMultiplier(event.totalWin)
 
 
-                    this.grid = event.grid;
-                }
-                else {
-                    for (const feature of this.features) {
-                        if (feature.type === event.type) {
-                            await feature.onCustomEvent(event);
-                            break
-                        }
+                this.grid = event.grid;
+            }
+            else {
+                for (const feature of this.features) {
+                    if (feature.type === event.type) {
+                        await feature.onCustomEvent(event);
+                        break
                     }
                 }
             }
-            return { grid: this.grid, timeline: timeline }
         }
-        catch (error) {
-            console.error(error)
-            return null;
-        }
-        finally {
-            if (this.config.mode === "normal") {
-                this.processing = false;
-            }
 
+
+        if (this.config.mode === "normal") {
+            this.processing = false;
         }
+        return { grid: this.grid, timeline: timeline }
+
+
     }
 
 
@@ -1184,5 +1181,27 @@ export default class SlotsBase {
             tl.to(text.scale, { x: 3, y: 3, duration: 0.3, ease: "power2.in" }, "exit");
             tl.to(overlay, { alpha: 0, duration: 0.3 }, "exit");
         });
+    }
+
+    /**
+     * @param {grid:number[][]}
+     * @param {where:number[posX][posY]}
+     */
+    explode(grid, where, timeline, win) {
+        const replacements = this.generateReplacements(where, grid);
+        // console.log("clustersToProcess", clustersToProcess, "replacements", replacements)
+        const newGrid = this.simulateCascade(grid, where, replacements);
+        console.log("where", where, "grid", grid)
+
+        timeline.push({
+            type: 'EXPLODE',
+            clusters: where,
+            replacements: replacements,
+            grid: JSON.parse(JSON.stringify(newGrid)),
+            win: win
+        });
+        for (let i = 0; i < grid.length; i++) {
+            grid[i] = [...newGrid[i]];
+        }
     }
 }

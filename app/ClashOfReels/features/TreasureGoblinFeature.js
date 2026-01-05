@@ -46,13 +46,12 @@ export class TreasureGoblinFeature extends GameFeature {
         ]
     }
 
-    onSpinEnd(grid, timeline, totalWin) {
+    onSpinEnd(grid, timeline) {
         const treasureGoblinCount = this.game.contain(this.id, grid).length
         if (this.config.mode === "normal" && treasureGoblinCount === 3) {
             timeline.push({
                 type: this.type,
                 grid: JSON.parse(JSON.stringify(grid)),
-                totalWin: totalWin
             })
             return true
         }

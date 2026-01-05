@@ -1,7 +1,7 @@
 // features/GameFeature.js
 
 export default class GameFeature {
-    constructor(game, type, featureSymbol = []) {
+    constructor(game, type, featureSymbol = null) {
         this.game = game;
         this.app = game.app
         this.type = type
@@ -13,6 +13,7 @@ export default class GameFeature {
     }
 
     getSymbols() {
+        if (!this.featureSymbol) return false
         return [
             this.featureSymbol
         ];
@@ -20,7 +21,7 @@ export default class GameFeature {
     getAssets() { return []; }  // Return list of images/sounds to load
 
     async init() {
-        this.id = this.config.symbols.find(s => s.name === this.featureSymbol.name).id
+        this.id = this.config.symbols.find(s => s.name === this.featureSymbol?.name)?.id
     }
 
     // --- SIMULATION HOOKS (The Math/Logic Loop) ---
@@ -35,6 +36,8 @@ export default class GameFeature {
     // Use this for "Super Abilities" (Super Archer shooting arrows)
     onClustersFound(clusters, grid, timeline) { return false }
 
+    onClustersResolve(clusters, grid, timeline) { return false }
+
     // Called when NO clusters are found (Grid is idle). 
     // This is the "Warden Hook" - allowing action when the game would otherwise end.
     // Return true if you modified the grid and the engine should re-scan.
@@ -42,7 +45,7 @@ export default class GameFeature {
 
     // Called at the very end of logic calculation.
     // Use this for global multipliers (Town Hall) or triggering Bonus Games (Mines)
-    onSpinEnd(grid, timeline, totalWin) { return false }
+    onSpinEnd(grid, timeline) { return false }
 
 
     // --- VISUAL HOOKS (The Animation Loop) ---

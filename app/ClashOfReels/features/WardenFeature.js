@@ -6,7 +6,7 @@ const featureSymbol = {
     name: "warden",
     scale: 1,
     path: "Warden.png",
-    weight: [5],
+    weight: [75],
     dontCluster: true,
     onlyAppearOnRoll: true,
     // explodeEffect: "warden_explode",
@@ -44,8 +44,7 @@ export class WardenFeature extends GameFeature {
                     type: this.type,
                     source: wardenAction.source,
                     targets: wardenAction.targets,
-                    stepWin: wardenAction.win,
-                    totalWin: 0,//totalWin,
+                    win: wardenAction.win
                 });
 
                 // B. Calculate the Resulting Explosion (The targets die)
@@ -62,19 +61,17 @@ export class WardenFeature extends GameFeature {
                 }
 
                 // C. Simulate the resulting Cascade
-                const replacements = this.game.generateReplacements(clustersToProcess, grid);
-                const nextGrid = this.game.simulateCascade(grid, clustersToProcess, replacements);
-                this.applyGrid(grid, nextGrid)
+                // const replacements = this.game.generateReplacements(clustersToProcess, grid);
+                // const nextGrid = this.game.simulateCascade(grid, clustersToProcess, replacements);
+                // this.applyGrid(grid, nextGrid)
+                this.game.explode(grid, clustersToProcess, timeline, 0)
 
-                timeline.push({
-                    type: 'CASCADE',
-                    clusters: clustersToProcess,
-                    replacements: replacements,
-                    grid: JSON.parse(JSON.stringify(nextGrid)),
-                    stepWin: 0, // Win was already accredited in WARDEN_ABILITY
-                    totalWin: 0, //totalWin,
-                    previousWin: 0, //totalWin,
-                });
+                // timeline.push({
+                //     type: 'CASCADE',
+                //     clusters: clustersToProcess,
+                //     replacements: replacements,
+                //     grid: JSON.parse(JSON.stringify(nextGrid)),
+                // });
                 return true
             }
         }
@@ -219,7 +216,7 @@ export class WardenFeature extends GameFeature {
         return {
             source: wardenFound, // Logic coordinates {x, y}
             targets: targets,    // Logic coordinates [{x, y}]
-            win: featureSymbol.payouts[targets.length] || 0
+            win: featureSymbol.payouts[targets.length]
         };
     }
 }

@@ -46,12 +46,11 @@ export class MinesFeature extends GameFeature {
         });
     }
 
-    onSpinEnd(grid, timeline, totalWin) {
+    onSpinEnd(grid, timeline) {
         if (this.game.contain(this.id, grid).length === 3) {
             timeline.push({
                 type: this.type,
                 grid: JSON.parse(JSON.stringify(grid)),
-                totalWin: totalWin
             })
             return true
         }
