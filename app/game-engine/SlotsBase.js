@@ -31,8 +31,12 @@ export default class SlotsBase {
     }
 
     setBackground(alias) {
-        Assets.load(alias).then((texture) => {
-            const bg = new Sprite(texture);
+        Assets.load(alias || this.config.backgroundImage).then((texture) => {
+            if (!this.bgSprite) {
+                this.bgSprite = new Sprite()
+            }
+            const bg = this.bgSprite
+            bg.texture = texture
             bg.anchor.set(0.5);
             bg.x = this.config.width / 2;
             bg.y = this.config.height / 2;

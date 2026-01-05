@@ -30,7 +30,7 @@ export class TreasureGoblinFeature extends GameFeature {
                 { name: "elixir", weight: 1500, explodeEffect: "RESOURCE_TRAVEL_TO_UI" },
                 { name: "darkelixir", weight: 1000, explodeEffect: "RESOURCE_TRAVEL_TO_UI" },
                 { name: "treasureGoblin", weight: 20, clusterSize: 1 },
-                ...this.config.symbols.filter(s => s.group === "low_troop").map(s => ({ name: s.name, weight: 5400 / 6 }))
+                // ...this.config.symbols.filter(s => s.group === "low_troop").map(s => ({ name: s.name, weight: 5400 / 6 }))
             ],
             resources: {
                 "gold": { icon: "gold", current: 0, max: 20, colorTop: "rgb(246, 220, 113)", colorBot: "rgb(232, 190, 16)" },
@@ -45,6 +45,13 @@ export class TreasureGoblinFeature extends GameFeature {
             "RESOURCE_TRAVEL_TO_UI"
         ]
     }
+
+    getAssets() {
+        return [
+            { alias: "treasure_goblin_background", src: "sneaky-goblin-1.webp" }
+        ]
+    }
+
 
     onSpinEnd(grid, timeline) {
         const treasureGoblinCount = this.game.contain(this.id, grid).length
@@ -80,6 +87,7 @@ export class TreasureGoblinFeature extends GameFeature {
                 explodeEffect: s.explodeEffect
             }
         });
+
         this.config.symbols.forEach(s => {
             s.weight = 0
             s.group = undefined
@@ -87,6 +95,7 @@ export class TreasureGoblinFeature extends GameFeature {
                 after: 999999
             }
         })
+
         this.bonusConfig.newSymbols.forEach(newSymbol => {
             const symbolToUpdate = this.config.symbols.find(s => s.name === newSymbol.name);
 
@@ -102,10 +111,9 @@ export class TreasureGoblinFeature extends GameFeature {
                 }
             }
         });
-        // --- EMIT INITIAL COUNT ---
 
         this.game.emitEvent({ type: 'FREE_SPINS_UPDATE', count: this.freeSpins, open: true });
-
+        this.game.setBackground("treasure_goblin_background")
         await new Promise(r => setTimeout(r, 1000))
 
         while (this.freeSpins > 0) {
@@ -130,11 +138,11 @@ export class TreasureGoblinFeature extends GameFeature {
 
         this.game.drawBackgroundCells("black")
         await this.game.playBonusTransition(`TOTAL WIN\n${this.treasureGoblinWin.toFixed(2)}x`);
+        this.game.setBackground()
+
         this.resourceContainer.destroy()
 
     }
-
-
 
     createResourceUI() {
         this.resourceContainer = new Container();
@@ -291,8 +299,6 @@ export class TreasureGoblinFeature extends GameFeature {
             const winToAdd = levelDiff * 5; // 5x per bar completion
             this.treasureGoblinWin += winToAdd;
 
-            console.log(`Resource ${type} leveled up! +${winToAdd}x`);
-
             // Trigger Visual Feedback for the win
             this.showFloatingText(`+${winToAdd}x`, this.resourceBars[type].graphics);
         }
@@ -373,9 +379,7 @@ export class TreasureGoblinFeature extends GameFeature {
             .to(text, { alpha: 0, duration: 0.3 }, ">-0.3");
     }
 
-
     async playEffect(effect, sprite, symbol) {
-        console.log("effect", effect)
         if (effect === "TREASURE_GOBLIN_MATCH") {
             const tl = gsap.timeline({});
             tl.to(sprite.scale, { x: sprite.scale.x * 1.2, y: sprite.scale.y * 1.2, duration: 0.1, yoyo: true, repeat: 3 })
@@ -394,7 +398,6 @@ export class TreasureGoblinFeature extends GameFeature {
             const tl = gsap.timeline({
                 onComplete: () => {
                     ghost.destroy();
-                    console.log(resourceType)
                     this.updateResource(resourceType, 1);
                     gsap.fromTo(targetElement.scale, { x: 1.5, y: 1.5 }, { x: 1, y: 1, duration: 0.2 });
                 }

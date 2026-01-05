@@ -1,5 +1,3 @@
-// features/GameFeature.js
-
 export default class GameFeature {
     constructor(game, type, featureSymbol = null) {
         this.game = game;
