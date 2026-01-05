@@ -120,7 +120,7 @@ export default class ClashOfReels extends SlotsBase {
             gapY: 5,
 
             // Visuals
-            backgroundImage: "/games/ClashOfReels/background.jpg",
+            backgroundImage: "background",
             symbolsBeforeStop: 15,
             invisibleFlyby: true,
             motionBlurStrength: .8,
@@ -132,10 +132,11 @@ export default class ClashOfReels extends SlotsBase {
                 stroke: { color: "black", width: 4 }
             },
             extraAssets: [
-                { name: "num_dot", path: "font/dot.png" },
-                { name: "num_x", path: "font/x.png" },
-                { name: "rage_spell_background", path: "rage_spell_background.png" },
-                ...Array.from({ length: 10 }).map((_, i) => { return { name: "num_" + i, path: "font/" + i + ".png" } })
+                { alias: "background", src: "background.jpg" },
+                { alias: "num_dot", src: "font/dot.png" },
+                { alias: "num_x", src: "font/x.png" },
+                { alias: "rage_spell_background", src: "rage_spell_background.png" },
+                ...Array.from({ length: 10 }).map((_, i) => { return { alias: "num_" + i, src: "font/" + i + ".png" } })
             ],
 
             // Speed

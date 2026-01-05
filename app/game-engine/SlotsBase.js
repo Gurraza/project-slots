@@ -2,32 +2,14 @@ import { Assets, Sprite, Container, Graphics, Filter, GlProgram, Text, ColorMatr
 import { Reel } from './Reel';
 import gsap from "gsap"
 
-const DEFAULT_CONFIG = {
-    width: 1280,
-    height: 720,
-    rows: 3,
-    cols: 5,
-    symbolWidth: 150,
-    symbolHeight: 150,
-    gapX: 10,
-    gapY: 10,
-    spinSpeed: 30,
-    spinAcceleration: 5,
-    spinDeacceleration: .15,
-    staggerTime: 10,
-    backgroundImage: null,
-    symbolsBeforeStop: 200,
-    clusterSize: 3,
-    timeBeforeProcessingGrid: 500,
-    motionBlurStrength: .3
-};
+const DEFAULT_CONFIG = {}
 
 export default class SlotsBase {
     constructor(rootContainer, app, config = {}) {
         this.stage = rootContainer;
         this.app = app;
         this.seed = Math.floor(Math.random() * 0xFFFFFFFF); // Default random seed
-        // Merge user config with defaults
+        // Merge game config with defaults
         this.config = { ...DEFAULT_CONFIG, ...config };
         this.grid = Array.from({ length: this.config.cols }, () =>
             Array.from({ length: this.config.rows }, () => 0)
@@ -46,32 +28,19 @@ export default class SlotsBase {
 
         this.ghostContainer = new Container();
         this.stage.addChild(this.ghostContainer)
-
-        if (config.backgroundImage) {
-            Assets.add({ alias: 'background', src: config.backgroundImage });
-
-            Assets.load('background').then((texture) => {
-                const bg = new Sprite(texture);
-                bg.anchor.set(0.5);
-
-                // 2) Position in the middle of the screen
-                bg.x = this.config.width / 2;
-                bg.y = this.config.height / 2;
-
-                // 3) Scale like CSS background-size: cover
-                const scale = Math.max(
-                    this.config.width / texture.width,
-                    this.config.height / texture.height
-                );
-
-                bg.scale.set(scale);
-                this.stage.addChildAt(bg, 0); // Add as the first child
-            })
-        }
-
     }
 
-    // Add this method to SlotsBase class
+    setBackground(alias) {
+        Assets.load(alias).then((texture) => {
+            const bg = new Sprite(texture);
+            bg.anchor.set(0.5);
+            bg.x = this.config.width / 2;
+            bg.y = this.config.height / 2;
+            bg.scale.set(Math.max(this.config.width / texture.width, this.config.height / texture.height));
+            this.stage.addChildAt(bg, 0);
+        })
+    }
+
     registerFeature(feature) {
         this.features.push(feature);
         const newSymbols = feature.getSymbols();
@@ -396,6 +365,8 @@ export default class SlotsBase {
         });
         this.features.forEach(f => f.init());
         await this.loadAssets()
+
+        this.setBackground(this.config.backgroundImage)
         this.initialGrid = this.generateRandomResult()
         this.createGrid();
         this.createUI()
@@ -425,8 +396,8 @@ export default class SlotsBase {
         // 2. [NEW] Load Extra Game Assets (e.g. Hammer, UI elements)
         if (this.config.extraAssets) {
             this.config.extraAssets.forEach(asset => {
-                Assets.add({ alias: asset.name, src: this.config.pathPrefix + asset.path });
-                aliases.push(asset.name);
+                Assets.add({ alias: asset.alias, src: this.config.pathPrefix + asset.src });
+                aliases.push(asset.alias);
             });
         }
 
@@ -811,11 +782,11 @@ export default class SlotsBase {
                 /*
                 const renderState = (isActive) => {
                     bg.clear(); // 1. Wipe previous state
-
+    
                     // 2. Define Shape & Fill (Always present)
                     bg.roundRect(0, 0, w, h, 15);
                     bg.fill({ color: 0x1a110d, alpha: 0.5 });
-
+    
                     // 3. Define Border based on state
                     if (isActive) {
                         // Active: Thick Gold Border
@@ -825,9 +796,9 @@ export default class SlotsBase {
                         bg.stroke({ width: 3, color: 0xcfb972, alpha: 0.3, alignment: 1 });
                     }
                 };
-
+    
                 renderState(false)
-
+    
                 bg.border = () => {
                     renderState(true)
                 }
