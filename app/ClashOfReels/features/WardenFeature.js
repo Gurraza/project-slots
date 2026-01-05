@@ -6,7 +6,7 @@ const featureSymbol = {
     name: "warden",
     scale: 1,
     path: "Warden.png",
-    weight: [75],
+    weight: [15],
     dontCluster: true,
     onlyAppearOnRoll: true,
     // explodeEffect: "warden_explode",

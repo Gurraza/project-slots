@@ -53,18 +53,21 @@ export default class SlotsBase {
         }
     }
 
-    async spin() {
-        if (this.processing && this.config.mode === "normal") return;
+
+    async spin(seed) {
+        if (this.processing === true && this.config.mode === "normal") return;
+        if (seed) this.setSeed(seed)
+        console.log("This game has the seed:", this.seed)
         this.processing = true;
 
         this.setMultiplier(0);
-        const timeline = this.calculateMoves();
+        const timeline = this.calculateMoves(this.features);
 
         console.log("PREDICTED PAYOUT:", timeline[timeline.length - 1].totalWin || 0);
         console.log("PREDICTED GAME FLOW:", timeline);
 
         this.grid = timeline[0].grid;
-        await this.startSpin();
+        await this.spinReels();
 
         for (let i = 1; i < timeline.length; i++) {
             await new Promise(r => setTimeout(r, this.config.timeBeforeProcessingGrid));
@@ -88,13 +91,43 @@ export default class SlotsBase {
             }
         }
 
-
         if (this.config.mode === "normal") {
             this.processing = false;
         }
-        return { grid: this.grid, timeline: timeline }
 
+        return { grid: this.grid, totalWin: this.globalMultiplier };
+        // result = { grid: this.grid, timeline: timeline }
+    }
 
+    async spinReels() {
+        const resultData = this.grid
+        if (resultData.length !== this.config.cols || resultData.some(i => i.length !== this.config.rows)) {
+            throw Error("Wrong structure of result data");
+        }
+
+        this.config.symbols.forEach(symbol => {
+            if (symbol.anticipation) {
+                this.applyAnticipation(symbol)
+            }
+        })
+
+        this.state = 'SPINNING';
+        this.timeSinceStart = 0;
+
+        const spinPromises = this.reels.map((r, i) => (async () => {
+            await new Promise(resolve =>
+                setTimeout(resolve, i * this.config.staggerTime)
+            );
+            await r.spin(resultData[i]);
+
+            return resultData[i];
+        })());
+
+        const finalResults = await Promise.all(spinPromises);
+
+        this.state = "IDLE";
+        this.reels.forEach(r => r.clearAnticipation());
+        return finalResults
     }
 
 
@@ -293,56 +326,6 @@ export default class SlotsBase {
         this.stage.addChild(mask)
     }
 
-    async startSpin() {
-        const resultData = this.grid
-        if (resultData.length !== this.config.cols || resultData.some(i => i.length !== this.config.rows)) {
-            throw Error("Wrong structure of result data");
-        }
-
-        this.config.symbols.forEach(symbol => {
-            if (symbol.anticipation) {
-                this.applyAnticipation(symbol)
-            }
-        })
-
-        this.state = 'SPINNING';
-        this.timeSinceStart = 0;
-
-        const spinPromises = this.reels.map((r, i) => {
-            // this.bgContainer[i].forEach(i => i.clearBorder())
-            // Return a new wrapper Promise that handles both delay + spin
-            return new Promise((resolve) => {
-                // a. Wait for the stagger delay
-                setTimeout(() => {
-                    // b. Start the spin and wait for it to finish
-                    r.spin(resultData[i]).then(() => {
-                        // this.config.symbols.forEach(symbol => {
-                        //     if (symbol.anticipation) r.anticipation(symbol.id)
-                        // })
-                        resultData[i].forEach((symbolId, j) => {
-                            // if (this.config.symbols[symbolId].anticipation) {
-                            //     r.anticipation(symbolId)
-                            // }
-                            // if (symb == 9) {
-                            //     this.bgContainer[i][this.config.rows - j - 1].border()
-
-                            // }
-                        })
-
-                        // c. When reel finishes, resolve this specific reel's promise
-                        resolve(resultData[i]);
-                    });
-                }, i * this.config.staggerTime);
-            });
-        });
-
-        // 4. Return a master Promise that waits for ALL reels to finish
-        return Promise.all(spinPromises).then((finalResults) => {
-            this.state = 'IDLE'; // Automatically reset state when done
-            this.reels.forEach(r => r.clearAnticipation())
-            return finalResults; // Pass data to the .then() block
-        });
-    }
 
     update(delta) {
         this.reels.forEach(r => r.update(delta));
@@ -1166,7 +1149,6 @@ export default class SlotsBase {
         const replacements = this.generateReplacements(where, grid);
         // console.log("clustersToProcess", clustersToProcess, "replacements", replacements)
         const newGrid = this.simulateCascade(grid, where, replacements);
-        console.log("where", where, "grid", grid)
 
         timeline.push({
             type: 'EXPLODE',
@@ -1178,5 +1160,76 @@ export default class SlotsBase {
         for (let i = 0; i < grid.length; i++) {
             grid[i] = [...newGrid[i]];
         }
+    }
+
+
+    calculateMoves(features) {
+        const timeline = [];
+        let currentGrid = this.generateRandomResult();
+
+        timeline.push({
+            type: 'SPIN_START',
+            grid: JSON.parse(JSON.stringify(currentGrid)),
+            win: 0,
+        });
+
+        // 1. Hook: Right when spin is started
+        features.forEach(f => f.onSpinStart(currentGrid));
+
+        const MAX_CYCLES = 50
+        let cycles = 0
+        while (cycles < MAX_CYCLES) {
+            cycles++
+            if (cycles == MAX_CYCLES) {
+                console.warn("Max cycles reached, breaking loop to save browser.");
+                break;
+            }
+            let actionOccurred = false;
+
+            // 2. Hook: Pre-Process (Clan Castle)
+            for (const feature of features) {
+                if (feature.onGridPreProcess(currentGrid, timeline)) {
+                    actionOccurred = true;
+                }
+            }
+
+            const rawClusters = this.findClusters(currentGrid);
+            if (rawClusters.length > 0) {
+                // 3. Hook: Clusters Found (Super Troops)
+                features.forEach(f => {
+                    if (f.onClustersFound(rawClusters, currentGrid, timeline)) {
+                        actionOccurred = true
+                    }
+                });
+
+                // 4. Hook: Clusters Found (Super Troops)
+                features.forEach(f => {
+                    if (f.onClustersResolve(rawClusters, currentGrid, timeline)) {
+                        actionOccurred = true
+                    }
+                });
+            }
+            else {
+                // 5. Hook: Grid Idle (The Warden) Only runs if no clusters were found
+                for (const feature of features) {
+                    if (feature.onGridIdle(currentGrid, timeline)) {
+                        actionOccurred = true;
+                        break;
+                    }
+                }
+            }
+            if (!actionOccurred) break;
+        }
+
+        // 6. Hook: When game is ended
+        features.forEach(f => f.onSpinEnd(currentGrid, timeline));
+
+        let totalWin = 0
+        timeline.forEach((event, index) => {
+            event.previousWin = totalWin
+            totalWin += (event.win || 0)
+            event.totalWin = totalWin
+        });
+        return timeline
     }
 }

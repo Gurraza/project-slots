@@ -16,22 +16,20 @@ export default function CasinoPage() {
 
     const handleSpin = async () => {
         setIsSpinning(true);
-        if (gameRef.current && gameRef.current.startSpin) {
-            setWinAmount(0);
-            //672289205338
-            const result = await gameRef.current.spin();
-            // 3. Update UI with the final win
-            // Adjust 'result.totalWin' depending on exactly what your class returns
-            if (result && typeof result.totalWin === 'number' && result.totalWin > 0) {
-                setWinAmount(result.totalWin);
-                setShowWin(true)
-                fadeTimerRef.current = setTimeout(() => {
-                    setShowWin(false)
-                }, 5000);
-            }
-
-            setIsSpinning(false);
+        setWinAmount(0);
+        //672289205338
+        const result = await gameRef.current.spin();
+        // 3. Update UI with the final win
+        // Adjust 'result.totalWin' depending on exactly what your class returns
+        if (result && typeof result.totalWin === 'number' && result.totalWin > 0) {
+            setWinAmount(result.totalWin);
+            setShowWin(true)
+            fadeTimerRef.current = setTimeout(() => {
+                setShowWin(false)
+            }, 5000);
         }
+
+        setIsSpinning(false);
     };
 
     const handleGameEvent = (event) => {
