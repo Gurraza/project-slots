@@ -13,7 +13,86 @@ export class UI {
         this.createTitle()
         this.createMultiplier()
         this.createSpinButton()
-        this.playBonusTransition("Clash Of \nReels")
+        this.createFreespins()
+    }
+
+    createFreespins() {
+        this.freespinContainer = new Container();
+        this.freespinContainer.visible = true;
+        this.freespinContainerRestingY = 6
+        this.freespinContainerOffsetY = 65
+        const width = 200
+        this.freespinContainer.x = this.config.width - 50
+        this.freespinContainer.y = this.config.height - this.freespinContainerOffsetY
+        // this.freespinContainer.anchor.set(1);
+
+        Assets.load('/games/ClashOfReels/free_spins_remaining.png').then((texture) => {
+            this.freespinSprite = new Sprite(texture)
+            const ratio = this.freespinSprite.height / this.freespinSprite.width;
+
+            this.freespinSprite.width = width
+            this.freespinSprite.height = width * ratio
+            this.freespinSprite.anchor.set(1)
+
+            this.freespinContainer.addChildAt(this.freespinSprite, 0)
+        })
+
+
+        this.freespinText = new Text({
+            text: "5",
+            style: {
+                fontFamily: "cocFont",
+                fontSize: 20,
+                fill: "white",
+                align: "right"
+            },
+            anchor: 1,
+        });
+
+        this.freespinText.x = -22
+        this.freespinText.y = -11
+
+        this.freespinContainer.addChildAt(this.freespinText, 0)
+
+
+
+        // Size (optional)
+        this.stage.addChild(this.freespinContainer);
+    }
+    setFreespins(newVal) {
+        // 1. Determine where the container should go
+        const targetY = newVal >= 0
+            ? this.config.height - this.freespinContainerRestingY  // Visible Position
+            : this.config.height - this.freespinContainerOffsetY;  // Hidden Position
+
+        // 2. Animate the Container (Slide In / Slide Out)
+        gsap.to(this.freespinContainer, {
+            y: targetY,
+            duration: 0.5,
+            ease: "back.out(1.2)", // Gives it a slight bounce when stopping
+            overwrite: true        // Ensures we kill any previous animation if spamming clicks
+        });
+
+        // 3. Update the text
+        this.freespinText.text = newVal;
+
+        // 4. (Optional) "Pop" the text when the number updates (if visible)
+        if (newVal > 0) {
+            gsap.fromTo(this.freespinText.scale,
+                { x: 1.5, y: 1.5 },
+                { x: 1, y: 1, duration: 0.3, ease: "elastic.out(1, 0.3)" }
+            );
+        }
+    }
+    ssetFreespins(newVal) {
+        if (newVal > 0) {
+            this.freespinContainer.y = this.config.height - this.freespinContainerRestingY
+            this.freespinText.text = newVal
+        }
+        else {
+            this.freespinContainer.y = this.config.height - this.freespinContainerOffsetY
+            this.freespinText.text = newVal
+        }
     }
 
     createTitle() {
@@ -51,7 +130,7 @@ export class UI {
             this.spinButton = new Sprite(texture);
             const width = 200
             const xOffset = 50
-            const yOffset = 50
+            const yOffset = 65
             this.spinButton.anchor.set(1);
 
             // Size (optional)
@@ -119,7 +198,6 @@ export class UI {
 
         this.stage.addChild(this.multiplierContainer);
     }
-
 
     setMultiplier(newVal) {
         this.globalMultiplier = newVal;

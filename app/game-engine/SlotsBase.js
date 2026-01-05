@@ -55,6 +55,7 @@ export default class SlotsBase {
     }
 
     async spin(seed) {
+
         if (this.processing === true && this.config.mode === "normal") return;
         if (seed) this.setSeed(seed)
         console.log("This game has the seed:", this.seed)
@@ -172,16 +173,19 @@ export default class SlotsBase {
             this.reels.push(reel);
             this.reelContainer.addChild(reel.container);
         }
-        const mask = new Graphics();
-        mask.rect(
+        if (this.gridMask) {
+            this.gridMask.destroy();
+        }
+        this.gridMask = new Graphics();
+        this.gridMask.rect(
             this.reelContainer.x,
             this.reelContainer.y,
             totalWidth,
             totalHeight
         );
-        mask.fill(0x000000);
-        this.reelContainer.mask = mask;
-        this.stage.addChild(mask)
+        this.gridMask.fill(0x000000);
+        this.reelContainer.mask = this.gridMask;
+        this.stage.addChild(this.gridMask)
     }
 
 
@@ -202,6 +206,9 @@ export default class SlotsBase {
             fixedSymbol.landingEffect = symbol.landingEffect ? symbol.landingEffect : this.config.defaultLandingEffect
             fixedSymbol.matchEffect = symbol.matchEffect ? symbol.matchEffect : this.config.defaultMatchEffect
             fixedSymbol.explodeEffect = symbol.explodeEffect ? symbol.explodeEffect : this.config.defaultExplodeEffect
+            if (this.config.invisibleFlyby) {
+                fixedSymbol.anticipation = undefined
+            }
             if (fixedSymbol.path) return {
                 ...fixedSymbol,
                 path: (this.config.pathPrefix + fixedSymbol.path)
@@ -973,5 +980,37 @@ export default class SlotsBase {
                 if (p) return p;
             }
         }
+    }
+
+    // In SlotsBase.js
+
+    changeGridSize(newCols, newRows) {
+        // 1. Don't do anything if size is the same
+        if (this.config.cols === newCols && this.config.rows === newRows) return;
+
+        console.log(`Resizing Grid to ${newCols}x${newRows}`);
+
+        // 2. Destroy existing visuals
+        this.reels.forEach(reel => reel.destroy());
+        this.reels = [];
+        this.reelContainer.removeChildren(); // Clean container
+
+        // 3. Update Config
+        this.config.cols = newCols;
+        this.config.rows = newRows;
+
+        // 4. Reset Data Grids
+        this.grid = Array.from({ length: this.config.cols }, () =>
+            Array.from({ length: this.config.rows }, () => 0)
+        );
+
+        // 5. Regenerate initial data for the new size
+        this.initialGrid = this.generateRandomResult();
+
+        // 6. Rebuild Visuals
+        this.createGrid();
+
+        // 7. Re-initialize UI if needed (optional, depends if UI tracks grid size)
+        // this.ui.refresh(); 
     }
 }

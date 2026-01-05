@@ -583,4 +583,17 @@ export class Reel {
         // Wait for all symbols in this reel to finish celebrating
         return Promise.all(promises);
     }
+
+    destroy() {
+        // Kill any running GSAP animations on this reel or its container
+        gsap.killTweensOf(this.container);
+        gsap.killTweensOf(this);
+
+        // Destroy the PIXI Container and all children (symbols)
+        this.container.destroy({ children: true });
+
+        // Clear references
+        this.symbols = [];
+        this.app = null;
+    }
 }

@@ -4,7 +4,7 @@ import { Sprite, Assets, Container, Text, Graphics, FillGradient } from "pixi.js
 
 const featureSymbol = {
     name: "treasureGoblin",
-    weight: [150, 75, 25],
+    weight: [1000050, 70005, 20000],
     scale: 1.4,
     group: "bonus_game",
     onlyAppearOnRoll: true,
@@ -64,6 +64,7 @@ export class TreasureGoblinFeature extends GameFeature {
         }
         else if (this.config.mode === this.type && treasureGoblinCount) {
             this.freeSpins += treasureGoblinCount.length
+            this.ui.setFreespins(this.freeSpins)
         }
         return false
     }
@@ -79,6 +80,8 @@ export class TreasureGoblinFeature extends GameFeature {
         this.game.drawBackgroundCells("green")
 
         this.freeSpins = this.bonusConfig.freeSpins
+        this.ui.setFreespins(this.freeSpins)
+
         const original = this.config.symbols.map(s => {
             return {
                 weight: s.weight,
@@ -112,23 +115,20 @@ export class TreasureGoblinFeature extends GameFeature {
             }
         });
 
-        this.game.emitEvent({ type: 'FREE_SPINS_UPDATE', count: this.freeSpins, open: true });
         this.game.setBackground("treasure_goblin_background")
         await new Promise(r => setTimeout(r, 1000))
-
+        const beforeCols = this.config.cols
+        const beforeRows = this.config.rows
+        this.game.changeGridSize(5, 5)
         while (this.freeSpins > 0) {
             this.freeSpins--
-
-            this.game.emitEvent({ type: 'FREE_SPINS_UPDATE', count: this.freeSpins, open: true });
-
+            this.ui.setFreespins(this.freeSpins)
             const res = await this.game.spin()
-            if (this.freeSpins === 0) {
-
-                this.game.emitEvent({ type: 'FREE_SPINS_UPDATE', count: this.freeSpins, open: false });
-
-            }
             await new Promise(r => setTimeout(r, 500));
         }
+
+        this.game.changeGridSize(beforeCols, beforeRows)
+        this.ui.setFreespins(-1)
         this.config.symbols.forEach((s, index) => {
             s.weight = original[index].weight;
             s.anticipation = original[index].anticipation

@@ -36,14 +36,14 @@ const SYMBOLS = [
         payouts: { 4: 0.2, 5: 0.5, 6: 1.0, 7: 1.5, 8: 2.5, 9: 5.0, 10: 6, 11: 10, 7: 15 },
         path: "troops_icons/goblin.png"
     },
-    {
-        name: 'wizard',
-        weight: 800,
-        group: "high_troop",
-        scale: .9,
-        payouts: { 4: 0.2, 5: 0.5, 6: 1.0, 7: 1.5, 8: 2.5, 9: 5.0, 10: 6, 11: 10, 7: 15 },
-        path: "troops_icons/wizard.png"
-    },
+    // {
+    //     name: 'wizard',
+    //     weight: 800,
+    //     group: "high_troop",
+    //     scale: .9,
+    //     payouts: { 4: 0.2, 5: 0.5, 6: 1.0, 7: 1.5, 8: 2.5, 9: 5.0, 10: 6, 11: 10, 7: 15 },
+    //     path: "troops_icons/wizard.png"
+    // },
     {
         name: 'pekka',
         weight: 800,
@@ -52,14 +52,14 @@ const SYMBOLS = [
         payouts: { 4: 0.2, 5: 0.5, 6: 1.0, 7: 1.5, 8: 2.5, 9: 5.0, 10: 6, 11: 10, 7: 15 },
         path: "troops_icons/pekka.png"
     },
-    {
-        name: 'dragon',
-        weight: 800,
-        group: "high_troop",
-        scale: .9,
-        payouts: { 4: 0.2, 5: 0.5, 6: 1.0, 7: 1.5, 8: 2.5, 9: 5.0, 10: 6, 11: 10, 7: 15 },
-        path: "troops_icons/dragon.png"
-    },
+    // {
+    //     name: 'dragon',
+    //     weight: 800,
+    //     group: "high_troop",
+    //     scale: .9,
+    //     payouts: { 4: 0.2, 5: 0.5, 6: 1.0, 7: 1.5, 8: 2.5, 9: 5.0, 10: 6, 11: 10, 7: 15 },
+    //     path: "troops_icons/dragon.png"
+    // },
     {
         name: 'wallbreaker',
         weight: 0,
