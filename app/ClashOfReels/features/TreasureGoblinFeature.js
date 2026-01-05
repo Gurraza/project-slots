@@ -48,7 +48,7 @@ export class TreasureGoblinFeature extends GameFeature {
 
     getAssets() {
         return [
-            { alias: "treasure_goblin_background", src: "sneaky-goblin-1.webp" }
+            { alias: "treasure_goblin_background", src: "treasure_goblin_background.png" }
         ]
     }
 
@@ -74,7 +74,7 @@ export class TreasureGoblinFeature extends GameFeature {
         this.treasureGoblinWin = 0;
         this.createResourceUI()
         console.log("!!! ENTERING TREASURE GOBLIN BONUS !!!");
-        await this.game.playBonusTransition("BONUS ROUND\nTREASURE GOBLIN");
+        await this.ui.playBonusTransition("BONUS ROUND\nTREASURE GOBLIN");
 
         this.game.drawBackgroundCells("green")
 
@@ -137,7 +137,7 @@ export class TreasureGoblinFeature extends GameFeature {
         });
 
         this.game.drawBackgroundCells("black")
-        await this.game.playBonusTransition(`TOTAL WIN\n${this.treasureGoblinWin.toFixed(2)}x`);
+        await this.ui.playBonusTransition(`TOTAL WIN\n${this.treasureGoblinWin.toFixed(2)}x`);
         this.game.setBackground()
 
         this.resourceContainer.destroy()

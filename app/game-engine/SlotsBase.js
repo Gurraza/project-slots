@@ -1,7 +1,7 @@
 import { Assets, Sprite, Container, Graphics, Filter, GlProgram, Text, ColorMatrixFilter } from 'pixi.js';
 import { Reel } from './Reel';
 import gsap from "gsap"
-
+import { UI } from './UI';
 const DEFAULT_CONFIG = {}
 
 export default class SlotsBase {
@@ -28,6 +28,7 @@ export default class SlotsBase {
 
         this.ghostContainer = new Container();
         this.stage.addChild(this.ghostContainer)
+        this.ui = new UI(this);
     }
 
     setBackground(alias) {
@@ -53,14 +54,13 @@ export default class SlotsBase {
         }
     }
 
-
     async spin(seed) {
         if (this.processing === true && this.config.mode === "normal") return;
         if (seed) this.setSeed(seed)
         console.log("This game has the seed:", this.seed)
         this.processing = true;
 
-        this.setMultiplier(0);
+        this.ui.setMultiplier(0);
         const timeline = this.calculateMoves(this.features);
 
         console.log("PREDICTED PAYOUT:", timeline[timeline.length - 1].totalWin || 0);
@@ -76,7 +76,7 @@ export default class SlotsBase {
             if (event.type === 'EXPLODE') {
                 await this.triggerMatchAnimations(event.clusters);
                 await this.explodeAndCascade(event.clusters, event.replacements);
-                this.setMultiplier(event.totalWin)
+                this.ui.setMultiplier(event.totalWin)
 
 
                 this.grid = event.grid;
@@ -111,7 +111,6 @@ export default class SlotsBase {
             }
         })
 
-        this.state = 'SPINNING';
         this.timeSinceStart = 0;
 
         const spinPromises = this.reels.map((r, i) => (async () => {
@@ -125,151 +124,10 @@ export default class SlotsBase {
 
         const finalResults = await Promise.all(spinPromises);
 
-        this.state = "IDLE";
         this.reels.forEach(r => r.clearAnticipation());
         return finalResults
     }
 
-
-    createUI() {
-        // REPLACE the old this.multiplierText logic with this:
-        this.multiplierContainer = new Container();
-        this.multiplierContainer.visible = false;
-
-        // Position logic (same as before)
-        this.multiplierContainer.x = this.config.isMobile ? this.config.width / 2 : 1100;
-        this.multiplierContainer.y = this.config.isMobile ? (this.config.height / 2 - this.config.rows * this.config.symbolHeight / 2 - 50) : 100;
-
-        this.stage.addChild(this.multiplierContainer);
-        // this.multiplierText = new Text({
-        //     text: "0",
-        //     style: {
-        //         fontFamily: this.config.font.family,
-        //         fontSize: this.config.font.size,
-        //         fill: this.config.font.fill,
-        //         stroke: this.config.font.stroke,//{ color: "black", width: 4 }, // Updated v8 syntax
-        //         dropShadow: this.config.font.dropShadow,//true
-        //     }
-        // });
-        // this.multiplierText.visible = false
-        // this.multiplierText.anchor.set(0.5);
-        // this.multiplierText.x = this.config.isMobile ? this.config.width / 2 : 1100; // Right side of screen
-        // this.multiplierText.y = this.config.isMobile ? (this.config.height / 2 - this.config.rows * this.config.symbolHeight / 2 - 50) : 100;
-        // this.stage.addChild(this.multiplierText);
-
-        Assets.load('/games/ClashOfReels/title.png').then((texture) => {
-            const centerX = this.config.width / 2;
-            const posY = this.config.isMobile ? 120 : 30;
-            // Shadow Settings
-            const shadowOffset = 5; // How far the shadow moves (px)
-            const shadowAlpha = 0.5; // How dark the shadow is (0 to 1)
-            const scale = this.config.isMobile ? .8 : .3
-            // A. Create the Shadow Sprite FIRST (so it's behind)
-            // We reuse the same texture so it has the exact same shape.
-            const shadow = new Sprite(texture);
-            shadow.anchor.set(0.5);
-            // Offset position slightly to the bottom-right
-            shadow.x = centerX + shadowOffset;
-            shadow.y = posY + shadowOffset;
-            // Make it look like a shadow
-            shadow.tint = 0x000000; // Turn the whole image black
-            shadow.alpha = shadowAlpha; // Make it semi-transparent
-            this.stage.addChild(shadow);
-
-
-            // B. Create the Main Title Sprite directly on top
-            this.title = new Sprite(texture);
-            this.title.anchor.set(0.5);
-            this.title.x = centerX;
-            this.title.y = posY;
-            this.title.scale = scale
-            shadow.scale = scale
-            this.stage.addChild(this.title);
-        });
-    }
-
-    setMultiplier(newVal) {
-        this.globalMultiplier = newVal;
-        if (!this.multiplierContainer) return;
-
-        if (newVal === 0) {
-            this.multiplierContainer.visible = false;
-            return;
-        }
-
-        this.multiplierContainer.visible = true;
-        this.multiplierContainer.removeChildren();
-
-        const formattedVal = Number(newVal).toFixed(2);
-        const textString = `x${formattedVal}`;
-
-        let currentX = 0;
-
-        // --- CONFIGURATION ---
-        const targetHeight = 50; // px. Similar to fontSize. Adjust this if too big/small!
-        const spacing = -7;      // px. Squeeze letters closer together.
-        // ---------------------
-
-        for (let i = 0; i < textString.length; i++) {
-            const char = textString[i];
-            let textureAlias = null;
-
-            if (char === '.') textureAlias = 'num_dot';
-            else if (char === 'x') textureAlias = 'num_x';
-            else if (!isNaN(char)) textureAlias = `num_${char}`;
-
-            if (textureAlias && Assets.get(textureAlias)) {
-                const texture = Assets.get(textureAlias);
-                const sprite = new Sprite(texture);
-
-                // 1. Calculate Scale based on desired height
-                // This ensures it fits regardless of how big the original PNG is
-                const scale = targetHeight / texture.height;
-                sprite.scale.set(scale);
-
-                sprite.x = currentX;
-                sprite.anchor.set(0, 1); // Anchor bottom-left to align baseline
-
-                this.multiplierContainer.addChild(sprite);
-
-                // 2. Advance X cursor based on the SCALED width
-                currentX += (sprite.width + spacing);
-            }
-        }
-
-        // 3. Re-center the container
-        // We set the pivot to the center of the newly created text block
-        this.multiplierContainer.pivot.set(this.multiplierContainer.width / 2, -targetHeight / 2);
-
-        // 4. Pop Animation
-        gsap.fromTo(this.multiplierContainer.scale,
-            { x: 1.5, y: 1.5 },
-            { x: 1, y: 1, duration: 0.5, ease: "elastic.out(1, 0.3)" }
-        );
-    }
-
-    // Override the hook from SlotsBase
-    ssetMultiplier(newVal) {
-        this.globalMultiplier = newVal
-        if (!this.multiplierText) return;
-        if (newVal === 0) {
-            this.multiplierText.visible = false
-        }
-        else {
-            this.multiplierText.visible = true
-        }
-        // Animate the change
-        const formattedVal = Number(newVal).toFixed(2);
-
-        // Animate the change
-        this.multiplierText.text = `x${formattedVal}`;
-
-        // Pop effect
-        gsap.fromTo(this.multiplierText.scale,
-            { x: 1.5, y: 1.5 },
-            { x: 1, y: 1, duration: 0.5, ease: "elastic.out(1, 0.3)" }
-        );
-    }
 
     // Virtual Helper: Cascade
     // Replicates the logic: Remove Exploded -> Append New (Bottom Fill/Slide Up logic)
@@ -356,7 +214,7 @@ export default class SlotsBase {
         this.setBackground(this.config.backgroundImage)
         this.initialGrid = this.generateRandomResult()
         this.createGrid();
-        this.createUI()
+        this.ui.init()
 
         console.log("CONFIG", this.config)
         console.log("SYMBOLS", this.config.symbols)
@@ -415,7 +273,6 @@ export default class SlotsBase {
         });
     }
 
-    // 3. NEW GENERIC ANTICIPATION METHOD
     applyAnticipation(symbol) {
         let foundCount = 0;
 
@@ -449,6 +306,7 @@ export default class SlotsBase {
 
         });
     }
+
     findClusters(grid) {
         if (!grid || grid.length === 0) return [];
         const rows = this.config.rows;
@@ -561,7 +419,25 @@ export default class SlotsBase {
 
     applyGroups() {
         this.config.groups.forEach(group => {
-            this.setActiveGroupVariants(group.name, group.count)
+            const groupName = group.name
+            const countToKeep = group.count
+
+            const groupSymbols = this.config.symbols.filter(s => s.group === groupName);
+
+            // 2. Shuffle them
+            const shuffled = [...groupSymbols].sort(() => 0.5 - this.random());
+
+            // 3. Remap Weights
+            groupSymbols.forEach(symbol => {
+                if (shuffled.indexOf(symbol) < countToKeep) {
+                    // ACTIVE: Restore its original probability
+                    symbol.weight = symbol.baseWeight;
+                } else {
+                    // INACTIVE: Set weight to 0. 
+                    // The randomizer will NEVER pick this, so the Reel never needs to load it.
+                    symbol.weight = 0;
+                }
+            });
         })
     }
 
@@ -732,73 +608,6 @@ export default class SlotsBase {
         // Add to reelContainer so it centers automatically with the game
         this.reelContainer.addChildAt(bgContainer, 0);
     }
-    ddrawBackgroundCells() {
-        const bgContainer = new Container();
-        // CONFIGURATION
-        const cellScale = 0.85; // 85% of the symbol size (Adjust this to make them smaller/larger)
-        const cornerRadius = 20; // Slightly larger radius often looks smoother
-        const strokeWidth = 5
-        this.bgContainer = []
-        const grayFilter = new ColorMatrixFilter()
-        grayFilter.grayscale(0)
-        for (let i = 0; i < this.config.cols; i++) {
-            this.bgContainer.push([])
-            for (let j = 0; j < this.config.rows; j++) {
-
-                const bg = new Sprite()
-                bg.texture = Assets.get("rage_spell_background")
-                const x = i * (this.config.symbolWidth + this.config.gapX)
-                const y = j * (this.config.symbolHeight + this.config.gapY)
-                const w = this.config.symbolWidth
-                const h = this.config.symbolHeight
-                bg.alpha = .7
-                bg.x = x
-                bg.y = y
-                bg.width = w
-                bg.height = h
-                bg.filters = [grayFilter];
-                const mask = new Graphics()
-                    .roundRect(0, 0, w, h, 15)
-                    .fill("white")
-                mask.x = x
-                mask.y = y
-                bg.mask = mask
-                this.bgContainer[i].push(bg)
-                bgContainer.addChild(bg);
-                bgContainer.addChild(mask)
-                /*
-                const renderState = (isActive) => {
-                    bg.clear(); // 1. Wipe previous state
-    
-                    // 2. Define Shape & Fill (Always present)
-                    bg.roundRect(0, 0, w, h, 15);
-                    bg.fill({ color: 0x1a110d, alpha: 0.5 });
-    
-                    // 3. Define Border based on state
-                    if (isActive) {
-                        // Active: Thick Gold Border
-                        bg.stroke({ width: 5, color: "gold", alpha: 1 });
-                    } else {
-                        // Idle: Faint Border
-                        bg.stroke({ width: 3, color: 0xcfb972, alpha: 0.3, alignment: 1 });
-                    }
-                };
-    
-                renderState(false)
-    
-                bg.border = () => {
-                    renderState(true)
-                }
-                bg.clearBorder = () => {
-                    renderState(false)
-                }
-                */
-
-            }
-        }
-        // Add to reelContainer so it centers automatically with the game
-        this.reelContainer.addChild(bgContainer);
-    }
 
     async insertIntoGrid(position, symbolId) {
         return new Promise(async (resolve) => {
@@ -856,26 +665,6 @@ export default class SlotsBase {
         return moves;
     }
 
-    setActiveGroupVariants(groupName, countToKeep) {
-        // 1. Find all symbols belonging to this group
-        const groupSymbols = this.config.symbols.filter(s => s.group === groupName);
-
-        // 2. Shuffle them
-        const shuffled = [...groupSymbols].sort(() => 0.5 - this.random());
-
-        // 3. Remap Weights
-        groupSymbols.forEach(symbol => {
-            if (shuffled.indexOf(symbol) < countToKeep) {
-                // ACTIVE: Restore its original probability
-                symbol.weight = symbol.baseWeight;
-            } else {
-                // INACTIVE: Set weight to 0. 
-                // The randomizer will NEVER pick this, so the Reel never needs to load it.
-                symbol.weight = 0;
-            }
-        });
-    }
-
     async triggerMatchAnimations(clusters) {
         const promises = [];
         // clusters is an array of arrays: [[rowIdx, rowIdx], [], [rowIdx]...]
@@ -887,19 +676,6 @@ export default class SlotsBase {
         }
         // Wait for ALL reels to finish their win animations
         await Promise.all(promises);
-    }
-    // Helper: Get screen coordinates
-    getSymbolGlobalPosition(col, row) {
-        return {
-            x: this.reels[col].container.x + (this.config.symbolWidth / 2),
-            y: (row * (this.config.symbolHeight + this.config.gapY)) + (this.config.symbolHeight / 2)
-        };
-    }
-
-    // Helper to check grid without looping manually every time
-    gridContainsSymbol(grid, name) {
-        const targetId = this.config.symbols.find(s => s.name === name).id;
-        return grid.flat().includes(targetId);
     }
 
     async playSymbolVideo(targetSprite, videoAlias) {
@@ -1077,70 +853,6 @@ export default class SlotsBase {
         }, 5000);
         return ghost
     }
-    playBonusTransition(textString) {
-        return new Promise((resolve) => {
-            // 1. Create the Container (Dark Overlay + Text)
-            const overlay = new Container();
-            overlay.alpha = 0;
-            this.stage.addChild(overlay);
-
-            // Dark Background
-            const bg = new Graphics();
-            bg.rect(0, 0, this.config.width, this.config.height).fill({ color: 0x000000, alpha: 0.7 });
-            overlay.addChild(bg);
-
-            // "BONUS" Text
-            // Inside playBonusTransition()
-
-            const text = new Text({
-                text: textString,
-                style: {
-                    fontFamily: "Arial",
-                    fontSize: 120,
-                    fontWeight: "bold",
-                    fill: "#FFD700",
-                    stroke: { color: "#4a3c31", width: 8 },
-                    dropShadow: true,
-                    dropShadowColor: '#000000',
-                    dropShadowBlur: 10,
-                    dropShadowAngle: Math.PI / 6,
-                    dropShadowDistance: 6,
-                    align: "center"
-                }
-            });
-            text.anchor.set(0.5);
-            text.x = this.config.width / 2;
-            text.y = this.config.height / 2;
-            text.scale.set(0); // Start tiny
-            overlay.addChild(text);
-
-            // 2. Animate Sequence
-            const tl = gsap.timeline({
-                onComplete: () => {
-                    // Cleanup and Resume
-                    overlay.destroy({ children: true });
-                    resolve();
-                }
-            });
-
-            // Fade In Overlay
-            tl.to(overlay, { alpha: 1, duration: 0.3 });
-
-            // Pop Text In (Elastic bounce)
-            tl.to(text.scale, { x: 1, y: 1, duration: 0.8, ease: "elastic.out(1, 0.3)" }, "-=0.1");
-
-            // Pulse / Shake for excitement
-            tl.to(text.scale, { x: 1.1, y: 1.1, duration: 0.1, yoyo: true, repeat: 3 });
-
-            // Wait a moment for player to read it
-            tl.to(text, { duration: 0.5 });
-
-            // Zoom Out / Fade Away
-            tl.to(text.scale, { x: 3, y: 3, duration: 0.3, ease: "power2.in" }, "exit");
-            tl.to(overlay, { alpha: 0, duration: 0.3 }, "exit");
-        });
-    }
-
     /**
      * @param {grid:number[][]}
      * @param {where:number[posX][posY]}

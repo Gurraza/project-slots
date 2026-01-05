@@ -163,7 +163,7 @@ export class WardenFeature extends GameFeature {
 
         // 4. Update Win UI
         if (event.totalWin > 0) {
-            this.game.setMultiplier(event.totalWin);
+            this.ui.setMultiplier(event.totalWin);
         }
     }
 

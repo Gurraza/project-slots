@@ -3,6 +3,7 @@ export default class GameFeature {
         this.game = game;
         this.app = game.app
         this.type = type
+        this.ui = this.game.ui
         this.featureSymbol = featureSymbol
         this.config = this.game.config
         this.stage = this.game.stage

@@ -60,7 +60,7 @@ export class MinesFeature extends GameFeature {
     async onCustomEvent(event) {
         console.log("!!! ENTERING MINES BONUS !!!");
 
-        await this.game.playBonusTransition("BONUS ROUND\nMINES");
+        await this.ui.playBonusTransition("BONUS ROUND\nMINES");
 
         await gsap.to(this.game.reelContainer, { alpha: 0.2, duration: 0.5 });
 
@@ -73,10 +73,10 @@ export class MinesFeature extends GameFeature {
         const randomLimit = Math.floor(this.game.random() * maxSafeMoves);
         const totalBonusWin = await this.minesGame.play(1, randomLimit);
         if (this.game.globalMultiplier == 0) {
-            this.game.setMultiplier(totalBonusWin); // Visual update hook
+            this.ui.setMultiplier(totalBonusWin); // Visual update hook
         }
         else {
-            this.game.setMultiplier(this.game.globalMultiplier * totalBonusWin); // Visual update hook
+            this.ui.setMultiplier(this.game.globalMultiplier * totalBonusWin); // Visual update hook
         }
 
         await gsap.to(this.game.reelContainer, { alpha: 1, duration: 0.5 });

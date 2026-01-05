@@ -154,10 +154,10 @@ export class TownHallFeature extends GameFeature {
                 });
 
                 // 3. Final Update (Only happens after all Town Halls are done)
-                this.game.setMultiplier(event.previousWin * sum)
+                this.ui.setMultiplier(event.previousWin * sum)
             }
 
-            this.game.setMultiplier(event.totalWin);
+            this.ui.setMultiplier(event.totalWin);
         }
     }
 }

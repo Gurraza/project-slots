@@ -85,7 +85,7 @@ export default function CasinoPage() {
                         <div className="absolute w-full h-full pointer-events-none">
                             <span className='text-white' style={{ fontFamily: "cocFont" }}></span>
                             {/* Spin Button */}
-                            <div className={
+                            {/* <div className={
                                 'absolute flex flex-col justify-center items-center bottom-20'
                                 + (layout.isMobile ? " w-70 left-1/2 -translate-x-1/2" : " w-50 right-10")
 
@@ -104,7 +104,7 @@ export default function CasinoPage() {
                                     <img className='w-full h-auto ' src="/games/ClashOfReels/free_spins_remaining.png" />
                                     <span className='absolute text-white right-6 bottom-2.5' style={{ fontFamily: "cocFont" }}>{freeSpins}</span>
                                 </div>
-                            </div>
+                            </div> */}
 
                             {/* Top Left Stats Container */}
                             <div className="absolute top-5 left-5 flex flex-col gap-2 items-start">
