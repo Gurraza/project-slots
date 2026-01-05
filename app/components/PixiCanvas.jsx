@@ -3,7 +3,7 @@
 import { useEffect, useRef } from 'react';
 import * as PIXI from 'pixi.js';
 
-export default function PixiCanvas({ gameClass, gameState, onGameEvent, onGameReady, onResize }) {
+export default function PixiCanvas({ gameClass, onGameReady, onResize }) {
     const containerRef = useRef(null);
     const appRef = useRef(null);
     const gameInstanceRef = useRef(null);
@@ -37,13 +37,6 @@ export default function PixiCanvas({ gameClass, gameState, onGameEvent, onGameRe
             gameInstanceRef.current = new gameClass(gameContainer, app, customConfig);
 
             if (onGameReady) onGameReady(gameInstanceRef.current);
-            if (gameInstanceRef.current.onStateChange) {
-                gameInstanceRef.current.onStateChange(gameState);
-            }
-
-            gameInstanceRef.current.emitEvent = (event) => {
-                if (onGameEvent) onGameEvent(event);
-            };
 
             // --- SCALING LOGIC ---
             const handleResize = () => {
@@ -110,12 +103,6 @@ export default function PixiCanvas({ gameClass, gameState, onGameEvent, onGameRe
             }
         };
     }, []);
-
-    useEffect(() => {
-        if (gameInstanceRef.current && gameInstanceRef.current.onStateChange) {
-            gameInstanceRef.current.onStateChange(gameState);
-        }
-    }, [gameState]);
 
     return (
         <div

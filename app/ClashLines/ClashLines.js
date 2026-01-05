@@ -1,128 +1,120 @@
 import SlotsBase from '../game-engine/SlotsBase.js';
 import gsap from "gsap"
 import { Assets, Sprite, Graphics, Text, Container, ColorMatrixFilter, FillGradient } from "pixi.js"
-import { EagleArtilleryFeature } from './features/EagleArtilleryFeature.js';
-import { ClanCastleFeature } from './features/ClanCastleFeature.js';
-import { WardenFeature } from './features/WardenFeature.js';
-import { TownHallFeature } from './features/TownHallFeature.js';
-import { MinesFeature } from './features/MinesFeature.js';
-import { TreasureGoblinFeature } from './features/TreasureGoblinFeature.js';
-import { SuperTroopFeature } from './features/SuperTroopFeature.js';
-import { BuilderFeature } from './features/BuilderFeature.js';
-import { ClusterEngineFeature } from './features/ClusterFeature.js';
-
+import { PaylineFeature } from './features/PaylineFeature.js';
 const SYMBOLS = [
+    // --- SPECIALS ---
     {
-        name: 'barbarian',
-        weight: 1000,
-        group: "low_troop",
+        name: "wild",
+        // Reduced from 45 to 18. Wilds were driving the 53% winrate.
+        weight: 18,
         scale: .9,
-        payouts: { 4: 0.2, 5: 0.5, 6: 1.0, 7: 1.5, 8: 2.5, 9: 5.0, 10: 6, 11: 10, 7: 15 },
-        path: "troops_icons/barbarian.png"
+        path: "troops_icons/rage.png",
+        matchesWith: ["*"],
+        // Reduced 3-match payout slightly to lower base RTP
+        payouts: { 3: 2.0, 4: 15.0, 5: 150.0 }
+    },
+
+    // --- HIGH TIER (The Geese) ---
+    {
+        name: 'pekka', // The Jackpot
+        // Reduced from 12 to 8. Harder to hit, but pays huge.
+        weight: 8,
+        group: "high_troop",
+        scale: .9,
+        path: "troops_icons/pekka.png",
+        // Kept 5-match exciting (150x), but lowered 3-match
+        payouts: { 3: 2.0, 4: 15.0, 5: 150.0 }
+    },
+    {
+        name: 'wizard',
+        // Reduced from 25 to 20
+        weight: 20,
+        group: "high_troop",
+        scale: .9,
+        path: "troops_icons/wizard.png",
+        payouts: { 3: 1.0, 4: 5.0, 5: 40.0 }
+    },
+    {
+        name: 'hogrider',
+        // Reduced from 40 to 35
+        weight: 35,
+        group: "high_troop",
+        scale: .9,
+        path: "troops_icons/hogrider.png",
+        payouts: { 3: 0.8, 4: 3.0, 5: 15.0 }
     },
     {
         name: 'archer',
-        weight: 1000,
+        weight: 60,
         group: "low_troop",
         scale: .9,
-        payouts: { 4: 0.2, 5: 0.5, 6: 1.0, 7: 1.5, 8: 2.5, 9: 5.0, 10: 6, 11: 10, 7: 15 },
-        path: "troops_icons/archer.png"
+        path: "troops_icons/archer.png",
+        payouts: { 3: 0.5, 4: 2.0, 5: 10.0 }
     },
     {
-        name: 'goblin',
-        weight: 1000,
+        name: 'barbarian',
+        weight: 80,
         group: "low_troop",
         scale: .9,
-        payouts: { 4: 0.2, 5: 0.5, 6: 1.0, 7: 1.5, 8: 2.5, 9: 5.0, 10: 6, 11: 10, 7: 15 },
-        path: "troops_icons/goblin.png"
+        path: "troops_icons/barbarian.png",
+        payouts: { 3: 0.3, 4: 1.5, 5: 6.0 }
     },
-    // {
-    //     name: 'wizard',
-    //     weight: 800,
-    //     group: "high_troop",
-    //     scale: .9,
-    //     payouts: { 4: 0.2, 5: 0.5, 6: 1.0, 7: 1.5, 8: 2.5, 9: 5.0, 10: 6, 11: 10, 7: 15 },
-    //     path: "troops_icons/wizard.png"
-    // },
-    {
-        name: 'pekka',
-        weight: 800,
-        group: "high_troop",
-        scale: .9,
-        payouts: { 4: 0.2, 5: 0.5, 6: 1.0, 7: 1.5, 8: 2.5, 9: 5.0, 10: 6, 11: 10, 7: 15 },
-        path: "troops_icons/pekka.png"
-    },
-    // {
-    //     name: 'dragon',
-    //     weight: 800,
-    //     group: "high_troop",
-    //     scale: .9,
-    //     payouts: { 4: 0.2, 5: 0.5, 6: 1.0, 7: 1.5, 8: 2.5, 9: 5.0, 10: 6, 11: 10, 7: 15 },
-    //     path: "troops_icons/dragon.png"
-    // },
-    {
-        name: 'wallbreaker',
-        weight: 0,
-        scale: .9,
-        payouts: { 4: 0.2, 5: 0.5, 6: 1.0, 7: 1.5, 8: 2.5, 9: 5.0, 10: 6, 11: 10, 7: 15 },
-        path: "troops_icons/wallbreaker.png"
-    },
+
+    // --- LOW TIER (Resources) ---
+    // Drastically increased weights to dilute the reels
+    // Drastically lowered 3-match payouts
     {
         name: 'gold',
-        weight: 1000,
+        weight: 190, // Increased from 160
         group: "low_resource",
-        scale: 1,
-        payouts: { 4: 0.2, 5: 0.5, 6: 1.0, 7: 1.5, 8: 2.5, 9: 5.0, 10: 6, 11: 10, 7: 15 },
-        path: "resource/gold.png"
+        scale: .9,
+        path: "resource/gold.png",
+        // Payout 0.05 means you need massive combos to profit
+        payouts: { 3: 0.05, 4: 0.3, 5: 1.0 }
     },
     {
         name: 'elixir',
-        weight: 1000,
+        weight: 170, // Increased from 140
         group: "low_resource",
-        scale: .8,
-        payouts: { 4: 0.2, 5: 0.5, 6: 1.0, 7: 1.5, 8: 2.5, 9: 5.0, 10: 6, 11: 10, 7: 15 },
-        path: "resource/elixir.png"
+        scale: .9,
+        path: "resource/elixir.png",
+        payouts: { 3: 0.05, 4: 0.4, 5: 1.2 }
     },
     {
         name: 'darkelixir',
-        weight: 1000,
+        weight: 150, // Increased from 120
         group: "low_resource",
-        scale: .8,
-        payouts: { 4: 0.2, 5: 0.5, 6: 1.0, 7: 1.5, 8: 2.5, 9: 5.0, 10: 6, 11: 10, 7: 15 },
-        path: "resource/dark_elixir.png"
+        scale: .9,
+        path: "resource/dark_elixir.png",
+        payouts: { 3: 0.1, 4: 0.5, 5: 1.5 }
     },
     {
         name: 'gem',
-        weight: 800,
+        weight: 120, // Increased from 100
         group: "low_resource",
-        scale: .8,
-        payouts: { 4: 0.2, 5: 0.5, 6: 1.0, 7: 1.5, 8: 2.5, 9: 5.0, 10: 6, 11: 10, 7: 15 },
+        scale: .9,
         path: "resource/gem.png",
-    },
-    {
-        name: "wild",
-        weight: 150,
-        scale: 1,
-        path: "super_icon.png",
-        matchesWith: ["*"],
+        payouts: { 3: 0.15, 4: 0.8, 5: 2.5 }
     }
 ];
 
-export default class ClashOfReels extends SlotsBase {
+export default class ClashLines extends SlotsBase {
     constructor(rootContainer, app, config = {}) {
         const myConfig = {
             // Layout
             width: 1280,
             height: 720,
-            symbolWidth: config.isMobile ? 100 : 80,
-            symbolHeight: config.isMobile ? 100 : 80,
-            gapX: 5,
-            gapY: 5,
-            borderRadius: 15,
+            symbolWidth: config.isMobile ? 100 : 110,
+            symbolHeight: config.isMobile ? 100 : 110,
+            gapX: 0,
+            gapY: 0,
+            borderRadius: 0,
+
             // Visuals
             backgroundImage: "background",
             symbolsBeforeStop: 15,
-            invisibleFlyby: true,
+            invisibleFlyby: false,
             motionBlurStrength: .8,
             font: {
                 family: "cocFont",
@@ -150,14 +142,14 @@ export default class ClashOfReels extends SlotsBase {
             windUp: -5, // pixels
 
             // Game Logic
-            cols: 7,
-            rows: 7,
-            clusterSize: 5,
+            cols: 5,
+            rows: 3,
+            clusterSize: 5555,
             groups: [
-                { name: "low_troop", count: 2 },
-                { name: "high_troop", count: 2 },
-                { name: "low_resource", count: 2 },
-                { name: "bonus_game", count: 2 },
+                // { name: "low_troop", count: 2 },
+                // { name: "high_troop", count: 2 },
+                // { name: "low_resource", count: 2 },
+                // { name: "bonus_game", count: 2 },
             ],
 
             // Behind The Scenes
@@ -172,15 +164,61 @@ export default class ClashOfReels extends SlotsBase {
 
         super(rootContainer, app, myConfig);
 
-        this.registerFeature(new ClusterEngineFeature(this))
-        // this.registerFeature(new EagleArtilleryFeature(this))
         // this.registerFeature(new ClanCastleFeature(this))
-        // this.registerFeature(new WardenFeature(this))
-        // this.registerFeature(new TownHallFeature(this))
-        // this.registerFeature(new MinesFeature(this))
-        // this.registerFeature(new TreasureGoblinFeature(this))
         // this.registerFeature(new SuperTroopFeature(this))
-        // this.registerFeature(new BuilderFeature(this))
+        this.registerFeature(new PaylineFeature(this, [
+            // --- BASIC (1-5) ---
+            [1, 1, 1, 1, 1], // Middle
+            [0, 0, 0, 0, 0], // Top
+            [2, 2, 2, 2, 2], // Bottom
+            [0, 1, 2, 1, 0], // V
+            [2, 1, 0, 1, 2], // Inverted V
+
+            // --- ZIG ZAGS (6-10) ---
+            [0, 0, 1, 2, 2],
+            [2, 2, 1, 0, 0],
+            [1, 2, 2, 2, 1],
+            [1, 0, 0, 0, 1],
+            [0, 1, 1, 1, 0],
+
+            // --- SQUIGGLES (11-15) ---
+            [2, 1, 1, 1, 2],
+            [0, 1, 0, 1, 0],
+            [2, 1, 2, 1, 2],
+            [1, 0, 1, 0, 1],
+            [1, 2, 1, 2, 1],
+
+            // --- STEPPERS (16-20) ---
+            [1, 1, 0, 1, 1],
+            [1, 1, 2, 1, 1],
+            [0, 0, 2, 0, 0],
+            [2, 2, 0, 2, 2],
+            [0, 2, 0, 2, 0],
+
+            // --- EXTENDED (21-30) ---
+            [0, 2, 2, 2, 0],
+            [2, 0, 0, 0, 2],
+            [1, 2, 0, 2, 1],
+            [1, 0, 2, 0, 1],
+            [0, 0, 1, 0, 0], // Top Dip
+            [2, 2, 1, 2, 2], // Bottom Bump
+            [0, 2, 1, 2, 0],
+            [2, 0, 1, 0, 2],
+            [0, 1, 2, 2, 2],
+            [2, 1, 0, 0, 0],
+
+            // --- COMPLEX (31-40) ---
+            [0, 0, 1, 2, 1],
+            [2, 2, 1, 0, 1],
+            [1, 2, 1, 0, 1],
+            [1, 0, 1, 2, 1],
+            [0, 1, 1, 1, 2],
+            [2, 1, 1, 1, 0],
+            [0, 1, 0, 1, 2],
+            [2, 1, 2, 1, 0],
+            [1, 0, 0, 1, 0],
+            [1, 2, 2, 1, 2],
+        ]))
 
         this.init()
     }
@@ -225,7 +263,7 @@ export default class ClashOfReels extends SlotsBase {
             tl.to(sprite.scale, {
                 x: sprite.scale.x * 1.2,
                 y: sprite.scale.y * 1.2,
-                duration: 0.1,
+                duration: 0.2,
                 yoyo: true,
                 repeat: 3,
                 ease: "sine.inOut"
@@ -233,7 +271,7 @@ export default class ClashOfReels extends SlotsBase {
             const flash = { intensity: 1 };
             tl.to(flash, {
                 intensity: 1.8,
-                duration: 0.1,
+                duration: 0.2,
                 yoyo: true,
                 repeat: 3,
                 ease: "sine.inOut",

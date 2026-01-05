@@ -1,4 +1,4 @@
-import GameFeature from "@/app/game-engine/GameFeature";
+import GameFeature from "../../game-engine/GameFeature.js"
 import gsap from "gsap"
 import { Text } from "pixi.js"
 

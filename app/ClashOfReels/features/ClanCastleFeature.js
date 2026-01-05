@@ -1,4 +1,5 @@
-import GameFeature from "@/app/game-engine/GameFeature";
+import GameFeature from "../../game-engine/GameFeature.js"
+import { contain } from "../../game-engine/Math.js"
 
 const featureSymbol = {
     name: "clancastle",
@@ -14,10 +15,10 @@ export class ClanCastleFeature extends GameFeature {
     }
 
     onGridPreProcess(grid, timeline) {
-        const castlePositions = this.game.contain(this.id, grid)
+        const castlePositions = contain(this.id, grid)
         if (castlePositions) {
             const lowTroops = this.config.symbols.filter(s => s.group == "low_troop" && s.weight != 0);
-            const randomBaseTroop = lowTroops[Math.floor(this.game.random() * lowTroops.length)];
+            const randomBaseTroop = lowTroops[Math.floor(this.engine.random() * lowTroops.length)];
             // 2. Find its SUPER version
             const superVersion = this.config.symbols.find(s =>
                 s.isSuper && s.matchesWith === randomBaseTroop.name

@@ -1,7 +1,7 @@
 'use client';
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef } from 'react';
 import PixiCanvas from '../components/PixiCanvas';
-import ClashOfReels from './ClashOfReels';
+import ClashLines from './ClashLines';
 
 export default function CasinoPage() {
     const [layout, setLayout] = useState(null); // Stores the position/scale of the game
@@ -13,7 +13,7 @@ export default function CasinoPage() {
             {/* 1. The Game Screen */}
             <div className={"w-full h-full inset-0 absolute"}>
                 <PixiCanvas
-                    gameClass={ClashOfReels}
+                    gameClass={ClashLines}
                     onGameReady={(g) => (gameRef.current = g)}
                     onResize={(metrics) => setLayout(metrics)}
                 />

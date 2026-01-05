@@ -1,6 +1,7 @@
-import GameFeature from "@/app/game-engine/GameFeature";
+import GameFeature from "../../game-engine/GameFeature.js"
 import gsap from "gsap"
-import { MinesGame } from "../MinesGame";
+import { MinesGame } from "../MinesGame.js";
+import { contain } from "../../game-engine/Math.js"
 
 const featureSymbol = {
     name: "treasure",
@@ -47,7 +48,7 @@ export class MinesFeature extends GameFeature {
     }
 
     onSpinEnd(grid, timeline) {
-        if (this.game.contain(this.id, grid).length === 3) {
+        if (contain(this.id, grid).length === 3) {
             timeline.push({
                 type: this.type,
                 grid: JSON.parse(JSON.stringify(grid)),

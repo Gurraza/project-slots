@@ -1,5 +1,5 @@
-import GameFeature from "@/app/game-engine/GameFeature";
-
+import GameFeature from "../../game-engine/GameFeature.js"
+import { contain, explode } from "../../game-engine/Math.js"
 
 const featureSymbol = {
     name: "eagleartillery",
@@ -19,7 +19,7 @@ export class EagleArtilleryFeature extends GameFeature {
     }
 
     onGridPreProcess(grid, timeline) {
-        const eaglePos = this.game.contain(this.id, grid);
+        const eaglePos = contain(this.id, grid);
 
         if (!eaglePos || eaglePos.length === 0) return false;
         const source = eaglePos[0];
@@ -48,7 +48,7 @@ export class EagleArtilleryFeature extends GameFeature {
 
         // Shuffle and slice
         for (let i = validTargets.length - 1; i > 0; i--) {
-            const j = Math.floor(this.game.random() * (i + 1));
+            const j = Math.floor(this.engine.random() * (i + 1));
             [validTargets[i], validTargets[j]] = [validTargets[j], validTargets[i]];
         }
         targets.push(...validTargets.slice(0, count));
@@ -64,7 +64,7 @@ export class EagleArtilleryFeature extends GameFeature {
         });
         const clustersToProcess = Array.from({ length: this.config.cols }, () => []);
         clustersToProcess[source.x].push(source.y);
-        this.game.explode(grid, clustersToProcess, timeline, featureSymbol.payouts[1])
+        explode(this.engine, grid, clustersToProcess, timeline, featureSymbol.payouts[1], this.config.symbols)
         return true
     }
 

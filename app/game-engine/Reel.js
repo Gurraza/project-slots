@@ -1,6 +1,7 @@
 import * as PIXI from 'pixi.js';
 import gsap from "gsap"
 import { PixiPlugin } from "gsap/PixiPlugin"; // 1. Import Plugin
+import { getRandomSymbolId } from "../game-engine/Math.js"
 gsap.registerPlugin(PixiPlugin);
 PixiPlugin.registerPIXI(PIXI);
 
@@ -253,11 +254,6 @@ export class Reel {
         });
     }
 
-    getRandomTexture() {
-        const randomTex = this.config.symbols[this.game.getRandomSymbolId()].texture
-        return randomTex;
-    }
-
     explodeAndCascade(indexExplode, idsReplace, reelData) {
         indexExplode = indexExplode.sort((a, b) => a - b)
         return new Promise((resolve) => {
@@ -330,7 +326,7 @@ export class Reel {
                 texture: null
             }
         }
-        const id = this.game.getRandomSymbolId({ firstSpin: true, gridToCheck: this.game.initialGrid, coldIndex: this.index })
+        const id = getRandomSymbolId(this.game.engine, { firstSpin: true, gridToCheck: this.game.initialGrid, coldIndex: this.index, allSymbols: this.game.config.symbols })
         return {
             id: id,
             texture: this.config.symbols[id].texture

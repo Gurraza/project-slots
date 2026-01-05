@@ -1,6 +1,7 @@
-import GameFeature from "@/app/game-engine/GameFeature";
+import GameFeature from "../../game-engine/GameFeature.js"
 import { Assets, Sprite } from "pixi.js";
 import gsap from "gsap";
+import { contain } from "../../game-engine/Math.js"
 
 const featureSymbol = {
     name: "warden",
@@ -32,7 +33,7 @@ export class WardenFeature extends GameFeature {
 
     onGridIdle(grid, timeline) {
         // Simple check: Is he on the board?
-        const wardenData = this.game.contain(this.id, grid)
+        const wardenData = contain(this.id, grid)
         if (wardenData) {
             // Use the helper to determine IF he has valid targets
             const wardenAction = this.calculateWardenAction(grid);
@@ -64,7 +65,7 @@ export class WardenFeature extends GameFeature {
                 // const replacements = this.game.generateReplacements(clustersToProcess, grid);
                 // const nextGrid = this.game.simulateCascade(grid, clustersToProcess, replacements);
                 // this.applyGrid(grid, nextGrid)
-                this.game.explode(grid, clustersToProcess, timeline, 0)
+                explode(this.engine, grid, clustersToProcess, timeline, 0, this.config.symbols)
 
                 // timeline.push({
                 //     type: 'CASCADE',

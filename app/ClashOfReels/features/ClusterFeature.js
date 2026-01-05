@@ -1,4 +1,5 @@
-import GameFeature from "@/app/game-engine/GameFeature";
+import GameFeature from "../../game-engine/GameFeature.js"
+import { explode } from "../../game-engine/Math.js"
 
 export class ClusterEngineFeature extends GameFeature {
     constructor(game) {
@@ -29,7 +30,7 @@ export class ClusterEngineFeature extends GameFeature {
                 clustersToProcess[x].push(y);
             }
         });
-        this.game.explode(grid, clustersToProcess, timeline, win)
+        explode(this.engine, grid, clustersToProcess, timeline, win, this.config.symbols)
         return true
     }
 }

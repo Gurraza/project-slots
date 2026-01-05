@@ -1,10 +1,11 @@
-import GameFeature from "@/app/game-engine/GameFeature";
+import GameFeature from "../../game-engine/GameFeature.js"
 import gsap from "gsap"
 import { Sprite, Assets, Container, Text, Graphics, FillGradient } from "pixi.js"
+import { contain } from "../../game-engine/Math.js"
 
 const featureSymbol = {
     name: "treasureGoblin",
-    weight: [1000050, 70005, 20000],
+    weight: [150, 75, 20],
     scale: 1.4,
     group: "bonus_game",
     onlyAppearOnRoll: true,
@@ -54,7 +55,7 @@ export class TreasureGoblinFeature extends GameFeature {
 
 
     onSpinEnd(grid, timeline) {
-        const treasureGoblinCount = this.game.contain(this.id, grid).length
+        const treasureGoblinCount = contain(this.id, grid).length
         if (this.config.mode === "normal" && treasureGoblinCount === 3) {
             timeline.push({
                 type: this.type,
