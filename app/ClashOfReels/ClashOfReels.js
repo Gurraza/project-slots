@@ -186,14 +186,7 @@ export default class ClashOfReels extends SlotsBase {
     }
 
     async handleSymbolLand(effect, sprite) {
-        for (let i = 0; i < this.features.length; i++) {
-            if (this.features[i].effects.find(s => s == effect)) {
-                const symbolDef = this.config.symbols.find(s => sprite.symbolId === s.id)
-                const p = await this.features[i].playEffect(effect, sprite, symbolDef);
-                if (p) return p;
-            }
-        }
-
+        super.handleSymbolLand(effect, sprite)
         if (effect === "DEFAULT_LAND") {
             const restingY = sprite.y;
             const tl = gsap.timeline();
@@ -212,13 +205,7 @@ export default class ClashOfReels extends SlotsBase {
     }
 
     async handleSymbolMatch(effect, sprite) {
-        for (let i = 0; i < this.features.length; i++) {
-            if (this.features[i].effects.find(s => s == effect)) {
-                const symbolDef = this.config.symbols.find(s => sprite.symbolId === s.id)
-                const p = await this.features[i].playEffect(effect, sprite, symbolDef);
-                if (p) return p;
-            }
-        }
+        super.handleSymbolMatch(effect, sprite)
 
         if (effect === "DEFAULT_MATCH") {
             const colorMatrix = new ColorMatrixFilter();
@@ -259,13 +246,7 @@ export default class ClashOfReels extends SlotsBase {
     }
 
     async handleSymbolExplode(effect, sprite) {
-        for (let i = 0; i < this.features.length; i++) {
-            if (this.features[i].effects.find(s => s == effect)) {
-                const symbolDef = this.config.symbols.find(s => sprite.symbolId === s.id)
-                const p = await this.features[i].playEffect(effect, sprite, symbolDef);
-                if (p) return p;
-            }
-        }
+        super.handleSymbolExplode(effect, sprite)
 
         if (effect === "DEFAULT_EXPLODE") {
             const ghost = this.spawnGhost(sprite)

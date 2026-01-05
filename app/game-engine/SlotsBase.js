@@ -1232,4 +1232,34 @@ export default class SlotsBase {
         });
         return timeline
     }
+
+    async handleSymbolLand(effect, sprite) {
+        for (let i = 0; i < this.features.length; i++) {
+            if (this.features[i].effects.find(s => s == effect)) {
+                const symbolDef = this.config.symbols.find(s => sprite.symbolId === s.id)
+                const p = await this.features[i].playEffect(effect, sprite, symbolDef);
+                if (p) return p;
+            }
+        }
+    }
+
+    async handleSymbolMatch(effect, sprite) {
+        for (let i = 0; i < this.features.length; i++) {
+            if (this.features[i].effects.find(s => s == effect)) {
+                const symbolDef = this.config.symbols.find(s => sprite.symbolId === s.id)
+                const p = await this.features[i].playEffect(effect, sprite, symbolDef);
+                if (p) return p;
+            }
+        }
+    }
+
+    async handleSymbolExplode(effect, sprite) {
+        for (let i = 0; i < this.features.length; i++) {
+            if (this.features[i].effects.find(s => s == effect)) {
+                const symbolDef = this.config.symbols.find(s => sprite.symbolId === s.id)
+                const p = await this.features[i].playEffect(effect, sprite, symbolDef);
+                if (p) return p;
+            }
+        }
+    }
 }
