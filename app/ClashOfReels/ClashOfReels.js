@@ -10,6 +10,7 @@ import { TreasureGoblinFeature } from './features/TreasureGoblinFeature.js';
 import { SuperTroopFeature } from './features/SuperTroopFeature.js';
 import { BuilderFeature } from './features/BuilderFeature.js';
 import { ClusterEngineFeature } from './features/ClusterFeature.js';
+import { shake, popAnimation, glowFlashAnimation, implodeAnimation, fragmentPopAnimation, landingEffect, matchEffect } from '../game-engine/effects/Effects.js';
 
 const SYMBOLS = [
     {
@@ -36,14 +37,14 @@ const SYMBOLS = [
         payouts: { 4: 0.2, 5: 0.5, 6: 1.0, 7: 1.5, 8: 2.5, 9: 5.0, 10: 6, 11: 10, 7: 15 },
         path: "troops_icons/goblin.png"
     },
-    // {
-    //     name: 'wizard',
-    //     weight: 800,
-    //     group: "high_troop",
-    //     scale: .9,
-    //     payouts: { 4: 0.2, 5: 0.5, 6: 1.0, 7: 1.5, 8: 2.5, 9: 5.0, 10: 6, 11: 10, 7: 15 },
-    //     path: "troops_icons/wizard.png"
-    // },
+    {
+        name: 'wizard',
+        weight: 800,
+        group: "high_troop",
+        scale: .9,
+        payouts: { 4: 0.2, 5: 0.5, 6: 1.0, 7: 1.5, 8: 2.5, 9: 5.0, 10: 6, 11: 10, 7: 15 },
+        path: "troops_icons/wizard.png"
+    },
     {
         name: 'pekka',
         weight: 800,
@@ -52,14 +53,14 @@ const SYMBOLS = [
         payouts: { 4: 0.2, 5: 0.5, 6: 1.0, 7: 1.5, 8: 2.5, 9: 5.0, 10: 6, 11: 10, 7: 15 },
         path: "troops_icons/pekka.png"
     },
-    // {
-    //     name: 'dragon',
-    //     weight: 800,
-    //     group: "high_troop",
-    //     scale: .9,
-    //     payouts: { 4: 0.2, 5: 0.5, 6: 1.0, 7: 1.5, 8: 2.5, 9: 5.0, 10: 6, 11: 10, 7: 15 },
-    //     path: "troops_icons/dragon.png"
-    // },
+    {
+        name: 'dragon',
+        weight: 800,
+        group: "high_troop",
+        scale: .9,
+        payouts: { 4: 0.2, 5: 0.5, 6: 1.0, 7: 1.5, 8: 2.5, 9: 5.0, 10: 6, 11: 10, 7: 15 },
+        path: "troops_icons/dragon.png"
+    },
     {
         name: 'wallbreaker',
         weight: 0,
@@ -122,7 +123,7 @@ export default class ClashOfReels extends SlotsBase {
             // Visuals
             backgroundImage: "background",
             symbolsBeforeStop: 15,
-            invisibleFlyby: true,
+            invisibleFlyby: false,
             motionBlurStrength: .8,
             font: {
                 family: "cocFont",
@@ -143,16 +144,17 @@ export default class ClashOfReels extends SlotsBase {
             spinSpeed: 35,
             spinAcceleration: .5,
             spinDeacceleration: 0.9,
-            staggerTime: 100,
             timeBeforeProcessingGrid: 200,
             delayBeforeCascading: 200,
             replaceTime: .2,
             windUp: -5, // pixels
+            staggerTime: 0,
+            reelLandSymbolsDelay: 10,
 
             // Game Logic
             cols: 7,
             rows: 7,
-            clusterSize: 5,
+            clusterSize: 4,
             groups: [
                 { name: "low_troop", count: 2 },
                 { name: "high_troop", count: 2 },
@@ -173,91 +175,46 @@ export default class ClashOfReels extends SlotsBase {
         super(rootContainer, app, myConfig);
 
         this.registerFeature(new ClusterEngineFeature(this))
-        // this.registerFeature(new EagleArtilleryFeature(this))
-        // this.registerFeature(new ClanCastleFeature(this))
-        // this.registerFeature(new WardenFeature(this))
-        // this.registerFeature(new TownHallFeature(this))
-        // this.registerFeature(new MinesFeature(this))
-        // this.registerFeature(new TreasureGoblinFeature(this))
-        // this.registerFeature(new SuperTroopFeature(this))
-        // this.registerFeature(new BuilderFeature(this))
+        this.registerFeature(new EagleArtilleryFeature(this))
+        this.registerFeature(new ClanCastleFeature(this))
+        this.registerFeature(new WardenFeature(this))
+        this.registerFeature(new TownHallFeature(this))
+        this.registerFeature(new MinesFeature(this))
+        this.registerFeature(new TreasureGoblinFeature(this))
+        this.registerFeature(new SuperTroopFeature(this))
+        this.registerFeature(new BuilderFeature(this))
 
         this.init()
     }
 
     async handleSymbolLand(effect, sprite) {
-        super.handleSymbolLand(effect, sprite)
         if (effect === "DEFAULT_LAND") {
-            const restingY = sprite.y;
-            const tl = gsap.timeline();
-            tl.to(sprite, {
-                y: restingY + 6,
-                duration: 0.1,
-                ease: "power2.in"
-            })
-            tl.to(sprite, {
-                y: restingY,
-                duration: 0.1,
-                ease: "power1.out"
-            });
-            await tl
+            await landingEffect(sprite)
+        }
+        else {
+            super.handleSymbolLand(effect, sprite)
         }
     }
 
     async handleSymbolMatch(effect, sprite) {
-        super.handleSymbolMatch(effect, sprite)
 
         if (effect === "DEFAULT_MATCH") {
-            const colorMatrix = new ColorMatrixFilter();
-            sprite.filters = [colorMatrix];
-            const originalZIndex = sprite.zIndex;
-            sprite.parent.sortableChildren = true;
-            sprite.zIndex = 100;
-
-            const tl = gsap.timeline({
-                onComplete: () => {
-                    sprite.filters = null;
-                    sprite.zIndex = originalZIndex;
-                    return
-                }
-            });
-
-            tl.to(sprite.scale, {
-                x: sprite.scale.x * 1.2,
-                y: sprite.scale.y * 1.2,
-                duration: 0.1,
-                yoyo: true,
-                repeat: 3,
-                ease: "sine.inOut"
-            });
-            const flash = { intensity: 1 };
-            tl.to(flash, {
-                intensity: 1.8,
-                duration: 0.1,
-                yoyo: true,
-                repeat: 3,
-                ease: "sine.inOut",
-                onUpdate: () => {
-                    colorMatrix.brightness(flash.intensity, false);
-                }
-            }, "<");
-            await tl
+            await matchEffect(sprite)
+        }
+        else {
+            super.handleSymbolMatch(effect, sprite)
         }
     }
 
     async handleSymbolExplode(effect, sprite) {
-        super.handleSymbolExplode(effect, sprite)
-
+        // glowFlashAnimation, implodeAnimation, fragmentPopAnimation popAnimation
         if (effect === "DEFAULT_EXPLODE") {
             const ghost = this.spawnGhost(sprite)
-            const tl = gsap.timeline({})
-            tl.to(ghost.scale, { x: 0, y: 0, duration: .4 })
-            tl.to(ghost, {
-                rotation: 5, alpha: 0, duration: .4, onComplete: () => {
-                    // ghost.destroy()
-                }
-            }, "<");
-            await tl
+            await glowFlashAnimation(ghost)
+        }
+        else {
+            super.handleSymbolExplode(effect, sprite)
         }
     }
+
 }

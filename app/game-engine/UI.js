@@ -14,7 +14,33 @@ export class UI {
         this.createMultiplier()
         this.createSpinButton()
         this.createFreespins()
+        this.enableKeyboard()
+        // this.createSymbolCheat(s.name, [9999999], 20, 100 + (i * 30));
+
+        // OR: Loop through all symbols to create a debug list
+        this.config.symbols.forEach((s, i) => {
+            this.createSymbolCheat(s.name, [9999999, 9999999, 9999999], 20, 0 + (i * 30));
+        });
     }
+
+    enableKeyboard() {
+        this._onKeyDown = (e) => {
+            if (e.code === "Space" && !e.repeat) {
+                e.preventDefault();
+                this.handleSpin();
+            }
+        };
+
+        window.addEventListener("keydown", this._onKeyDown);
+    }
+
+    destroy() {
+        if (this._onKeyDown) {
+            window.removeEventListener("keydown", this._onKeyDown);
+            this._onKeyDown = null;
+        }
+    }
+
 
     createFreespins() {
         this.freespinContainer = new Container();
@@ -148,43 +174,7 @@ export class UI {
 
             this.stage.addChild(this.spinButton);
 
-            this.spinButton.on("pointertap", async () => {
-                const grayFilter = new ColorMatrixFilter()
-                this.spinButton.filters = [grayFilter];
-                grayFilter.resolution = this.app.renderer.resolution
-
-                // This is the value GSAP will animate
-                const state = { amount: 0 };
-
-                // fade to grayscale
-                await gsap.to(state, {
-                    amount: -1,
-                    duration: 0.3,
-                    ease: "power2.out",
-                    onUpdate: () => {
-                        grayFilter.saturate(state.amount, false);
-                    }
-                });
-                this.spinButton.cursor = "not-allowed";
-                this.app.canvas.style.cursor = "not-allowed";
-                await this.game.spin();
-                this.app.canvas.style.cursor = "pointer";
-                this.spinButton.cursor = "pointer";
-
-                // fade back to color
-                await gsap.to(state, {
-                    amount: 0,
-                    duration: 0.3,
-                    ease: "power2.inOut",
-                    onUpdate: () => {
-                        grayFilter.saturate(state.amount, false);
-                    },
-                    onComplete: () => {
-                        this.spinButton.filters = [];
-                        grayFilter.destroy();
-                    }
-                });
-            });
+            this.spinButton.on("pointertap", () => this.handleSpin());
 
         });
     }
@@ -321,6 +311,130 @@ export class UI {
             tl.to(text.scale, { x: 3, y: 3, duration: 0.3, ease: "power2.in" }, "exit");
             tl.to(overlay, { alpha: 0, duration: 0.3 }, "exit");
         });
+    }
+
+    async handleSpin() {
+        if (this.isSpinning) return
+        if (!this.spinButton) return;
+        this.isSpinning = true
+        const grayFilter = new ColorMatrixFilter();
+        this.spinButton.filters = [grayFilter];
+        grayFilter.resolution = this.app.renderer.resolution;
+
+        const state = { amount: 0 };
+
+        this.spinButton.cursor = "not-allowed";
+        await gsap.to(state, {
+            amount: -1,
+            duration: 0.3,
+            ease: "power2.out",
+            onUpdate: () => grayFilter.saturate(state.amount, false)
+        });
+
+        await this.game.spin();
+        await gsap.to(state, {
+            amount: 0,
+            duration: 0.3,
+            ease: "power2.inOut",
+            onUpdate: () => grayFilter.saturate(state.amount, false),
+            onComplete: () => {
+                this.spinButton.filters = [];
+                grayFilter.destroy();
+                this.spinButton.cursor = "pointer";
+            }
+        });
+        this.isSpinning = false
+    }
+    /**
+         * Creates a debug toggle for a symbol.
+         * @param {string} inputName - The name of the symbol (e.g., "H1").
+         * @param {number|number[]} cheatWeight - The weight to apply when toggled ON. 
+         * Can be a number (999999) or an array ([9999, 9999]).
+         * @param {number} x - X position on screen.
+         * @param {number} y - Y position on screen.
+         */
+    createSymbolCheat(inputName, cheatWeight, x, y) {
+        // 1. Find the symbol config
+        const symbol = this.config.symbols.find(s => s.name === inputName);
+
+        if (!symbol) {
+            console.warn(`[UI] Cheat Error: Symbol '${inputName}' not found.`);
+            return;
+        }
+
+        // 2. Backup the original weight safely.
+        // We check against undefined so we don't overwrite the backup if this function is called twice.
+        if (symbol._originalWeight === undefined) {
+            symbol._originalWeight = symbol.weight;
+        }
+
+        // 3. Setup container
+        const container = new Container();
+        container.x = x;
+        container.y = y;
+        container.zIndex = 999;
+
+        // 4. Graphics for the checkbox
+        const checkbox = new Graphics();
+        container.addChild(checkbox);
+
+        // 5. Label text
+        const label = new Text({
+            text: inputName.toUpperCase(),
+            style: {
+                fontFamily: "Arial",
+                fontSize: 14,
+                fill: "white",
+                fontWeight: "bold",
+                stroke: { color: "black", width: 3 },
+            }
+        });
+        label.x = 25;
+        label.y = 2;
+        container.addChild(label);
+
+        // 6. State Management
+        let isToggled = false;
+
+        const draw = () => {
+            checkbox.clear();
+            checkbox.rect(0, 0, 20, 20);
+
+            if (isToggled) {
+                // Active: Green
+                checkbox.fill({ color: 0x00FF00 });
+                checkbox.stroke({ width: 2, color: 0xFFFFFF });
+            } else {
+                // Inactive: Dark
+                checkbox.fill({ color: 0x333333 });
+                checkbox.stroke({ width: 1, color: 0x999999 });
+            }
+        };
+        draw(); // Initial draw
+
+        // 7. Interaction Logic
+        container.eventMode = "static";
+        container.cursor = "pointer";
+
+        container.on("pointertap", () => {
+            isToggled = !isToggled;
+
+            if (isToggled) {
+                // APPLY CHEAT:
+                // We set the weight to whatever structure (Array or Number) you passed in.
+                symbol.weight = cheatWeight;
+                console.log(`[CHEAT] ${inputName} weight set to:`, cheatWeight);
+            } else {
+                // RESTORE ORIGINAL:
+                // We revert to the backup we made earlier.
+                symbol.weight = symbol._originalWeight;
+                console.log(`[CHEAT] ${inputName} reverted to:`, symbol._originalWeight);
+            }
+
+            draw();
+        });
+
+        this.stage.addChild(container);
     }
 
 }

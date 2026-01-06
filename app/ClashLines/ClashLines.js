@@ -2,100 +2,100 @@ import SlotsBase from '../game-engine/SlotsBase.js';
 import gsap from "gsap"
 import { Assets, Sprite, Graphics, Text, Container, ColorMatrixFilter, FillGradient } from "pixi.js"
 import { PaylineFeature } from './features/PaylineFeature.js';
+// --- COMPETITIVE MATH MODEL (High Volatility / 96% Target) ---
 const SYMBOLS = [
     // --- SPECIALS ---
     {
         name: "wild",
-        // Reduced from 45 to 18. Wilds were driving the 53% winrate.
-        weight: 18,
+        weight: 20, // Rare, but powerful
         scale: .9,
         path: "troops_icons/rage.png",
         matchesWith: ["*"],
-        // Reduced 3-match payout slightly to lower base RTP
-        payouts: { 3: 2.0, 4: 15.0, 5: 150.0 }
+        // Payouts: 5-match is now a "Super Win" (1000x)
+        payouts: { 3: 5.0, 4: 50.0, 5: 1000.0 }
     },
 
-    // --- HIGH TIER (The Geese) ---
+    // --- HIGH TIER (The Chasers) ---
     {
-        name: 'pekka', // The Jackpot
-        // Reduced from 12 to 8. Harder to hit, but pays huge.
-        weight: 8,
+        name: 'pekka',
+        weight: 15, // Very Rare
         group: "high_troop",
         scale: .9,
         path: "troops_icons/pekka.png",
-        // Kept 5-match exciting (150x), but lowered 3-match
-        payouts: { 3: 2.0, 4: 15.0, 5: 150.0 }
+        // 5-match Pekka is the dream hit
+        payouts: { 3: 5.0, 4: 50.0, 5: 500.0 }
     },
     {
         name: 'wizard',
-        // Reduced from 25 to 20
-        weight: 20,
+        weight: 28,
         group: "high_troop",
         scale: .9,
         path: "troops_icons/wizard.png",
-        payouts: { 3: 1.0, 4: 5.0, 5: 40.0 }
+        payouts: { 3: 3.0, 4: 25.0, 5: 200.0 }
     },
     {
         name: 'hogrider',
-        // Reduced from 40 to 35
-        weight: 35,
+        weight: 45,
         group: "high_troop",
         scale: .9,
         path: "troops_icons/hogrider.png",
-        payouts: { 3: 0.8, 4: 3.0, 5: 15.0 }
+        payouts: { 3: 2.0, 4: 15.0, 5: 100.0 }
     },
+
+    // --- MID TIER (The Sustainers) ---
     {
         name: 'archer',
         weight: 60,
         group: "low_troop",
         scale: .9,
         path: "troops_icons/archer.png",
-        payouts: { 3: 0.5, 4: 2.0, 5: 10.0 }
+        // 3-match pays money back (1x)
+        payouts: { 3: 1.0, 4: 8.0, 5: 40.0 }
     },
     {
         name: 'barbarian',
-        weight: 80,
+        weight: 75,
         group: "low_troop",
         scale: .9,
         path: "troops_icons/barbarian.png",
-        payouts: { 3: 0.3, 4: 1.5, 5: 6.0 }
+        payouts: { 3: 0.8, 4: 5.0, 5: 25.0 }
     },
 
-    // --- LOW TIER (Resources) ---
-    // Drastically increased weights to dilute the reels
-    // Drastically lowered 3-match payouts
+    // --- LOW TIER (The Floor) ---
+    // CRITICAL FIX: 3-matches now pay significantly better 
+    // to recover the RTP lost by cutting paylines.
     {
         name: 'gold',
-        weight: 190, // Increased from 160
+        weight: 140, // Reduced weight slightly to allow more high symbols
         group: "low_resource",
         scale: .9,
         path: "resource/gold.png",
-        // Payout 0.05 means you need massive combos to profit
-        payouts: { 3: 0.05, 4: 0.3, 5: 1.0 }
+        // 0.6x is much better than 0.4x for the most common hit
+        payouts: { 3: 0.6, 4: 2.5, 5: 12.0 }
     },
     {
         name: 'elixir',
-        weight: 170, // Increased from 140
+        weight: 130,
         group: "low_resource",
         scale: .9,
         path: "resource/elixir.png",
-        payouts: { 3: 0.05, 4: 0.4, 5: 1.2 }
+        payouts: { 3: 0.6, 4: 2.5, 5: 12.0 }
     },
     {
         name: 'darkelixir',
-        weight: 150, // Increased from 120
+        weight: 120,
         group: "low_resource",
         scale: .9,
         path: "resource/dark_elixir.png",
-        payouts: { 3: 0.1, 4: 0.5, 5: 1.5 }
+        payouts: { 3: 0.5, 4: 2.0, 5: 10.0 }
     },
     {
         name: 'gem',
-        weight: 120, // Increased from 100
+        weight: 110,
         group: "low_resource",
         scale: .9,
         path: "resource/gem.png",
-        payouts: { 3: 0.15, 4: 0.8, 5: 2.5 }
+        payouts: { 3: 0.5, 4: 2.0, 5: 10.0 }
     }
 ];
 
@@ -195,6 +195,41 @@ export default class ClashLines extends SlotsBase {
             [2, 2, 0, 2, 2],
             [0, 2, 0, 2, 0],
 
+            // ... (The rest are ignored)
+        ]))
+
+        this.init()
+    }
+    /*
+[
+            // --- BASIC (1-5) ---
+            [1, 1, 1, 1, 1], // Middle
+            [0, 0, 0, 0, 0], // Top
+            [2, 2, 2, 2, 2], // Bottom
+            [0, 1, 2, 1, 0], // V
+            [2, 1, 0, 1, 2], // Inverted V
+
+            // --- ZIG ZAGS (6-10) ---
+            [0, 0, 1, 2, 2],
+            [2, 2, 1, 0, 0],
+            [1, 2, 2, 2, 1],
+            [1, 0, 0, 0, 1],
+            [0, 1, 1, 1, 0],
+
+            // --- SQUIGGLES (11-15) ---
+            [2, 1, 1, 1, 2],
+            [0, 1, 0, 1, 0],
+            [2, 1, 2, 1, 2],
+            [1, 0, 1, 0, 1],
+            [1, 2, 1, 2, 1],
+
+            // --- STEPPERS (16-20) ---
+            [1, 1, 0, 1, 1],
+            [1, 1, 2, 1, 1],
+            [0, 0, 2, 0, 0],
+            [2, 2, 0, 2, 2],
+            [0, 2, 0, 2, 0],
+
             // --- EXTENDED (21-30) ---
             [0, 2, 2, 2, 0],
             [2, 0, 0, 0, 2],
@@ -218,10 +253,8 @@ export default class ClashLines extends SlotsBase {
             [2, 1, 2, 1, 0],
             [1, 0, 0, 1, 0],
             [1, 2, 2, 1, 2],
-        ]))
-
-        this.init()
-    }
+        ]
+    */
 
     async handleSymbolLand(effect, sprite) {
         super.handleSymbolLand(effect, sprite)

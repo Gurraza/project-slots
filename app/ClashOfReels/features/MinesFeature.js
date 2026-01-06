@@ -5,7 +5,7 @@ import { contain } from "../../game-engine/Math.js"
 
 const featureSymbol = {
     name: "treasure",
-    weight: [150, 50, 10],
+    weight: [150, 50, 1],
     scale: 1.4,
     group: "bonus_game",
     onlyAppearOnRoll: true,
@@ -71,7 +71,7 @@ export class MinesFeature extends GameFeature {
 
         // 2. Generate a random limit between 1 and maxSafeMoves (Inclusive)
         // This determines "How many times can I click before the game forces a bomb?"
-        const randomLimit = Math.floor(this.game.random() * maxSafeMoves);
+        const randomLimit = Math.floor(this.engine.random() * maxSafeMoves);
         const totalBonusWin = await this.minesGame.play(1, randomLimit);
         if (this.game.globalMultiplier == 0) {
             this.ui.setMultiplier(totalBonusWin); // Visual update hook

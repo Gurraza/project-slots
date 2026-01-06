@@ -23,8 +23,9 @@ export class Reel {
         this.stopDelay = 0;
         this.symbolsRotated = 0
         this.targetsShown = 0
-        this.symbolsBeforeStop = this.config.symbolsBeforeStop
-
+        console.log(this.config.reelLandSymbolsDelay, index)
+        this.symbolsBeforeStop = this.config.symbolsBeforeStop + (this.config.reelLandSymbolsDelay * index)
+        console.log(this.symbolsBeforeStop)
 
         this.explodedSymbols = []
 
@@ -46,7 +47,6 @@ export class Reel {
         const totalSymbols = this.config.rows + bufferCount;
 
         this.slotHeight = this.config.symbolHeight + (this.config.gapY || 0);
-
         for (let i = 0; i < totalSymbols; i++) {
             const randomData = this.getRandomSymbolData(false);
             const symbol = new PIXI.Sprite(randomData.texture);
@@ -258,8 +258,6 @@ export class Reel {
         indexExplode = indexExplode.sort((a, b) => a - b)
         return new Promise((resolve) => {
             this.cascadeResolve = () => resolve([...reelData.filter((symbolId, index) => !indexExplode.includes(index)), ...idsReplace])
-
-
             // resets
             this.symbols.forEach(symbol => {
                 symbol.yToMove = 0;
@@ -326,7 +324,7 @@ export class Reel {
                 texture: null
             }
         }
-        const id = getRandomSymbolId(this.game.engine, { firstSpin: true, gridToCheck: this.game.initialGrid, coldIndex: this.index, allSymbols: this.game.config.symbols })
+        const id = getRandomSymbolId(this.game.engine, { firstSpin: false, gridToCheck: this.game.initialGrid, coldIndex: this.index, allSymbols: this.game.config.symbols })
         return {
             id: id,
             texture: this.config.symbols[id].texture
@@ -360,6 +358,7 @@ export class Reel {
         const finalScale = baseScale * customScale;
 
         sprite.scale.set(finalScale);
+        sprite.textureScale = finalScale
 
         // 3. Center it
         sprite.anchor.set(0.5);

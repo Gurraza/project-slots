@@ -7,7 +7,8 @@ const DEFAULT_CONFIG = {}
 
 export default class SlotsBase {
     constructor(rootContainer, app, config = {}) {
-        this.engine = new RandomEngine
+        this.engine = new RandomEngine(config, this)
+        console.log("engine is set")
         this.config = { ...DEFAULT_CONFIG, ...config };
         this.grid = Array.from({ length: this.config.cols }, () =>
             Array.from({ length: this.config.rows }, () => 0)
@@ -61,7 +62,7 @@ export default class SlotsBase {
         if (this.processing === true && this.config.mode === "normal") return;
         console.log("This game has the seed:", this.engine.seed)
         this.processing = true;
-        this.engine.setSeed(293839514502)
+        // this.engine.setSeed(293727186794)
 
         this.ui.setMultiplier(0);
         const timeline = calculateMoves(this.engine, this.config.rows, this.config.cols, this.features, this.config.symbols);
@@ -174,8 +175,9 @@ export default class SlotsBase {
         this.config.symbols = this.config.symbols.map((symbol, index) => {
             const fixedSymbol = symbol
             fixedSymbol.id = index
+            fixedSymbol.onlyAppearOnRoll = Array.isArray(symbol.weight)
             fixedSymbol.clusterSize = symbol.clusterSize ? symbol.clusterSize : this.config.clusterSize
-            fixedSymbol.baseWeight = fixedSymbol.weight
+            fixedSymbol.baseWeight = Array.isArray(fixedSymbol.weight) ? [...fixedSymbol.weight] : fixedSymbol.weight
             fixedSymbol.landingEffect = symbol.landingEffect ? symbol.landingEffect : this.config.defaultLandingEffect
             fixedSymbol.matchEffect = symbol.matchEffect ? symbol.matchEffect : this.config.defaultMatchEffect
             fixedSymbol.explodeEffect = symbol.explodeEffect ? symbol.explodeEffect : this.config.defaultExplodeEffect
@@ -188,6 +190,7 @@ export default class SlotsBase {
             }
             else return fixedSymbol
         });
+        this.initialGrid = generateRandomResult(this.engine, this.config.rows, this.config.cols, this.config.symbols)
         if (this.config.mode !== "simulation") {
             await this.loadAssets()
             this.setBackground(this.config.backgroundImage)
@@ -197,7 +200,6 @@ export default class SlotsBase {
             console.log("SYMBOLS", this.config.symbols)
         }
         this.features.forEach(f => f.init());
-        this.initialGrid = generateRandomResult(this.engine, this.config.rows, this.config.cols, this.config.symbols)
 
     }
 
@@ -267,7 +269,7 @@ export default class SlotsBase {
                 reel.forceVisible = true;
             } else {
                 // Reset to default if no anticipation needed (important for repeated spins)
-                reel.symbolsBeforeStop = this.config.symbolsBeforeStop
+                reel.symbolsBeforeStop = this.config.symbolsBeforeStop + (this.config.reelLandSymbolsDelay * index)
                 reel.forceVisible = false;
             }
             if (reelHasSymbol) {
@@ -289,6 +291,7 @@ export default class SlotsBase {
     }
 
     applyGroups() {
+        console.log("yes")
         this.config.groups.forEach(group => {
             const groupName = group.name
             const countToKeep = group.count
@@ -306,6 +309,7 @@ export default class SlotsBase {
                 } else {
                     // INACTIVE: Set weight to 0. 
                     // The randomizer will NEVER pick this, so the Reel never needs to load it.
+                    console.log("Removed", symbol.name)
                     symbol.weight = 0;
                 }
             });

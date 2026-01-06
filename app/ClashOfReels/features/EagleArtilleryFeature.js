@@ -5,7 +5,7 @@ const featureSymbol = {
     name: "eagleartillery",
     scale: 5,
     path: "Star.png",
-    weight: [15],
+    weight: [5],
     dontCluster: true,
     onlyAppearOnRoll: true,
     explodeEffect: "ARTILLERY_STRIKE",

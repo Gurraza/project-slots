@@ -18,8 +18,6 @@ export default function CasinoPage() {
                     onResize={(metrics) => setLayout(metrics)}
                 />
             </div>
-
-
         </div>
     );
 }

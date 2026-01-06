@@ -38,6 +38,7 @@ export default function PixiCanvas({ gameClass, onGameReady, onResize }) {
 
             if (onGameReady) onGameReady(gameInstanceRef.current);
 
+
             // --- SCALING LOGIC ---
             const handleResize = () => {
                 const screenWidth = app.screen.width;

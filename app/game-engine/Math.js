@@ -1,5 +1,8 @@
 export class RandomEngine {
-    constructor(config) {
+    constructor(config, game) {
+        this.game = game
+        console.log(this.game)
+
         this.config = config;
         this.seed = Math.floor(Math.random() * 0xFFFFFFFF);
     }
@@ -88,7 +91,7 @@ export function calculateMoves(engine, rows, cols, features, allSymbols) {
 }
 
 export function generateRandomResult(engine, rows, cols, allSymbols) {
-    // tahis.applyGroups()
+    engine.game.applyGroups()
     // 1. Initialize an empty grid structure (Col x Row) filled with null/undefined
     const tempGrid = Array.from({ length: cols }, () =>
         Array.from({ length: rows })

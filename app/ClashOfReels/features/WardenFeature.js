@@ -7,7 +7,7 @@ const featureSymbol = {
     name: "warden",
     scale: 1,
     path: "Warden.png",
-    weight: [15],
+    weight: [5],
     dontCluster: true,
     onlyAppearOnRoll: true,
     // explodeEffect: "warden_explode",
@@ -207,7 +207,7 @@ export class WardenFeature extends GameFeature {
         // 3. Select One Type of Resource to Destroy
         const foundIds = Object.keys(resourceCandidates);
         if (foundIds.length > 0) {
-            const randomId = foundIds[Math.floor(this.game.random() * foundIds.length)];
+            const randomId = foundIds[Math.floor(this.engine.random() * foundIds.length)];
             targets.push(...resourceCandidates[randomId]);
         }
 

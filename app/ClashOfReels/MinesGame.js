@@ -6,7 +6,6 @@ const DEFAULT_CONFIG = {
     rows: 5,
     // Configuration for the single large background
     backgroundImage: { texture: null, scale: 1 },
-
     // Texture states for the individual tiles
     textureHidden: { texture: null, scale: 1 },
     textureBomb: { texture: null, scale: 1 },
