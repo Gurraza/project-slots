@@ -17,7 +17,6 @@ export class UI {
         this.enableKeyboard()
         // this.createSymbolCheat(s.name, [9999999], 20, 100 + (i * 30));
 
-        // OR: Loop through all symbols to create a debug list
         this.config.symbols.forEach((s, i) => {
             this.createSymbolCheat(s.name, [9999999, 9999999, 9999999], 20, 0 + (i * 30));
         });

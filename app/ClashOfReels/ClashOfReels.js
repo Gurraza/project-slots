@@ -156,10 +156,10 @@ export default class ClashOfReels extends SlotsBase {
             rows: 7,
             clusterSize: 4,
             groups: [
-                { name: "low_troop", count: 2 },
+                { name: "low_troop", count: 3 },
                 { name: "high_troop", count: 2 },
-                { name: "low_resource", count: 2 },
-                { name: "bonus_game", count: 2 },
+                { name: "low_resource", count: 3 },
+                { name: "bonus_game", count: 1 },
             ],
 
             // Behind The Scenes

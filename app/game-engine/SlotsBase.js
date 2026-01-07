@@ -3,7 +3,9 @@ import { Reel } from './Reel.js';
 import { UI } from './UI.js';
 import { RandomEngine, calculateMoves, generateRandomResult, getRandomSymbolId, contain, simulateCascade, generateReplacements, findClusters, simulateChangeSymbols, explode } from './Math.js';
 
-const DEFAULT_CONFIG = {}
+const DEFAULT_CONFIG = {
+    reelLandSymbolsDelay: 0
+}
 
 export default class SlotsBase {
     constructor(rootContainer, app, config = {}) {
@@ -41,6 +43,7 @@ export default class SlotsBase {
                 this.bgSprite = new Sprite()
             }
             const bg = this.bgSprite
+            bg.zIndex = -100
             bg.texture = texture
             bg.anchor.set(0.5);
             bg.x = this.config.width / 2;
@@ -132,7 +135,7 @@ export default class SlotsBase {
 
 
     createGrid() {
-        this.drawBackgroundCells();
+        // this.drawBackgroundCells();
         const totalWidth = (this.config.cols * this.config.symbolWidth) +
             ((this.config.cols - 1) * this.config.gapX);
 
@@ -160,6 +163,18 @@ export default class SlotsBase {
         this.gridMask.fill(0x000000);
         this.reelContainer.mask = this.gridMask;
         this.stage.addChild(this.gridMask)
+
+        if (this.config.reelBackgroundImage) {
+            Assets.load(this.config.reelBackgroundImage).then(texture => {
+                const reelBackgroundImage = new Sprite(texture)
+                reelBackgroundImage.zIndex = -1
+                reelBackgroundImage.anchor.set(0)
+                reelBackgroundImage.setSize(totalWidth + 300, totalHeight + 180)
+                reelBackgroundImage.x = this.reelContainer.x - 150
+                reelBackgroundImage.y = this.reelContainer.y - 90
+                this.stage.addChild(reelBackgroundImage)
+            })
+        }
     }
 
 
@@ -258,18 +273,23 @@ export default class SlotsBase {
 
     applyAnticipation(symbol) {
         let foundCount = 0;
-
+        const maxHits = Array.isArray(symbol.weight) ? symbol.weight.length : Infinity;
         this.reels.forEach((reel, index) => {
             const reelHasSymbol = this.grid[index].includes(symbol.id);
-
+            const standardStop = this.config.symbolsBeforeStop + (this.config.reelLandSymbolsDelay * index);
             // Standard Logic: Check previous reels to see if we should delay THIS one
-            if (foundCount >= symbol.anticipation.after) {
+            if (foundCount >= symbol.anticipation.after && foundCount < maxHits) {
+                const extraDelay = (foundCount * symbol.anticipation.count);
                 // Formula: Base delay + (extra delay * how many scatters we have)
-                reel.symbolsBeforeStop = foundCount * symbol.anticipation.count;
+                // reel.symbolsBeforeStop = foundCount * symbol.anticipation.count;
+                // reel.forceVisible = true;
+                reel.symbolsBeforeStop = standardStop + extraDelay;
                 reel.forceVisible = true;
             } else {
                 // Reset to default if no anticipation needed (important for repeated spins)
-                reel.symbolsBeforeStop = this.config.symbolsBeforeStop + (this.config.reelLandSymbolsDelay * index)
+                // reel.symbolsBeforeStop = this.config.symbolsBeforeStop + (this.config.reelLandSymbolsDelay * index)
+                // reel.forceVisible = false;
+                reel.symbolsBeforeStop = standardStop;
                 reel.forceVisible = false;
             }
             if (reelHasSymbol) {
@@ -277,9 +297,9 @@ export default class SlotsBase {
             }
 
             // --- THIS IS THE PART THAT MAKES REEL.JS WORK ---
-            if (foundCount >= symbol.anticipation.after && index < this.config.cols - 1) {
-                reel.shouldTriggerAnticipation = true; // <--- The Flag
-                reel.anticipationSymbolId = symbol.id; // <--- The ID
+            if (foundCount >= symbol.anticipation.after && foundCount < maxHits && index < this.config.cols - 1) {
+                reel.shouldTriggerAnticipation = true;
+                reel.anticipationSymbolId = symbol.id;
             } else {
                 reel.shouldTriggerAnticipation = false;
                 reel.anticipationSymbolId = null;

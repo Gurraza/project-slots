@@ -2,6 +2,7 @@ import SlotsBase from '../game-engine/SlotsBase.js';
 import gsap from "gsap"
 import { Assets, Sprite, Graphics, Text, Container, ColorMatrixFilter, FillGradient } from "pixi.js"
 import { PaylineFeature } from './features/PaylineFeature.js';
+import { Scatter } from './features/Scatter.js';
 // --- COMPETITIVE MATH MODEL (High Volatility / 96% Target) ---
 const SYMBOLS = [
     // --- SPECIALS ---
@@ -9,7 +10,7 @@ const SYMBOLS = [
         name: "wild",
         weight: 20, // Rare, but powerful
         scale: .9,
-        path: "troops_icons/rage.png",
+        path: "super_icon.png",
         matchesWith: ["*"],
         // Payouts: 5-match is now a "Super Win" (1000x)
         payouts: { 3: 5.0, 4: 50.0, 5: 1000.0 }
@@ -113,6 +114,7 @@ export default class ClashLines extends SlotsBase {
 
             // Visuals
             backgroundImage: "background",
+            reelBackgroundImage: "/games/ClashOfReels/ClashLineBackgroundBorder.png",
             symbolsBeforeStop: 15,
             invisibleFlyby: false,
             motionBlurStrength: .8,
@@ -197,6 +199,7 @@ export default class ClashLines extends SlotsBase {
 
             // ... (The rest are ignored)
         ]))
+        this.registerFeature(new Scatter(this))
 
         this.init()
     }
