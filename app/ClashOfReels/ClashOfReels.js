@@ -122,8 +122,13 @@ export default class ClashOfReels extends SlotsBase {
             borderRadius: 15,
             // Visuals
             backgroundImage: "background",
+            reelBackgroundImage: "/games/ClashOfReels/1034.png",
+            reelBackgroundScale: 1,
+            reelBackgroundOffset: { x: 10, y: -30 },
+
             symbolsBeforeStop: 15,
-            invisibleFlyby: false,
+            reelLandSymbolsDelay: 5,
+            invisibleFlyby: true,
             motionBlurStrength: .8,
             font: {
                 family: "cocFont",
@@ -149,7 +154,6 @@ export default class ClashOfReels extends SlotsBase {
             replaceTime: .2,
             windUp: -5, // pixels
             staggerTime: 0,
-            reelLandSymbolsDelay: 10,
 
             // Game Logic
             cols: 7,

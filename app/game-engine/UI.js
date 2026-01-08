@@ -422,11 +422,13 @@ export class UI {
                 // APPLY CHEAT:
                 // We set the weight to whatever structure (Array or Number) you passed in.
                 symbol.weight = cheatWeight;
+                symbol.baseWeight = cheatWeight;
                 console.log(`[CHEAT] ${inputName} weight set to:`, cheatWeight);
             } else {
                 // RESTORE ORIGINAL:
                 // We revert to the backup we made earlier.
                 symbol.weight = symbol._originalWeight;
+                symbol.baseWeight = symbol._originalWeight;
                 console.log(`[CHEAT] ${inputName} reverted to:`, symbol._originalWeight);
             }
 

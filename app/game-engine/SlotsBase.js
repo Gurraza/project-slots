@@ -64,8 +64,9 @@ export default class SlotsBase {
     async spin() {
         if (this.processing === true && this.config.mode === "normal") return;
         console.log("This game has the seed:", this.engine.seed)
+        console.log("This game has the symbols:", this.config.symbols);
         this.processing = true;
-        // this.engine.setSeed(293727186794)
+        // this.engine.setSeed(913408620296)
 
         this.ui.setMultiplier(0);
         const timeline = calculateMoves(this.engine, this.config.rows, this.config.cols, this.features, this.config.symbols);
@@ -135,7 +136,7 @@ export default class SlotsBase {
 
 
     createGrid() {
-        // this.drawBackgroundCells();
+        this.drawBackgroundCells();
         const totalWidth = (this.config.cols * this.config.symbolWidth) +
             ((this.config.cols - 1) * this.config.gapX);
 
@@ -169,9 +170,9 @@ export default class SlotsBase {
                 const reelBackgroundImage = new Sprite(texture)
                 reelBackgroundImage.zIndex = -1
                 reelBackgroundImage.anchor.set(0)
-                reelBackgroundImage.setSize(totalWidth + 300, totalHeight + 180)
-                reelBackgroundImage.x = this.reelContainer.x - 150
-                reelBackgroundImage.y = this.reelContainer.y - 90
+                reelBackgroundImage.setSize((totalWidth + 300 * this.config.reelBackgroundScale), (totalHeight + 180) * this.config.reelBackgroundScale)
+                reelBackgroundImage.x = this.reelContainer.x - 150 + this.config.reelBackgroundOffset.x
+                reelBackgroundImage.y = this.reelContainer.y - 90 + this.config.reelBackgroundOffset.y
                 this.stage.addChild(reelBackgroundImage)
             })
         }
@@ -311,7 +312,6 @@ export default class SlotsBase {
     }
 
     applyGroups() {
-        console.log("yes")
         this.config.groups.forEach(group => {
             const groupName = group.name
             const countToKeep = group.count
@@ -329,7 +329,6 @@ export default class SlotsBase {
                 } else {
                     // INACTIVE: Set weight to 0. 
                     // The randomizer will NEVER pick this, so the Reel never needs to load it.
-                    console.log("Removed", symbol.name)
                     symbol.weight = 0;
                 }
             });

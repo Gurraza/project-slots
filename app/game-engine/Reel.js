@@ -23,9 +23,7 @@ export class Reel {
         this.stopDelay = 0;
         this.symbolsRotated = 0
         this.targetsShown = 0
-        console.log(this.config.reelLandSymbolsDelay, index)
         this.symbolsBeforeStop = this.config.symbolsBeforeStop + (this.config.reelLandSymbolsDelay * index)
-        console.log(this.symbolsBeforeStop)
 
         this.explodedSymbols = []
 
@@ -93,6 +91,7 @@ export class Reel {
             onStart: () => this.state = "SPINNING"
         });
         this.targetResult = resultData;
+        console.log("targetResult", this.targetResult)
 
         return new Promise((resolve) => {
             this.spinResolve = () => {
@@ -112,128 +111,84 @@ export class Reel {
     }
 
     update(delta) {
-        if (this.state === 'IDLE') {
-            // Optimization: Remove the filter completely when not needed
-            if (this.container.filters !== null) {
-                this.container.filters = null;
-            }
+        if (this.state === "IDLE") {
+            this.container.filters = null;
             return;
         }
-        const blurAmount = Math.abs(this.speed) * (this.config.motionBlurStrength);
-        if (this.state !== 'IDLE' && !this.container.filters) {
-            this.container.filters = [this.blurFilter];
-        }
-        // Apply purely vertical blur
-        const maxSpeed = this.config.spinSpeed;
-        const accel = this.config.spinAcceleration;
 
-        if (this.state === 'ACCELERATING') {
-            this.blurFilter.strengthY = blurAmount;
+        if (this.state === "CASCADING") {
+            this.updateCascade(delta)
+            return
         }
-        else if (this.state === 'LANDING') {
-            this.blurFilter.strengthY = blurAmount;
-            const h = this.config.symbolHeight;
-            const symbolY = this.symbols[0].y;
-            const error = (symbolY - h / 2) % this.slotHeight;
-            let distance = Math.abs(error);
 
-            const currentOffset = (symbolY - (h / 2)) % this.slotHeight;
-            let distanceRemaining = 0;
-            if (currentOffset > 0) {
-                distanceRemaining = this.slotHeight - currentOffset;
-            } else {
-                distanceRemaining = Math.abs(currentOffset);
+        if (this.state === 'SPINNING' || this.state === 'ACCELERATING') {
+            if (!this.container.filters) this.container.filters = [this.blurFilter];
+            this.blurFilter.strengthY = Math.abs(this.speed) * this.config.motionBlurStrength;
+        }
+
+        if (this.state === "SPINNING" || this.state === "ACCELERATING") {
+            if (this.config.invisibleFlyby && this.targetResult && false) {
+                const totalH = this.slotHeight * this.symbols.length;
+                const viewBottom = (this.config.rows + 1) * this.slotHeight;
+
+                this.state = "DROPPING"
+                this.symbols.forEach((symbol, index) => {
+                    symbol.y = -this.config.symbolHeight * index
+                    console.log(index, this.targetResult)
+                    const targetId = this.targetResult[index - 1]
+                    let newData
+                    if (targetId !== undefined) {
+                        newData = this.getSymbolDataById(targetId);
+                        this.targetsShown++;
+                    } else {
+                        newData = this.getRandomSymbolData();
+                    }
+                    const targetY = this.slotHeight * (index - 1)
+                    gsap.to(symbol, {
+                        y: targetY,
+                        ease: "power1.in",
+                        duration: .5,
+                        delay: (index - 1) * .1,
+                        onComplete: () => {
+                            if (index === this.config.rows + 1) {
+                                this.state = "IDLE"
+                                this.spinResolve(this.targetResult);
+                            }
+                        }
+                    })
+                })
             }
-            let targetSpeed = distanceRemaining * this.config.spinDeacceleration
-            if (targetSpeed < 2) targetSpeed = 2;
-            this.speed = targetSpeed;
-            if (distance < 4) {
-                this.blurFilter.strengthY = 0; // Turn off blur explicitly on stop
-                this.speed = 0;
-                this.realignOnGrid();
-                // 1. Trigger Custom Effects and get their Promise
-                const effectsPromise = this.triggerLandingEffects();
-
-                this.state = 'IDLE';
-                // Ensure y is perfect if not bouncing
-                this.container.y = 0;
-
-
-                // 3. WAIT for BOTH (Bounce + Custom Effects) before finishing the spin
-                Promise.all([effectsPromise]).then(() => {
-                    if (this.spinResolve) {
-                        this.spinResolve(this.targetResult);
-                        this.spinResolve = null;
+            else {
+                const totalH = this.slotHeight * this.symbols.length;
+                const viewBottom = (this.config.rows + 1) * this.slotHeight;
+                this.symbols.forEach((s, index) => {
+                    s.y += this.speed * delta;
+                    if (s.y > viewBottom) {
+                        s.y -= totalH;
+                        let newData;
+                        if (this.symbolsRotated >= this.symbolsBeforeStop) {
+                            const targetId = this.targetResult[this.targetsShown]
+                            if (targetId !== undefined) {
+                                newData = this.getSymbolDataById(targetId);
+                                this.targetsShown++;
+                            } else {
+                                newData = this.getRandomSymbolData();
+                            }
+                        }
+                        else {
+                            newData = this.getRandomSymbolData(this.config.invisibleFlyby);
+                        }
+                        s.texture = newData.texture;
+                        s.symbolId = newData.id;
+                        this.applySymbolStyle(s, newData.id);
+                        if (this.symbolsRotated === this.symbolsBeforeStop + this.targetResult.length) {
+                            this.state = "LANDING"
+                            this.triggerLanding()
+                        }
+                        this.symbolsRotated++
                     }
                 });
-                return;
             }
-        }
-        else if (this.state === "CASCADING") {
-            const speed = 20 * delta;
-
-            let stillMoving = false;
-
-            this.symbols.forEach((symbol) => {
-                if (symbol.yToMove > 0) {
-                    stillMoving = true;
-                    const dist = Math.min(speed, symbol.yToMove);
-
-                    symbol.y += dist;
-                    symbol.yToMove -= dist;
-                }
-            });
-
-            if (!stillMoving) {
-                this.state = "IDLE";
-                if (this.cascadeResolve) {
-                    this.cascadeResolve();
-                    this.cascadeResolve = null;
-                }
-            }
-            return;
-        }
-
-        // 2. Move Symbols
-        for (let i = 0; i < this.symbols.length; i++) {
-            const s = this.symbols[i];
-            s.y += this.speed * delta;
-        }
-
-        if (this.state !== 'CASCADING' && this.state !== 'IDLE') {
-            this.blurFilter.strengthY = blurAmount;
-            // 3. Infinite Loop Logic (The "Treadmill")
-            const totalH = this.slotHeight * this.symbols.length;
-            const viewBottom = (this.config.rows + 1) * this.slotHeight;
-
-            this.symbols.forEach((s) => {
-                // If symbol goes below the bottom buffer
-                if (s.y > viewBottom) {
-                    // Teleport to top
-                    s.y -= totalH;
-                    let newData;
-                    if (this.symbolsRotated >= this.symbolsBeforeStop) {
-                        const targetId = this.targetResult[this.targetsShown]
-                        if (targetId !== undefined) {
-
-                            newData = this.getSymbolDataById(targetId);
-                            this.targetsShown++;
-                        } else {
-                            newData = this.getRandomSymbolData();
-                        }
-                    }
-                    else {
-                        newData = this.getRandomSymbolData(this.config.invisibleFlyby);
-                    }
-                    s.texture = newData.texture;
-                    s.symbolId = newData.id;
-                    this.applySymbolStyle(s, newData.id);
-                    if (this.symbolsRotated === this.symbolsBeforeStop + this.targetResult.length) {
-                        this.state = "LANDING"
-                    }
-                    this.symbolsRotated++
-                }
-            });
         }
     }
 
@@ -590,5 +545,62 @@ export class Reel {
         // Clear references
         this.symbols = [];
         this.app = null;
+    }
+
+    updateCascade(delta) {
+        const speed = 20 * delta;
+
+        let stillMoving = false;
+
+        this.symbols.forEach((symbol) => {
+            if (symbol.yToMove > 0) {
+                stillMoving = true;
+                const dist = Math.min(speed, symbol.yToMove);
+
+                symbol.y += dist;
+                symbol.yToMove -= dist;
+            }
+        });
+
+        if (!stillMoving) {
+            this.state = "IDLE";
+            if (this.cascadeResolve) {
+                this.cascadeResolve();
+                this.cascadeResolve = null;
+            }
+        }
+        return;
+    }
+
+    triggerLanding() {
+        // console.log("trigger", this.index)
+        // symbol.isLanding = true
+        // symbol.y = -100
+        this.symbols.sort((a, b) => a.y - b.y);
+        this.symbols.forEach((symbol, index) => {
+            const destY = ((index - 1) * this.slotHeight) + (this.config.symbolHeight / 2);
+            gsap.to(symbol, {
+                y: destY,
+                ease: "power1.in(1.7)",
+                duration: 0.01,
+                onStart: () => {
+                    if (index === this.config.rows + 1) {
+                        this.state = "IDLE"
+                    }
+                },
+                onComplete: () => {
+                    if (symbol.symbolId === -1) {
+                        return
+                    }
+                    const symbolDef = this.config.symbols.find(s => s.id === symbol.symbolId)
+                    this.game.handleSymbolLand(symbolDef.landingEffect, symbol, index)
+                    if (index === this.config.rows - 1) {
+                        // console.log("resolved once on reel", this.index)
+                        this.spinResolve(this.targetResult);
+                        this.spinResolve = null;
+                    }
+                }
+            }/*(this.config.rows - (index - 1)) * .1*/);
+        })
     }
 }
