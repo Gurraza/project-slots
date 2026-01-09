@@ -1,24 +1,33 @@
-import GameFeature from "../../game-engine/GameFeature.js"//"@/app/game-engine/GameFeature";
+import GameFeature from "../../game-engine/GameFeature"//"@/app/game-engine/GameFeature";
 import { Graphics, Container } from "pixi.js"
 import gsap from "gsap"
+import SlotsBase from "../../game-engine/SlotsBase"
+import { Grid, Timeline } from "../../game-engine/types"
+
+interface Payline {
+    path: number[]
+    id: number
+    color: number
+}
 
 export class PaylineFeature extends GameFeature {
-    constructor(game, paylines) {
+    private graphics: Graphics
+    private lineLayer: Container
+    private paylines: Payline[]
+    constructor(game: SlotsBase, paylines: number[][]) {
         super(game, "PAYLINES_FEATURE")
         this.paylines = paylines.map((path, i) => { return { path, id: i, color: 0x00FF00 } })
-
         if (game.config.mode !== "simulation") {
-            // We create a container specifically for drawing lines
-            this.lineLayer = new Container();
-            this.lineLayer.zIndex = 500; // High Z-Index to sit on top of symbols
+            this.lineLayer = new Container()
+            this.graphics = new Graphics()
+            game.reelContainer.addChild(this.lineLayer)
+            this.lineLayer.zIndex = 500;
             this.game.reelContainer.addChild(this.lineLayer);
-
-            this.graphics = new Graphics();
             this.lineLayer.addChild(this.graphics);
         }
     }
 
-    onGridIdle(grid, timeline) {
+    onGridIdle(grid: Grid, timeline: Timeline) {
         const winningLines = [];
         let roundWin = 0;
 
@@ -142,7 +151,8 @@ export class PaylineFeature extends GameFeature {
 
         return { isWin: false, payout: 0 };
     }
-    drawLine(coords, color, winLength) {
+
+    drawLine(coords, color, winLength): Promise<void> {
         const g = this.graphics;
         const { symbolWidth, symbolHeight, gapX, gapY, rows } = this.game.config;
 

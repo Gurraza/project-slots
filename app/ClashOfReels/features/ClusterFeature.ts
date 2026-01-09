@@ -1,5 +1,5 @@
-import GameFeature from "../../game-engine/GameFeature.js"
-import { explode } from "../../game-engine/Math.js"
+import GameFeature from "../../game-engine/GameFeature"
+import { explode } from "../../game-engine/Math"
 
 export class ClusterEngineFeature extends GameFeature {
     constructor(game) {

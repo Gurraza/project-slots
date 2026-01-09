@@ -1,17 +1,18 @@
-import SlotsBase from '../game-engine/SlotsBase.js';
+import SlotsBase from '../game-engine/SlotsBase';
 import gsap from "gsap"
-import { Assets, Sprite, Graphics, Text, Container, ColorMatrixFilter, FillGradient } from "pixi.js"
-import { PaylineFeature } from './features/PaylineFeature.js';
-import { Scatter } from './features/Scatter.js';
-// --- COMPETITIVE MATH MODEL (High Volatility / 96% Target) ---
-const SYMBOLS = [
+import { Assets, Sprite, Graphics, Text, Container, ColorMatrixFilter, FillGradient, Application } from "pixi.js"
+import { PaylineFeature } from './features/PaylineFeature';
+import { Scatter } from './features/Scatter';
+import { GameConfig, SymbolDef } from '../game-engine/types';
+
+const SYMBOLS: SymbolDef[] = [
     // --- SPECIALS ---
     {
         name: "wild",
         weight: 20, // Rare, but powerful
         scale: .9,
         path: "super_icon.png",
-        matchesWith: ["*"],
+        matchesWith: "*",
         // Payouts: 5-match is now a "Super Win" (1000x)
         payouts: { 3: 5.0, 4: 50.0, 5: 1000.0 }
     },
@@ -100,9 +101,16 @@ const SYMBOLS = [
     }
 ];
 
+
+interface clashConf {
+    width: number
+    height: number
+    isMobile: boolean
+}
+
 export default class ClashLines extends SlotsBase {
-    constructor(rootContainer, app, config = {}) {
-        const myConfig = {
+    constructor(rootContainer: Container, app: Application, config: Partial<clashConf> = {}) {
+        const myConfig: GameConfig = {
             // Layout
             width: 1280,
             height: 720,
@@ -115,6 +123,9 @@ export default class ClashLines extends SlotsBase {
             // Visuals
             backgroundImage: "background",
             reelBackgroundImage: "/games/ClashOfReels/ClashLineBackgroundBorder.png",
+            reelBackgroundScale: 1,
+            reelBackgroundOffset: { x: 0, y: 0 },
+            reelLandSymbolsDelay: 0,
             symbolsBeforeStop: 15,
             invisibleFlyby: false,
             motionBlurStrength: .8,

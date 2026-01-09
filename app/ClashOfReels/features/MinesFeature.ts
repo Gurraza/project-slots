@@ -1,7 +1,7 @@
-import GameFeature from "../../game-engine/GameFeature.js"
+import GameFeature from "../../game-engine/GameFeature"
 import gsap from "gsap"
-import { MinesGame } from "../MinesGame.js";
-import { contain } from "../../game-engine/Math.js"
+import { MinesGame } from "../MinesGame";
+import { contain } from "../../game-engine/Math"
 
 const featureSymbol = {
     name: "treasure",
@@ -17,8 +17,22 @@ const featureSymbol = {
     onePerReel: true,
     dontCluster: true,
 }
+interface textureConf {
+    texture: string
+    scale: number
+}
+interface MinesGameConfig {
+    textureHidden: textureConf
+    backgroundImage: textureConf
+    textureBomb: textureConf
+    textureGem: textureConf
+    cols: number
+    rows: number
+    bombsCount: number
+}
 
 export class MinesFeature extends GameFeature {
+    private minesGame: MinesGame
     constructor(app) {
         super(app, "MINES_FEATURE", featureSymbol)
     }
@@ -73,11 +87,11 @@ export class MinesFeature extends GameFeature {
         // This determines "How many times can I click before the game forces a bomb?"
         const randomLimit = Math.floor(this.engine.random() * maxSafeMoves);
         const totalBonusWin = await this.minesGame.play(1, randomLimit);
-        if (this.game.globalMultiplier == 0) {
+        if (this.ui.globalMultiplier == 0) {
             this.ui.setMultiplier(totalBonusWin); // Visual update hook
         }
         else {
-            this.ui.setMultiplier(this.game.globalMultiplier * totalBonusWin); // Visual update hook
+            this.ui.setMultiplier(this.ui.globalMultiplier * totalBonusWin); // Visual update hook
         }
 
         await gsap.to(this.game.reelContainer, { alpha: 1, duration: 0.5 });

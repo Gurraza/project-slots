@@ -1,7 +1,7 @@
-import GameFeature from "../../game-engine/GameFeature.js"
+import GameFeature from "../../game-engine/GameFeature"
 import { Assets, Sprite } from "pixi.js";
 import gsap from "gsap";
-import { contain, explode } from "../../game-engine/Math.js"
+import { contain, explode } from "../../game-engine/Math"
 
 const featureSymbol = {
     name: "warden",

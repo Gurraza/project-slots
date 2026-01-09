@@ -1,9 +1,11 @@
-import GameFeature from "../../game-engine/GameFeature.js"
+import GameFeature from "../../game-engine/GameFeature"
 import gsap from "gsap"
 import { Sprite, Assets, Container, Text, Graphics, FillGradient } from "pixi.js"
-import { contain } from "../../game-engine/Math.js"
+import { contain } from "../../game-engine/Math"
+import { SymbolDef } from "../../game-engine/types"
+import SlotsBase from "../../game-engine/SlotsBase"
 
-const featureSymbol = {
+const featureSymbol: SymbolDef = {
     name: "treasureGoblin",
     weight: [150, 75, 20],
     scale: 1.4,
@@ -16,15 +18,53 @@ const featureSymbol = {
     },
     onePerReel: true,
     dontCluster: true,
-    explodeMatch: "TREASURE_GOBLIN_MATCH"
+    matchEffect: "TREASURE_GOBLIN_MATCH"
+}
+
+type ResourceText = Record<string, Text>;
+
+interface NewSymbol {
+    name: string
+    weight: number
+    explodeEffect?: string
+    clusterSize?: number
+}
+
+interface ResourceItem {
+    icon: string
+    current: number
+    max: number
+    colorTop: string
+    colorBot: string
+
+}
+
+interface BonusConfig {
+    freeSpinsStart: number
+    freeSpins: number
+    newSymbols: NewSymbol[]
+    resources: Record<string, ResourceItem>
+    treasureGoblinWin: number
+}
+
+interface ResourceBarData {
+    graphics: Graphics;
+    maxWidth: number;
+    maxVal: number;
+    fillStyle: FillGradient;
 }
 
 export class TreasureGoblinFeature extends GameFeature {
-    constructor(game) {
+    private bonusConfig: BonusConfig
+    private resourceContainer: Container
+    private resourceBars: ResourceBarData
+    private resourceTexts: ResourceText
+    constructor(game: SlotsBase) {
         super(game, "TREASURE_GOBLIN_FEATURE", featureSymbol)
 
         this.bonusConfig = {
-            freeSpins: 5,
+            freeSpinsStart: 5,
+            freeSpins: 0,
             newSymbols: [
                 { name: "gem", weight: 500, explodeEffect: "RESOURCE_TRAVEL_TO_UI" },
                 { name: "gold", weight: 1500, explodeEffect: "RESOURCE_TRAVEL_TO_UI" },
@@ -38,7 +78,8 @@ export class TreasureGoblinFeature extends GameFeature {
                 "elixir": { icon: "elixir", current: 0, max: 20, colorTop: "rgb(226, 145, 227)", colorBot: "rgb(193, 38, 193)" },
                 "darkelixir": { icon: "darkelixir", current: 0, max: 15, colorTop: "rgb(143, 130, 150)", colorBot: "rgb(41, 11, 52)" },
                 "gem": { icon: "gem", current: 0, max: 10, colorTop: "rgb(136, 237, 79)", colorBot: "rgb(23, 138, 26)" },
-            }
+            },
+            treasureGoblinWin: 0,
         };
 
         this.effects = [
@@ -63,9 +104,11 @@ export class TreasureGoblinFeature extends GameFeature {
             })
             return true
         }
-        else if (this.config.mode === this.type && treasureGoblinCount) {
-            this.freeSpins += treasureGoblinCount.length
-            this.ui.setFreespins(this.freeSpins)
+        else if (this.config.mode === this.type && treasureGoblinCount > 0) {
+            this.bonusConfig.freeSpins += treasureGoblinCount
+            this.ui.setFreespins(this.bonusConfig.freeSpins)
+
+            // explode treasure goblin symbol and return true ? 
         }
         return false
     }
@@ -73,15 +116,15 @@ export class TreasureGoblinFeature extends GameFeature {
     async onCustomEvent(event) {
         this.config.mode = event.type
 
-        this.treasureGoblinWin = 0;
+        this.bonusConfig.treasureGoblinWin = 0;
         this.createResourceUI()
         console.log("!!! ENTERING TREASURE GOBLIN BONUS !!!");
         await this.ui.playBonusTransition("BONUS ROUND\nTREASURE GOBLIN");
 
         this.game.drawBackgroundCells("green")
 
-        this.freeSpins = this.bonusConfig.freeSpins
-        this.ui.setFreespins(this.freeSpins)
+        this.bonusConfig.freeSpins = this.bonusConfig.freeSpinsStart
+        this.ui.setFreespins(this.bonusConfig.freeSpins)
 
         const original = this.config.symbols.map(s => {
             return {
@@ -121,9 +164,9 @@ export class TreasureGoblinFeature extends GameFeature {
         const beforeCols = this.config.cols
         const beforeRows = this.config.rows
         this.game.changeGridSize(5, 5)
-        while (this.freeSpins > 0) {
-            this.freeSpins--
-            this.ui.setFreespins(this.freeSpins)
+        while (this.bonusConfig.freeSpins > 0) {
+            this.bonusConfig.freeSpins--
+            this.ui.setFreespins(this.bonusConfig.freeSpins)
             const res = await this.game.spin()
             await new Promise(r => setTimeout(r, 500));
         }
@@ -138,7 +181,7 @@ export class TreasureGoblinFeature extends GameFeature {
         });
 
         this.game.drawBackgroundCells("black")
-        await this.ui.playBonusTransition(`TOTAL WIN\n${this.treasureGoblinWin.toFixed(2)}x`);
+        await this.ui.playBonusTransition(`TOTAL WIN\n${this.bonusConfig.treasureGoblinWin.toFixed(2)}x`);
         this.game.setBackground()
 
         this.resourceContainer.destroy()
@@ -156,7 +199,7 @@ export class TreasureGoblinFeature extends GameFeature {
         this.stage.addChild(this.resourceContainer);
 
         this.resourceTexts = {};
-        this.resourceBars = {};
+        // this.resourceBars = {};
 
         // Convert the config object keys into an array to iterate
         const resourceKeys = Object.keys(this.bonusConfig.resources);
@@ -298,7 +341,7 @@ export class TreasureGoblinFeature extends GameFeature {
 
         if (levelDiff > 0) {
             const winToAdd = levelDiff * 5; // 5x per bar completion
-            this.treasureGoblinWin += winToAdd;
+            this.bonusConfig.treasureGoblinWin += winToAdd;
 
             // Trigger Visual Feedback for the win
             this.showFloatingText(`+${winToAdd}x`, this.resourceBars[type].graphics);
@@ -358,7 +401,6 @@ export class TreasureGoblinFeature extends GameFeature {
                 fill: "#FFFF00", // Bright Yellow
                 stroke: { color: "#000000", width: 4 },
                 dropShadow: true,
-                dropShadowDistance: 2
             }
         });
 

@@ -1,24 +1,25 @@
-import SlotsBase from '../game-engine/SlotsBase.js';
+import SlotsBase from '../game-engine/SlotsBase';
 import gsap from "gsap"
-import { Assets, Sprite, Graphics, Text, Container, ColorMatrixFilter, FillGradient } from "pixi.js"
-import { EagleArtilleryFeature } from './features/EagleArtilleryFeature.js';
-import { ClanCastleFeature } from './features/ClanCastleFeature.js';
-import { WardenFeature } from './features/WardenFeature.js';
-import { TownHallFeature } from './features/TownHallFeature.js';
-import { MinesFeature } from './features/MinesFeature.js';
-import { TreasureGoblinFeature } from './features/TreasureGoblinFeature.js';
-import { SuperTroopFeature } from './features/SuperTroopFeature.js';
-import { BuilderFeature } from './features/BuilderFeature.js';
-import { ClusterEngineFeature } from './features/ClusterFeature.js';
+import { Assets, Sprite, Graphics, Text, Container, ColorMatrixFilter, FillGradient, Application } from "pixi.js"
+import { EagleArtilleryFeature } from './features/EagleArtilleryFeature';
+import { ClanCastleFeature } from './features/ClanCastleFeature';
+import { WardenFeature } from './features/WardenFeature';
+import { TownHallFeature } from './features/TownHallFeature';
+import { MinesFeature } from './features/MinesFeature';
+import { TreasureGoblinFeature } from './features/TreasureGoblinFeature';
+import { SuperTroopFeature } from './features/SuperTroopFeature';
+import { BuilderFeature } from './features/BuilderFeature';
+import { ClusterEngineFeature } from './features/ClusterFeature';
 import { shake, popAnimation, glowFlashAnimation, implodeAnimation, fragmentPopAnimation, landingEffect, matchEffect } from '../game-engine/effects/Effects.js';
+import { SymbolDef } from "../game-engine/types"
 
-const SYMBOLS = [
+const SYMBOLS: SymbolDef[] = [
     {
         name: 'barbarian',
         weight: 1000,
         group: "low_troop",
         scale: .9,
-        payouts: { 4: 0.2, 5: 0.5, 6: 1.0, 7: 1.5, 8: 2.5, 9: 5.0, 10: 6, 11: 10, 7: 15 },
+        payouts: { 4: 0.2, 5: 0.5, 6: 1.0, 7: 1.5, 8: 2.5, 9: 5.0, 10: 6, 11: 10, 12: 15 },
         path: "troops_icons/barbarian.png"
     },
     {
@@ -26,7 +27,7 @@ const SYMBOLS = [
         weight: 1000,
         group: "low_troop",
         scale: .9,
-        payouts: { 4: 0.2, 5: 0.5, 6: 1.0, 7: 1.5, 8: 2.5, 9: 5.0, 10: 6, 11: 10, 7: 15 },
+        payouts: { 4: 0.2, 5: 0.5, 6: 1.0, 7: 1.5, 8: 2.5, 9: 5.0, 10: 6, 11: 10, 12: 15 },
         path: "troops_icons/archer.png"
     },
     {
@@ -34,7 +35,7 @@ const SYMBOLS = [
         weight: 1000,
         group: "low_troop",
         scale: .9,
-        payouts: { 4: 0.2, 5: 0.5, 6: 1.0, 7: 1.5, 8: 2.5, 9: 5.0, 10: 6, 11: 10, 7: 15 },
+        payouts: { 4: 0.2, 5: 0.5, 6: 1.0, 7: 1.5, 8: 2.5, 9: 5.0, 10: 6, 11: 10, 12: 15 },
         path: "troops_icons/goblin.png"
     },
     {
@@ -42,7 +43,7 @@ const SYMBOLS = [
         weight: 800,
         group: "high_troop",
         scale: .9,
-        payouts: { 4: 0.2, 5: 0.5, 6: 1.0, 7: 1.5, 8: 2.5, 9: 5.0, 10: 6, 11: 10, 7: 15 },
+        payouts: { 4: 0.2, 5: 0.5, 6: 1.0, 7: 1.5, 8: 2.5, 9: 5.0, 10: 6, 11: 10, 12: 15 },
         path: "troops_icons/wizard.png"
     },
     {
@@ -50,7 +51,7 @@ const SYMBOLS = [
         weight: 800,
         group: "high_troop",
         scale: .9,
-        payouts: { 4: 0.2, 5: 0.5, 6: 1.0, 7: 1.5, 8: 2.5, 9: 5.0, 10: 6, 11: 10, 7: 15 },
+        payouts: { 4: 0.2, 5: 0.5, 6: 1.0, 7: 1.5, 8: 2.5, 9: 5.0, 10: 6, 11: 10, 12: 15 },
         path: "troops_icons/pekka.png"
     },
     {
@@ -58,14 +59,14 @@ const SYMBOLS = [
         weight: 800,
         group: "high_troop",
         scale: .9,
-        payouts: { 4: 0.2, 5: 0.5, 6: 1.0, 7: 1.5, 8: 2.5, 9: 5.0, 10: 6, 11: 10, 7: 15 },
+        payouts: { 4: 0.2, 5: 0.5, 6: 1.0, 7: 1.5, 8: 2.5, 9: 5.0, 10: 6, 11: 10, 12: 15 },
         path: "troops_icons/dragon.png"
     },
     {
         name: 'wallbreaker',
         weight: 0,
         scale: .9,
-        payouts: { 4: 0.2, 5: 0.5, 6: 1.0, 7: 1.5, 8: 2.5, 9: 5.0, 10: 6, 11: 10, 7: 15 },
+        payouts: { 4: 0.2, 5: 0.5, 6: 1.0, 7: 1.5, 8: 2.5, 9: 5.0, 10: 6, 11: 10, 12: 15 },
         path: "troops_icons/wallbreaker.png"
     },
     {
@@ -73,7 +74,7 @@ const SYMBOLS = [
         weight: 1000,
         group: "low_resource",
         scale: 1,
-        payouts: { 4: 0.2, 5: 0.5, 6: 1.0, 7: 1.5, 8: 2.5, 9: 5.0, 10: 6, 11: 10, 7: 15 },
+        payouts: { 4: 0.2, 5: 0.5, 6: 1.0, 7: 1.5, 8: 2.5, 9: 5.0, 10: 6, 11: 10, 12: 15 },
         path: "resource/gold.png"
     },
     {
@@ -81,7 +82,7 @@ const SYMBOLS = [
         weight: 1000,
         group: "low_resource",
         scale: .8,
-        payouts: { 4: 0.2, 5: 0.5, 6: 1.0, 7: 1.5, 8: 2.5, 9: 5.0, 10: 6, 11: 10, 7: 15 },
+        payouts: { 4: 0.2, 5: 0.5, 6: 1.0, 7: 1.5, 8: 2.5, 9: 5.0, 10: 6, 11: 10, 12: 15 },
         path: "resource/elixir.png"
     },
     {
@@ -89,7 +90,7 @@ const SYMBOLS = [
         weight: 1000,
         group: "low_resource",
         scale: .8,
-        payouts: { 4: 0.2, 5: 0.5, 6: 1.0, 7: 1.5, 8: 2.5, 9: 5.0, 10: 6, 11: 10, 7: 15 },
+        payouts: { 4: 0.2, 5: 0.5, 6: 1.0, 7: 1.5, 8: 2.5, 9: 5.0, 10: 6, 11: 10, 12: 15 },
         path: "resource/dark_elixir.png"
     },
     {
@@ -97,7 +98,7 @@ const SYMBOLS = [
         weight: 800,
         group: "low_resource",
         scale: .8,
-        payouts: { 4: 0.2, 5: 0.5, 6: 1.0, 7: 1.5, 8: 2.5, 9: 5.0, 10: 6, 11: 10, 7: 15 },
+        payouts: { 4: 0.2, 5: 0.5, 6: 1.0, 7: 1.5, 8: 2.5, 9: 5.0, 10: 6, 11: 10, 12: 15 },
         path: "resource/gem.png",
     },
     {
@@ -105,12 +106,18 @@ const SYMBOLS = [
         weight: 150,
         scale: 1,
         path: "super_icon.png",
-        matchesWith: ["*"],
+        matchesWith: "*",
     }
 ];
 
+interface clashConf {
+    width: number
+    height: number
+    isMobile: boolean
+}
+
 export default class ClashOfReels extends SlotsBase {
-    constructor(rootContainer, app, config = {}) {
+    constructor(rootContainer: Container, app: Application, config: Partial<clashConf> = {}) {
         const myConfig = {
             // Layout
             width: 1280,
@@ -200,7 +207,7 @@ export default class ClashOfReels extends SlotsBase {
         }
     }
 
-    async handleSymbolMatch(effect, sprite) {
+    async handleSymbolMatch(effect: string, sprite) {
 
         if (effect === "DEFAULT_MATCH") {
             await matchEffect(sprite)

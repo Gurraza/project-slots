@@ -1,8 +1,11 @@
-import GameFeature from "../../game-engine/GameFeature.js"
+import GameFeature from "../../game-engine/GameFeature"
 import gsap from "gsap"
-import { contain } from "../../game-engine/Math.js"
+import { contain } from "../../game-engine/Math"
+import { SymbolDef } from "../../game-engine/types"
+import { Application } from "pixi.js"
+import SlotsBase from "../../game-engine/SlotsBase"
 
-const featureSymbol = {
+const featureSymbol: SymbolDef = {
     name: "scatter",
     weight: [20, 10, 1],
     scale: 1,
@@ -18,8 +21,8 @@ const featureSymbol = {
 }
 
 export class Scatter extends GameFeature {
-    constructor(app) {
-        super(app, "SCATTER_FEATURE", featureSymbol)
+    constructor(game: SlotsBase) {
+        super(game, "SCATTER_FEATURE", featureSymbol)
     }
 
     getAssets() {

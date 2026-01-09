@@ -1,13 +1,13 @@
-import { matchEffect } from "@/app/game-engine/effects/Effects.js"
-import GameFeature from "../../game-engine/GameFeature.js"
-import { contain, explode } from "../../game-engine/Math.js"
+import GameFeature from "../../game-engine/GameFeature"
+import { contain, explode } from "../../game-engine/Math"
 import gsap from "gsap"
 import { MotionPathPlugin } from "gsap/MotionPathPlugin";
 import * as PIXI from "pixi.js";
-import { shake } from "@/app/game-engine/effects/Effects.js";
+import { shake } from "../../game-engine/effects/Effects";
+import { SymbolDef } from "../../game-engine/types";
 gsap.registerPlugin(MotionPathPlugin);
 
-const featureSymbol = {
+const featureSymbol: SymbolDef = {
     name: "eagleartillery",
     scale: 5,
     path: "Star.png",
@@ -21,6 +21,7 @@ const featureSymbol = {
 }
 
 export class EagleArtilleryFeature extends GameFeature {
+    private targetAmount: number
     constructor(game) {
         super(game, "EAGLE_ARTILLERY", featureSymbol)
         this.targetAmount = 5
@@ -94,7 +95,7 @@ export class EagleArtilleryFeature extends GameFeature {
             const targetSymbol = this.game.reels[target.x].symbols[this.config.rows - target.y]
             const artillery = contain(featureSymbol.id, this.game.grid)[0]
             const eagleSymbol = this.game.reels[artillery.x].symbols[this.config.rows - artillery.y]
-            explosionPromises.push(this.playEffect("ARTILLERY_STRIKE", targetSymbol, eagleSymbol))
+            explosionPromises.push(this.playOwnEffect("ARTILLERY_STRIKE", targetSymbol, eagleSymbol))
         })
         await Promise.all(explosionPromises)
         const promises = [];
@@ -104,7 +105,7 @@ export class EagleArtilleryFeature extends GameFeature {
         await Promise.all(promises);
     }
 
-    async playEffect(effect, targetSprite, sourceSprite, delay = .5) {
+    async playOwnEffect(effect, targetSprite, sourceSprite, delay = .5): Promise<void> {
         if (effect === "ARTILLERY_STRIKE") {
             return new Promise((resolve) => {
                 const startPos = this.stage.toLocal(sourceSprite.getGlobalPosition());

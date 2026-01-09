@@ -1,60 +1,94 @@
-import { Assets, Sprite, Container, Graphics, Filter, GlProgram, Text, ColorMatrixFilter } from 'pixi.js';
-import { Reel } from './Reel.js';
-import { UI } from './UI.js';
-import { RandomEngine, calculateMoves, generateRandomResult, getRandomSymbolId, contain, simulateCascade, generateReplacements, findClusters, simulateChangeSymbols, explode } from './Math.js';
+import { Assets, Sprite, Container, Graphics, Filter, GlProgram, Application, Texture, TextureSource } from 'pixi.js';
+import { Reel } from './Reel'; // Assumes .ts or .js resolution
+import { UI } from './UI';
+import { RandomEngine, calculateMoves, generateRandomResult } from './Math';
+import { SymbolDef, GameConfig, Grid } from './types';
+import GameFeature from './GameFeature';
 
-const DEFAULT_CONFIG = {
+export interface AnticipationConfig {
+    after: number;
+    count: number;
+}
+
+
+const DEFAULT_CONFIG: Partial<GameConfig> = {
     reelLandSymbolsDelay: 0
 }
 
 export default class SlotsBase {
-    constructor(rootContainer, app, config = {}) {
-        this.engine = new RandomEngine(config, this)
-        console.log("engine is set")
-        this.config = { ...DEFAULT_CONFIG, ...config };
+    public app!: Application;
+    public stage!: Container;
+
+    public engine: RandomEngine;
+    public config: GameConfig;
+    public grid: Grid;
+    public initialGrid: Grid;
+
+    public reels: Reel[] = [];
+    public features: GameFeature[] = [];
+
+    // Containers
+    public reelContainer!: Container;
+    public ghostContainer!: Container;
+    public backgroundCellsContainer?: Container;
+
+    // Visuals
+    public bgSprite?: Sprite;
+    public gridMask?: Graphics;
+    public ui!: UI;
+
+    public processing: boolean = false;
+
+    constructor(rootContainer: Container, app: Application, config: Partial<GameConfig> = {}) {
+        // @ts-ignore - Assuming RandomEngine handles the partial config correctly
+        this.engine = new RandomEngine(config, this);
+        console.log("engine is set");
+
+        this.config = { ...DEFAULT_CONFIG, ...config } as GameConfig;
+
+        // Initialize empty grid
         this.grid = Array.from({ length: this.config.cols }, () =>
             Array.from({ length: this.config.rows }, () => 0)
         );
-        this.features = [];
+        this.initialGrid = []; // Will be set in init()
 
         if (config.mode !== "simulation") {
             this.stage = rootContainer;
             this.app = app;
-            // Merge game config with defaults
+
             this.initialGrid = Array.from({ length: this.config.cols }, () =>
                 Array.from({ length: this.config.rows }, () => 0)
             );
-            this.reels = [];
 
             // Group for the reels to center them easily
             this.reelContainer = new Container();
             this.stage.addChild(this.reelContainer);
 
             this.ghostContainer = new Container();
-            this.stage.addChild(this.ghostContainer)
+            this.stage.addChild(this.ghostContainer);
             this.ui = new UI(this);
         }
     }
 
-    setBackground(alias) {
-        Assets.load(alias || this.config.backgroundImage).then((texture) => {
+    setBackground(alias?: string) {
+        Assets.load(alias || this.config.backgroundImage || "").then((texture) => {
             if (!this.bgSprite) {
-                this.bgSprite = new Sprite()
+                this.bgSprite = new Sprite();
             }
-            const bg = this.bgSprite
-            bg.zIndex = -100
-            bg.texture = texture
+            const bg = this.bgSprite;
+            bg.zIndex = -100;
+            bg.texture = texture;
             bg.anchor.set(0.5);
             bg.x = this.config.width / 2;
             bg.y = this.config.height / 2;
             bg.scale.set(Math.max(this.config.width / texture.width, this.config.height / texture.height));
             this.stage.addChildAt(bg, 0);
-        })
+        });
     }
 
-    registerFeature(feature) {
+    registerFeature(feature: GameFeature) {
         this.features.push(feature);
-        const newSymbols = feature.getSymbols();
+        const newSymbols = feature.getSymbols ? feature.getSymbols() : null;
         if (newSymbols) {
             this.config.symbols.push(...newSymbols);
         }
@@ -62,16 +96,17 @@ export default class SlotsBase {
 
     async spin() {
         if (this.processing === true && this.config.mode === "normal") return;
-        console.log("This game has the seed:", this.engine.seed)
-        console.log("This game has the symbols:", this.config.symbols);
-        this.processing = true;
-        // this.engine.setSeed(913408620296)
 
+        console.log("This game has the seed:", this.engine.seed);
+        // console.log("This game has the symbols:", this.config.symbols);
+
+        this.processing = true;
         this.ui.setMultiplier(0);
+
         const timeline = calculateMoves(this.engine, this.config.rows, this.config.cols, this.features, this.config.symbols);
 
         console.log("PREDICTED PAYOUT:", timeline[timeline.length - 1].totalWin || 0);
-        console.log("PREDICTED GAME FLOW:", timeline);
+        // console.log("PREDICTED GAME FLOW:", timeline);
 
         this.grid = timeline[0].grid;
         await this.spinReels();
@@ -83,16 +118,14 @@ export default class SlotsBase {
             if (event.type === 'EXPLODE') {
                 await this.triggerMatchAnimations(event.clusters);
                 await this.explodeAndCascade(event.clusters, event.replacements);
-                this.ui.setMultiplier(event.totalWin)
-
-
+                this.ui.setMultiplier(event.totalWin);
                 this.grid = event.grid;
             }
             else {
                 for (const feature of this.features) {
                     if (feature.type === event.type) {
                         await feature.onCustomEvent(event);
-                        break
+                        break;
                     }
                 }
             }
@@ -102,45 +135,42 @@ export default class SlotsBase {
             this.processing = false;
         }
 
-        return { grid: this.grid, totalWin: this.globalMultiplier };
-        // result = { grid: this.grid, timeline: timeline }
+        return { grid: this.grid, totalWin: this.ui.globalMultiplier };
     }
 
-    async spinReels() {
-        const resultData = this.grid
+    async spinReels(): Promise<number[][]> {
+        const resultData = this.grid;
         if (resultData.length !== this.config.cols || resultData.some(i => i.length !== this.config.rows)) {
             throw Error("Wrong structure of result data");
         }
 
         this.config.symbols.forEach(symbol => {
             if (symbol.anticipation) {
-                this.applyAnticipation(symbol)
+                this.applyAnticipation(symbol);
             }
-        })
+        });
 
         const spinPromises = this.reels.map((r, i) => (async () => {
             await new Promise(resolve =>
                 setTimeout(resolve, i * this.config.staggerTime)
             );
             await r.spin(resultData[i]);
-
             return resultData[i];
         })());
 
         const finalResults = await Promise.all(spinPromises);
 
         this.reels.forEach(r => r.clearAnticipation());
-        return finalResults
+        return finalResults;
     }
 
-
     createGrid() {
-        this.drawBackgroundCells(0x777);
+        this.drawBackgroundCells(0x777777); // Fixed hex format
         const totalWidth = (this.config.cols * this.config.symbolWidth) +
             ((this.config.cols - 1) * this.config.gapX);
 
         const totalHeight = (this.config.rows * this.config.symbolHeight) +
-            ((this.config.rows - 1) * this.config.gapY)
+            ((this.config.rows - 1) * this.config.gapY);
 
         this.reelContainer.x = (this.config.width - totalWidth) / 2;
         this.reelContainer.y = (this.config.height - totalHeight) / 2;
@@ -150,6 +180,7 @@ export default class SlotsBase {
             this.reels.push(reel);
             this.reelContainer.addChild(reel.container);
         }
+
         if (this.gridMask) {
             this.gridMask.destroy();
         }
@@ -162,23 +193,25 @@ export default class SlotsBase {
         );
         this.gridMask.fill(0x000000);
         this.reelContainer.mask = this.gridMask;
-        this.stage.addChild(this.gridMask)
+        this.stage.addChild(this.gridMask);
 
         if (this.config.reelBackgroundImage) {
             Assets.load(this.config.reelBackgroundImage).then(texture => {
-                const reelBackgroundImage = new Sprite(texture)
-                reelBackgroundImage.zIndex = -1
-                reelBackgroundImage.anchor.set(0)
-                reelBackgroundImage.setSize((totalWidth + 300 * this.config.reelBackgroundScale), (totalHeight + 180) * this.config.reelBackgroundScale)
-                reelBackgroundImage.x = this.reelContainer.x - 150 + this.config.reelBackgroundOffset.x
-                reelBackgroundImage.y = this.reelContainer.y - 90 + this.config.reelBackgroundOffset.y
-                this.stage.addChild(reelBackgroundImage)
-            })
+                const reelBackgroundImage = new Sprite(texture);
+                reelBackgroundImage.zIndex = -1;
+                reelBackgroundImage.anchor.set(0);
+                reelBackgroundImage.setSize(
+                    (totalWidth + 300 * this.config.reelBackgroundScale),
+                    (totalHeight + 180) * this.config.reelBackgroundScale
+                );
+                reelBackgroundImage.x = this.reelContainer.x - 150 + this.config.reelBackgroundOffset.x;
+                reelBackgroundImage.y = this.reelContainer.y - 90 + this.config.reelBackgroundOffset.y;
+                this.stage.addChild(reelBackgroundImage);
+            });
         }
     }
 
-
-    update(delta) {
+    update(delta: number) {
         this.reels.forEach(r => r.update(delta));
     }
 
@@ -187,40 +220,48 @@ export default class SlotsBase {
     }
 
     async init() {
+        // Map symbols to ensure runtime properties exist
         this.config.symbols = this.config.symbols.map((symbol, index) => {
-            const fixedSymbol = symbol
-            fixedSymbol.id = index
-            fixedSymbol.onlyAppearOnRoll = Array.isArray(symbol.weight)
-            fixedSymbol.clusterSize = symbol.clusterSize ? symbol.clusterSize : this.config.clusterSize
-            fixedSymbol.baseWeight = Array.isArray(fixedSymbol.weight) ? [...fixedSymbol.weight] : fixedSymbol.weight
-            fixedSymbol.landingEffect = symbol.landingEffect ? symbol.landingEffect : this.config.defaultLandingEffect
-            fixedSymbol.matchEffect = symbol.matchEffect ? symbol.matchEffect : this.config.defaultMatchEffect
-            fixedSymbol.explodeEffect = symbol.explodeEffect ? symbol.explodeEffect : this.config.defaultExplodeEffect
-            if (this.config.invisibleFlyby) {
-                fixedSymbol.anticipation = undefined
-            }
-            if (fixedSymbol.path) return {
-                ...fixedSymbol,
-                path: (this.config.pathPrefix + fixedSymbol.path)
-            }
-            else return fixedSymbol
-        });
-        this.initialGrid = generateRandomResult(this.engine, this.config.rows, this.config.cols, this.config.symbols)
-        if (this.config.mode !== "simulation") {
-            await this.loadAssets()
-            this.setBackground(this.config.backgroundImage)
-            this.ui.init()
-            this.createGrid();
-            console.log("CONFIG", this.config)
-            console.log("SYMBOLS", this.config.symbols)
-        }
-        this.features.forEach(f => f.init());
+            const fixedSymbol = symbol;
+            fixedSymbol.id = index;
+            fixedSymbol.onlyAppearOnRoll = Array.isArray(symbol.weight);
+            fixedSymbol.clusterSize = symbol.clusterSize ? symbol.clusterSize : this.config.clusterSize;
+            fixedSymbol.baseWeight = Array.isArray(fixedSymbol.weight) ? [...fixedSymbol.weight] : fixedSymbol.weight;
+            fixedSymbol.landingEffect = symbol.landingEffect ? symbol.landingEffect : this.config.defaultLandingEffect;
+            fixedSymbol.matchEffect = symbol.matchEffect ? symbol.matchEffect : this.config.defaultMatchEffect;
+            fixedSymbol.explodeEffect = symbol.explodeEffect ? symbol.explodeEffect : this.config.defaultExplodeEffect;
 
+            if (this.config.invisibleFlyby) {
+                fixedSymbol.anticipation = undefined;
+            }
+            if (fixedSymbol.path) {
+                return {
+                    ...fixedSymbol,
+                    path: (this.config.pathPrefix + fixedSymbol.path)
+                };
+            }
+            else return fixedSymbol;
+        });
+
+        this.initialGrid = generateRandomResult(this.engine, this.config.rows, this.config.cols, this.config.symbols);
+
+        if (this.config.mode !== "simulation") {
+            await this.loadAssets();
+            this.setBackground(this.config.backgroundImage);
+            this.ui.init();
+            this.createGrid();
+            console.log("CONFIG", this.config);
+            // console.log("SYMBOLS", this.config.symbols);
+        }
+
+        this.features.forEach(f => {
+            if (f.init) f.init();
+        });
     }
 
     async loadAssets() {
         // 1. Register all assets with Pixi
-        const aliases = [];
+        const aliases: string[] = [];
         this.config.symbols.forEach(symbol => {
             if (symbol.textureAtLevel && Array.isArray(symbol.textureAtLevel)) {
                 symbol.textureAtLevel.forEach((path, index) => {
@@ -229,14 +270,13 @@ export default class SlotsBase {
                     aliases.push(alias);
                 });
             }
-
             else if (symbol.path) {
                 Assets.add({ alias: symbol.name, src: symbol.path });
                 aliases.push(symbol.name);
             }
         });
 
-        // 2. [NEW] Load Extra Game Assets (e.g. Hammer, UI elements)
+        // 2. Load Extra Game Assets
         if (this.config.extraAssets) {
             this.config.extraAssets.forEach(asset => {
                 Assets.add({ alias: asset.alias, src: this.config.pathPrefix + asset.src });
@@ -247,16 +287,16 @@ export default class SlotsBase {
         this.features.forEach(feature => {
             if (feature.getAssets) {
                 const assets = feature.getAssets();
-                assets.forEach(asset => {
-                    Assets.add({ alias: asset.alias, src: this.config.pathPrefix + asset.src });
-                    aliases.push(asset.alias);
-                });
+                if (assets) {
+                    assets.forEach(asset => {
+                        Assets.add({ alias: asset.alias, src: this.config.pathPrefix + asset.src });
+                        aliases.push(asset.alias);
+                    });
+                }
             }
-            // Initialize the feature (create UI, etc.)
-            if (feature.init) feature.init();
         });
 
-        // 2. WAIT for all assets to finish downloading (Critical Step)
+        // 3. WAIT for all assets to finish downloading
         await Assets.load(aliases);
 
         this.config.symbols.forEach(symbol => {
@@ -264,120 +304,104 @@ export default class SlotsBase {
                 symbol.texture = Assets.get(symbol.name);
             }
             else if (symbol.textureAtLevel) {
-                symbol.texture = Assets.get(symbol.name + "_level_1")
+                symbol.texture = Assets.get(symbol.name + "_level_1");
             }
-            // For multi-level symbols, we don't assign a default 'texture' property yet,
-            // or we assign the first one as default.
         });
     }
 
-    applyAnticipation(symbol) {
+    applyAnticipation(symbol: SymbolDef) {
+        if (!symbol.anticipation) return;
+
         let foundCount = 0;
         const maxHits = Array.isArray(symbol.weight) ? symbol.weight.length : Infinity;
+
         this.reels.forEach((reel, index) => {
             const reelHasSymbol = this.grid[index].includes(symbol.id);
             const standardStop = this.config.symbolsBeforeStop + (this.config.reelLandSymbolsDelay * index);
-            // Standard Logic: Check previous reels to see if we should delay THIS one
-            if (foundCount >= symbol.anticipation.after && foundCount < maxHits) {
-                const extraDelay = (foundCount * symbol.anticipation.count);
-                // Formula: Base delay + (extra delay * how many scatters we have)
-                // reel.symbolsBeforeStop = foundCount * symbol.anticipation.count;
-                // reel.forceVisible = true;
+
+            // Note: Typescript knows symbol.anticipation is defined here because of the guard clause at top
+            if (foundCount >= symbol.anticipation!.after && foundCount < maxHits) {
+                const extraDelay = (foundCount * symbol.anticipation!.count);
                 reel.symbolsBeforeStop = standardStop + extraDelay;
                 reel.forceVisible = true;
             } else {
-                // Reset to default if no anticipation needed (important for repeated spins)
-                // reel.symbolsBeforeStop = this.config.symbolsBeforeStop + (this.config.reelLandSymbolsDelay * index)
-                // reel.forceVisible = false;
                 reel.symbolsBeforeStop = standardStop;
                 reel.forceVisible = false;
             }
+
             if (reelHasSymbol) {
                 foundCount += this.grid[index].filter(id => id === symbol.id).length;
             }
 
-            // --- THIS IS THE PART THAT MAKES REEL.JS WORK ---
-            if (foundCount >= symbol.anticipation.after && foundCount < maxHits && index < this.config.cols - 1) {
+            if (foundCount >= symbol.anticipation!.after && foundCount < maxHits && index < this.config.cols - 1) {
                 reel.shouldTriggerAnticipation = true;
                 reel.anticipationSymbolId = symbol.id;
             } else {
                 reel.shouldTriggerAnticipation = false;
-                reel.anticipationSymbolId = null;
+                reel.anticipationSymbolId = -1; // -1 or null
             }
-            // Increment count AFTER processing this reel 
-            // (or before, depending on if you want the reel WITH the 3rd scatter to slow down)
-
         });
     }
 
     applyGroups() {
         this.config.groups.forEach(group => {
-            const groupName = group.name
-            const countToKeep = group.count
+            const groupName = group.name;
+            const countToKeep = group.count;
 
             const groupSymbols = this.config.symbols.filter(s => s.group === groupName);
 
-            // 2. Shuffle them
+            // Shuffle them
             const shuffled = [...groupSymbols].sort(() => 0.5 - this.engine.random());
 
-            // 3. Remap Weights
+            // Remap Weights
             groupSymbols.forEach(symbol => {
                 if (shuffled.indexOf(symbol) < countToKeep) {
-                    // ACTIVE: Restore its original probability
-                    symbol.weight = symbol.baseWeight;
+                    // Restore original probability
+                    if (symbol.baseWeight !== undefined) {
+                        symbol.weight = symbol.baseWeight;
+                    }
                 } else {
-                    // INACTIVE: Set weight to 0. 
-                    // The randomizer will NEVER pick this, so the Reel never needs to load it.
+                    // Disable
                     symbol.weight = 0;
                 }
             });
-        })
+        });
     }
 
-    async explodeAndCascade(clusters, replacements) {
-        const grid = this.grid
+    async explodeAndCascade(clusters: any[], replacements: any[]) {
+        const grid = this.grid;
 
         if (clusters.length === 0) {
-            return false
+            return false;
         }
-        const reel_promises = []
+        const reel_promises: Promise<any>[] = [];
+
         for (let i = 0; i < this.reels.length; i++) {
             if (clusters[i]) {
-                const res = this.reels[i].explodeAndCascade(clusters[i], replacements[i], grid[i])
-                reel_promises.push(res)
+                const res = this.reels[i].explodeAndCascade(clusters[i], replacements[i], grid[i]);
+                reel_promises.push(res);
             }
             else {
-                reel_promises.push(grid[i])
+                reel_promises.push(Promise.resolve(grid[i]));
             }
         }
         return await Promise.all(reel_promises);
     }
-    // You can now pass hex values (0x00FF00) or strings ("green", "#FF00FF") 
-    // depending on your Pixi version (v7+ supports strings natively).
-    drawBackgroundCells(backgroundColor = 0x000000) {
 
-        // 1. Check if we already have a container and remove it to prevent duplicates
+    drawBackgroundCells(backgroundColor: number | string = 0x000000) {
         if (this.backgroundCellsContainer) {
             this.backgroundCellsContainer.destroy({ children: true });
         }
 
         const bgContainer = new Container();
-        this.backgroundCellsContainer = bgContainer; // Keep a reference to destroy later if needed
-
-        // CONFIGURATION
-        this.bgContainer = [];
-
-        // We remove the grayFilter because 'tint' is much more performant 
-        // and filters break batch rendering.
+        this.backgroundCellsContainer = bgContainer;
 
         for (let i = 0; i < this.config.cols; i++) {
-            this.bgContainer.push([]);
             for (let j = 0; j < this.config.rows; j++) {
 
                 const bg = new Sprite();
                 bg.texture = Assets.get("rage_spell_background");
 
-                // --- POSITIONING ---
                 const x = i * (this.config.symbolWidth + this.config.gapX);
                 const y = j * (this.config.symbolHeight + this.config.gapY);
                 const w = this.config.symbolWidth;
@@ -389,79 +413,71 @@ export default class SlotsBase {
                 bg.height = h;
                 bg.alpha = 0.7;
 
-                // --- COLORING ---
-                // This applies the color passed in the function argument
+                // @ts-ignore - Pixi tint supports number/string but TS definitions can be strict
                 bg.tint = backgroundColor;
 
-                // --- MASKING ---
                 const mask = new Graphics()
                     .roundRect(0, 0, w, h, this.config.borderRadius)
-                    .fill("white"); // Color of mask doesn't matter, only alpha
+                    .fill("white");
 
                 mask.x = x;
                 mask.y = y;
                 bg.mask = mask;
 
-                this.bgContainer[i].push(bg);
                 bgContainer.addChild(bg);
                 bgContainer.addChild(mask);
             }
         }
-        // Add to reelContainer so it centers automatically with the game
         this.reelContainer.addChildAt(bgContainer, 0);
     }
 
-    async insertIntoGrid(position, symbolId) {
+    async insertIntoGrid(position: { x: number; y: number }, symbolId: number): Promise<number> {
         return new Promise(async (resolve) => {
             const col = position.x;
             const row = position.y;
 
-            // 1. Capture the old value
+            // Capture old value
             const hereBefore = this.grid[col][row];
 
-            // 2. Update the Data Grid
+            // Update Data Grid
             this.grid[col][row] = symbolId;
 
-            // 3. Trigger Visual Update (and wait for it!)
-            // We delegate the animation logic to the Reel class
+            // Trigger Visual Update
             const reel = this.reels[col];
             if (reel) {
-                // Pass the row index and the new ID
                 await reel.animateSymbolReplacement(row, symbolId);
             }
 
-            // 4. Resolve the promise returning the old value
             resolve(hereBefore);
         });
     }
 
-    async triggerMatchAnimations(clusters) {
-        const promises = [];
+    async triggerMatchAnimations(clusters: any[]) {
+        const promises: Promise<any>[] = [];
         // clusters is an array of arrays: [[rowIdx, rowIdx], [], [rowIdx]...]
         for (let col = 0; col < this.config.cols; col++) {
             if (clusters[col] && clusters[col].length > 0) {
-                // Tell the specific reel to play 'onMatch' for specific rows
                 promises.push(this.reels[col].playMatchEffects(clusters[col]));
             }
         }
-        // Wait for ALL reels to finish their win animations
         await Promise.all(promises);
     }
 
-    async playSymbolVideo(targetSprite, videoAlias) {
+    async playSymbolVideo(targetSprite: Sprite & { symbolId?: number }, videoAlias: string): Promise<void> {
         return new Promise((resolve) => {
-            if (!Assets.get(videoAlias)) {
+            const videoAsset = Assets.get(videoAlias);
+            if (!videoAsset) {
                 console.warn(`Video alias ${videoAlias} not found`);
                 resolve();
                 return;
             }
 
-            const videoTexture = Assets.get(videoAlias);
+            // Cast to Texture to access properties
+            const videoTexture = videoAsset as Texture;
             const videoSource = videoTexture.source;
-            const videoElement = videoSource.resource;
-            // videoElement.playbackRate = this.config.symbols[targetSprite.symbolId].playbackRate || 1
+            const videoElement = videoSource.resource as HTMLVideoElement;
 
-            // 1. Wait for dimensions to load so we can calculate the 10px cut
+            // Wait for dimensions
             if (videoTexture.width === 0 || videoTexture.height === 0) {
                 const onLoaded = () => {
                     videoElement.removeEventListener('loadedmetadata', onLoaded);
@@ -471,8 +487,8 @@ export default class SlotsBase {
                 return;
             }
 
-            // --- CALCULATE PIXEL CUT ---
-            const pixelsToCut = 50; // <--- CHANGE THIS VALUE TO CUT MORE/LESS
+            // Calculate pixel cut
+            const pixelsToCut = 50;
             const trimX = pixelsToCut / videoTexture.width;
             const trimY = pixelsToCut / videoTexture.height;
 
@@ -508,25 +524,20 @@ export default class SlotsBase {
                 }
             `;
 
-            // --- UPDATED FRAGMENT SHADER ---
             const fragment = `
                 in vec2 vTextureCoord;
                 uniform sampler2D uTexture; 
                 uniform float uThreshold; 
                 uniform float uSoftness;
-                
-                // Changed from float to vec2 to handle width/height differences
                 uniform vec2 uTrim; 
 
                 void main(void) {
-                    // --- 1. EDGE TRIM LOGIC (Based on Pixels) ---
                     if (vTextureCoord.x < uTrim.x || vTextureCoord.x > (1.0 - uTrim.x) ||
                         vTextureCoord.y < uTrim.y || vTextureCoord.y > (1.0 - uTrim.y)) {
-                        gl_FragColor = vec4(0.0); // Full transparent
+                        gl_FragColor = vec4(0.0);
                         return; 
                     }
 
-                    // --- 2. CHROMA KEY LOGIC ---
                     vec4 color = texture(uTexture, vTextureCoord);
                     vec3 target = vec3(1.0, 1.0, 1.0);
                     float dist = distance(color.rgb, target);
@@ -542,7 +553,6 @@ export default class SlotsBase {
                     uniforms: {
                         uThreshold: { value: 0.15, type: 'f32' },
                         uSoftness: { value: 0.05, type: 'f32' },
-                        // Pass the calculated X and Y trim values
                         uTrim: { value: { x: trimX, y: trimY }, type: 'vec2<f32>' }
                     },
                 },
@@ -550,19 +560,27 @@ export default class SlotsBase {
 
             videoSprite.filters = [removeWhiteFilter];
 
-            // Standard positioning logic...
             videoSprite.anchor.set(0.5);
             const globalPos = targetSprite.getGlobalPosition();
             const localPos = this.stage.toLocal(globalPos);
             videoSprite.x = localPos.x;
             videoSprite.y = localPos.y;
 
-            const symbolConfig = this.config.symbols.find(s => s.id === targetSprite.symbolId);
-            const baseConfigScale = symbolConfig ? symbolConfig.scale : 1;
-            const ratioY = this.config.symbolHeight / videoTexture.height;
-            const finalScale = ratioY * baseConfigScale;
-            videoSprite.scale.set(finalScale);
-            videoElement.playbackRate = symbolConfig.playbackRate//this.config.symbols[targetSprite.symbolId].playbackRate || 1
+            // Handle optional symbolId on sprite
+            const sId = targetSprite.symbolId;
+            let playbackRate = 1;
+
+            if (sId !== undefined) {
+                const symbolConfig = this.config.symbols.find(s => s.id === sId);
+                const baseConfigScale = symbolConfig?.scale || 1;
+                const ratioY = this.config.symbolHeight / videoTexture.height;
+                const finalScale = ratioY * baseConfigScale;
+                videoSprite.scale.set(finalScale);
+
+                if (symbolConfig?.playbackRate) playbackRate = symbolConfig.playbackRate;
+            }
+
+            videoElement.playbackRate = playbackRate;
 
             this.stage.addChild(videoSprite);
             targetSprite.alpha = 0;
@@ -574,7 +592,7 @@ export default class SlotsBase {
                 resolve();
             };
 
-            videoSource.autoPlay = true;
+            // videoSource.autoPlay = true;
             const durationSafe = (videoElement.duration && isFinite(videoElement.duration)) ? videoElement.duration : 2;
             const safetyTimeout = setTimeout(onComplete, (durationSafe * 1000) + 500);
 
@@ -589,88 +607,86 @@ export default class SlotsBase {
         });
     }
 
-    spawnGhost(originalSymbol) {
+    spawnGhost(originalSymbol: Sprite): Sprite {
         const ghost = new Sprite(originalSymbol.texture);
         ghost.anchor.x = originalSymbol.anchor.x;
         ghost.anchor.y = originalSymbol.anchor.y;
-        // ghost.anchor.set(0.5);
+
         ghost.width = originalSymbol.width;
         ghost.height = originalSymbol.height;
-        const origin = this.stage.toLocal(originalSymbol.getGlobalPosition())
-        ghost.x = origin.x// originalSymbol.x;
-        ghost.y = origin.y//originalSymbol.y;
+        const origin = this.stage.toLocal(originalSymbol.getGlobalPosition());
+        ghost.x = origin.x;
+        ghost.y = origin.y;
 
         ghost.alpha = 1;
 
         this.stage.addChild(ghost);
 
-        // Safety cleanup if animation fails
         setTimeout(() => {
-            if (!ghost.destroyed) ghost.destroy()
+            if (!ghost.destroyed) ghost.destroy();
         }, 5000);
-        return ghost
+        return ghost;
     }
 
+    async handleSymbolLand(effect: string | undefined, sprite: Sprite & { symbolId?: number }, index?: number) {
+        if (!effect || sprite.symbolId === undefined) return;
 
-    async handleSymbolLand(effect, sprite) {
         for (let i = 0; i < this.features.length; i++) {
             if (this.features[i].effects.find(s => s == effect)) {
-                const symbolDef = this.config.symbols.find(s => sprite.symbolId === s.id)
-                const p = await this.features[i].playEffect(effect, sprite, symbolDef);
-                if (p) return p;
+                const symbolDef = this.config.symbols.find(s => sprite.symbolId === s.id);
+                await this.features[i].playEffect(effect, sprite, symbolDef);
+                // const p = await this.features[i].playEffect(effect, sprite, symbolDef);
+                // if (p) return p;
             }
         }
     }
 
-    async handleSymbolMatch(effect, sprite) {
+    async handleSymbolMatch(effect: string | undefined, sprite: Sprite & { symbolId?: number }) {
+        if (!effect || sprite.symbolId === undefined) return;
+
         for (let i = 0; i < this.features.length; i++) {
             if (this.features[i].effects.find(s => s == effect)) {
-                const symbolDef = this.config.symbols.find(s => sprite.symbolId === s.id)
-                const p = await this.features[i].playEffect(effect, sprite, symbolDef);
-                if (p) return p;
+                const symbolDef = this.config.symbols.find(s => sprite.symbolId === s.id);
+                await this.features[i].playEffect(effect, sprite, symbolDef);
+                // const p = await this.features[i].playEffect(effect, sprite, symbolDef);
+                // if (p) return p;
             }
         }
     }
 
-    async handleSymbolExplode(effect, sprite) {
+    async handleSymbolExplode(effect: string | undefined, sprite: Sprite & { symbolId?: number }) {
+        if (!effect || sprite.symbolId === undefined) return;
+
         for (let i = 0; i < this.features.length; i++) {
             if (this.features[i].effects.find(s => s == effect)) {
-                const symbolDef = this.config.symbols.find(s => sprite.symbolId === s.id)
-                const p = await this.features[i].playEffect(effect, sprite, symbolDef);
-                if (p) return p;
+                const symbolDef = this.config.symbols.find(s => sprite.symbolId === s.id);
+                await this.features[i].playEffect(effect, sprite, symbolDef);
+                // const p = await this.features[i].playEffect(effect, sprite, symbolDef);
+                // if (p) return p;
             }
         }
     }
 
-    // In SlotsBase.js
-
-    changeGridSize(newCols, newRows) {
-        // 1. Don't do anything if size is the same
+    changeGridSize(newCols: number, newRows: number) {
         if (this.config.cols === newCols && this.config.rows === newRows) return;
 
         console.log(`Resizing Grid to ${newCols}x${newRows}`);
 
-        // 2. Destroy existing visuals
+        // Destroy visuals
         this.reels.forEach(reel => reel.destroy());
         this.reels = [];
-        this.reelContainer.removeChildren(); // Clean container
+        this.reelContainer.removeChildren();
 
-        // 3. Update Config
         this.config.cols = newCols;
         this.config.rows = newRows;
 
-        // 4. Reset Data Grids
+        // Reset Data Grids
         this.grid = Array.from({ length: this.config.cols }, () =>
             Array.from({ length: this.config.rows }, () => 0)
         );
 
-        // 5. Regenerate initial data for the new size
         this.initialGrid = generateRandomResult(this.engine, this.config.rows, this.config.cols, this.config.symbols);
 
-        // 6. Rebuild Visuals
         this.createGrid();
-
-        // 7. Re-initialize UI if needed (optional, depends if UI tracks grid size)
-        // this.ui.refresh(); 
     }
 }

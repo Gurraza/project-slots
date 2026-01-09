@@ -1,6 +1,6 @@
 import ClashLines from "../ClashLines/ClashLines.js"
 import ClashOfReels from "../ClashOfReels/ClashOfReels.js";
-import { calculateMoves } from "./Math.js";
+import { calculateMoves } from "./Math.ts";
 
 const game = new ClashLines(null, null, { mode: 'simulation', });
 // const game = new ClashOfReels(null, null, { mode: 'simulation', });

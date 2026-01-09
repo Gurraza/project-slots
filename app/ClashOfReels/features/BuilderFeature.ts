@@ -1,4 +1,4 @@
-import GameFeature from "../../game-engine/GameFeature.js"//"@/app/game-engine/GameFeature";
+import GameFeature from "../../game-engine/GameFeature"//"@/app/game-engine/GameFeature";
 import gsap from "gsap"
 import { Sprite, Assets } from "pixi.js"
 

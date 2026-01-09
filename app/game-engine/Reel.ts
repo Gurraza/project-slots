@@ -1,12 +1,95 @@
 import * as PIXI from 'pixi.js';
-import gsap from "gsap"
-import { PixiPlugin } from "gsap/PixiPlugin"; // 1. Import Plugin
-import { getRandomSymbolId } from "../game-engine/Math.js"
+import gsap from "gsap";
+import { PixiPlugin } from "gsap/PixiPlugin";
+import { getRandomSymbolId } from "./Math"; // .ts extension is implied in imports
+import { SymbolDef } from "./types"
+
+// Register Plugins
 gsap.registerPlugin(PixiPlugin);
 PixiPlugin.registerPIXI(PIXI);
 
+// --- 1. Custom Interface for your Symbols ---
+// Since you attach custom data (symbolId, yToMove) to PIXI Sprites, we extend the type.
+interface ReelSymbol extends PIXI.Sprite {
+    symbolId: number;
+    yToMove: number;
+    explode?: number;
+    textureScale?: number;
+}
+
+// --- 3. Interface for the Reel Configuration ---
+interface ReelConfig {
+    symbolWidth: number;
+    symbolHeight: number;
+    gapX: number;
+    gapY: number;
+    cols: number;
+    rows: number;
+    symbolsBeforeStop: number;
+    reelLandSymbolsDelay: number;
+    spinSpeed: number;
+    spinAcceleration: number;
+    windUp: number; // e.g. -50
+    invisibleFlyby: boolean;
+    motionBlurStrength: number;
+    delayBeforeCascading: number;
+    replaceTime: number;
+    symbols: SymbolDef[]; // Array of symbol definitions
+    [key: string]: any; // Allow loose config props
+}
+
+// --- 4. Interface for the Game Class ---
+// This prevents using 'any' for the game instance
+interface IGame {
+    engine: any;
+    config: ReelConfig;
+    initialGrid: any; // Or Grid type if you have it
+    reels: Reel[];
+    handleSymbolExplode: (effect: string, sprite: ReelSymbol, reelIndex: number) => void;
+    handleSymbolLand: (effect: string | undefined, sprite: ReelSymbol, index: number) => Promise<any> | void;
+    handleSymbolMatch: (effect: string | undefined, sprite: ReelSymbol) => Promise<any> | void;
+}
+
+// --- 5. Return type for symbol data helpers ---
+interface SymbolData {
+    id: number;
+    texture: PIXI.Texture | null; // Nullable for invisible flyby
+}
+
 export class Reel {
-    constructor(app, index, config, game) {
+    public app: PIXI.Application;
+    public game: IGame;
+    public index: number;
+    public config: ReelConfig;
+
+    public container: PIXI.Container;
+    public symbols: ReelSymbol[] = [];
+
+    // State management
+    public state: 'IDLE' | 'SPINNING' | 'ACCELERATING' | 'STOPPING' | 'DROPPING' | 'LANDING' | 'CASCADING';
+    public speed: number = 0;
+
+    // Logic vars
+    public targetResult: number[] | null = null;
+    public stopDelay: number = 0;
+    public symbolsRotated: number = 0;
+    public targetsShown: number = 0;
+    public symbolsBeforeStop: number;
+
+    public explodedSymbols: ReelSymbol[] = [];
+    public cascadeResolve: ((value?: any) => void) | null = null;
+    public spinResolve: ((value?: any) => void) | null = null;
+
+    // Visuals
+    public blurFilter: PIXI.BlurFilter;
+    public slotHeight: number = 0;
+
+    // Anticipation flags
+    public shouldTriggerAnticipation: boolean = false;
+    public anticipationSymbolId: number = -1;
+    public forceVisible: boolean = false; // Added based on usage in getRandomSymbolData
+
+    constructor(app: PIXI.Application, index: number, config: ReelConfig, game: IGame) {
         this.app = app;
         this.game = game;
         this.index = index;
@@ -16,46 +99,39 @@ export class Reel {
         this.container.x = index * (config.symbolWidth + config.gapX);
         this.container.y = 0;
 
-        this.symbols = [];
-        this.state = 'IDLE'; // IDLE, SPINNING, STOPPING
-        this.speed = 0;
-        this.targetResult = null;
-        this.stopDelay = 0;
-        this.symbolsRotated = 0
-        this.targetsShown = 0
-        this.symbolsBeforeStop = this.config.symbolsBeforeStop + (this.config.reelLandSymbolsDelay * index)
+        this.state = 'IDLE';
+        this.symbolsBeforeStop = this.config.symbolsBeforeStop + (this.config.reelLandSymbolsDelay * index);
 
-        this.explodedSymbols = []
-
-        this.cascadeResolve = null;
         this.initSymbols();
 
         this.blurFilter = new PIXI.BlurFilter();
         this.blurFilter.strength = 0;
         this.blurFilter.strengthX = 0; // Ensure no horizontal blur
         this.blurFilter.strengthY = 0;
-        this.blurFilter.resolution = this.app.renderer.resolution;
+        this.blurFilter.resolution = this.app.renderer ? this.app.renderer.resolution : 1;
 
         // Apply the filter to the entire reel container
         this.container.filters = [this.blurFilter];
     }
 
-    initSymbols() {
+    initSymbols(): void {
         const bufferCount = 2;
         const totalSymbols = this.config.rows + bufferCount;
 
         this.slotHeight = this.config.symbolHeight + (this.config.gapY || 0);
+
         for (let i = 0; i < totalSymbols; i++) {
             const randomData = this.getRandomSymbolData(false);
-            const symbol = new PIXI.Sprite(randomData.texture);
+
+            // TS check: ensure texture exists before creating sprite
+            if (!randomData.texture) continue;
+
+            const symbol = new PIXI.Sprite(randomData.texture) as ReelSymbol;
 
             symbol.symbolId = randomData.id;
-            this.applySymbolStyle(symbol, randomData.id);
-            // symbol.width = this.config.symbolWidth;
-            // symbol.height = this.config.symbolHeight;
+            symbol.yToMove = 0; // Init custom prop
 
-            // symbol.anchor.set(0.5);
-            // symbol.x = this.config.symbolWidth / 2;
+            this.applySymbolStyle(symbol, randomData.id);
             symbol.y = (i - 1) * this.slotHeight + (this.config.symbolHeight / 2);
 
             this.symbols.push(symbol);
@@ -63,18 +139,18 @@ export class Reel {
         }
     }
 
-    async spin(resultData) {
+    async spin(resultData: number[]): Promise<void> {
         this.reset();
         this.state = 'ACCELERATING';
-        await new Promise(resolve => {
-            // Move the container UP by 50px (negative y)
+
+        await new Promise<void>(resolve => {
+            // Move the container UP (negative y)
             gsap.to(this.container, {
                 y: this.game.config.windUp,
                 duration: 0.25,
-                ease: "back.out(1.5)", // Gives it a little overshoot pop
+                ease: "back.out(1.5)",
                 onComplete: () => {
-                    // Move it back to 0 while the symbols start moving down
-                    // This creates a seamless "snap back" effect
+                    // Snap back
                     gsap.to(this.container, {
                         y: 0,
                         duration: 0.15,
@@ -83,67 +159,77 @@ export class Reel {
                     resolve();
                 }
             });
-        })
+        });
+
         gsap.to(this, {
             speed: this.config.spinSpeed,
             duration: this.config.spinAcceleration,
             ease: "power2.out",
-            onStart: () => this.state = "SPINNING"
+            onStart: () => { this.state = "SPINNING"; }
         });
+
         this.targetResult = resultData;
-        console.log("targetResult", this.targetResult)
 
         return new Promise((resolve) => {
             this.spinResolve = () => {
                 this.blurFilter.strengthY = 0;
                 if (this.index !== this.config.cols - 1) {
-                    this.anticipation()
+                    this.anticipation();
                 }
-                resolve()
-            }
+                resolve();
+            };
         });
     }
 
-    reset() {
-        this.state = "IDLE"
-        this.targetsShown = 0
-        this.symbolsRotated = 0
+    reset(): void {
+        this.state = "IDLE";
+        this.targetsShown = 0;
+        this.symbolsRotated = 0;
     }
 
-    update(delta) {
+    update(delta: number): void {
         if (this.state === "IDLE") {
             this.container.filters = null;
             return;
         }
 
         if (this.state === "CASCADING") {
-            this.updateCascade(delta)
-            return
+            this.updateCascade(delta);
+            return;
         }
 
+        // Apply Blur
         if (this.state === 'SPINNING' || this.state === 'ACCELERATING') {
             if (!this.container.filters) this.container.filters = [this.blurFilter];
             this.blurFilter.strengthY = Math.abs(this.speed) * this.config.motionBlurStrength;
         }
 
         if (this.state === "SPINNING" || this.state === "ACCELERATING") {
+            // Logic for Invisible Flyby (currently disabled via false check in original code)
             if (this.config.invisibleFlyby && this.targetResult && false) {
-                const totalH = this.slotHeight * this.symbols.length;
-                const viewBottom = (this.config.rows + 1) * this.slotHeight;
-
-                this.state = "DROPPING"
+                this.state = "DROPPING";
                 this.symbols.forEach((symbol, index) => {
-                    symbol.y = -this.config.symbolHeight * index
-                    console.log(index, this.targetResult)
-                    const targetId = this.targetResult[index - 1]
-                    let newData
+                    symbol.y = -this.config.symbolHeight * index;
+
+                    if (!this.targetResult) return;
+
+                    const targetId = this.targetResult[index - 1];
+                    let newData: SymbolData;
+
                     if (targetId !== undefined) {
                         newData = this.getSymbolDataById(targetId);
                         this.targetsShown++;
                     } else {
                         newData = this.getRandomSymbolData();
                     }
-                    const targetY = this.slotHeight * (index - 1)
+
+                    const targetY = this.slotHeight * (index - 1);
+
+                    if (newData.texture) {
+                        symbol.texture = newData.texture;
+                        symbol.symbolId = newData.id;
+                    }
+
                     gsap.to(symbol, {
                         y: targetY,
                         ease: "power1.in",
@@ -151,23 +237,27 @@ export class Reel {
                         delay: (index - 1) * .1,
                         onComplete: () => {
                             if (index === this.config.rows + 1) {
-                                this.state = "IDLE"
-                                this.spinResolve(this.targetResult);
+                                this.state = "IDLE";
+                                if (this.spinResolve) this.spinResolve(this.targetResult);
                             }
                         }
-                    })
-                })
+                    });
+                });
             }
             else {
+                // Standard Rolling Logic
                 const totalH = this.slotHeight * this.symbols.length;
                 const viewBottom = (this.config.rows + 1) * this.slotHeight;
-                this.symbols.forEach((s, index) => {
+
+                this.symbols.forEach((s) => {
                     s.y += this.speed * delta;
+
                     if (s.y > viewBottom) {
                         s.y -= totalH;
-                        let newData;
-                        if (this.symbolsRotated >= this.symbolsBeforeStop) {
-                            const targetId = this.targetResult[this.targetsShown]
+                        let newData: SymbolData;
+
+                        if (this.targetResult && this.symbolsRotated >= this.symbolsBeforeStop) {
+                            const targetId = this.targetResult[this.targetsShown];
                             if (targetId !== undefined) {
                                 newData = this.getSymbolDataById(targetId);
                                 this.targetsShown++;
@@ -178,27 +268,30 @@ export class Reel {
                         else {
                             newData = this.getRandomSymbolData(this.config.invisibleFlyby);
                         }
-                        s.texture = newData.texture;
-                        s.symbolId = newData.id;
-                        this.applySymbolStyle(s, newData.id);
-                        if (this.symbolsRotated === this.symbolsBeforeStop + this.targetResult.length) {
-                            this.state = "LANDING"
-                            this.triggerLanding()
+
+                        // Apply new data
+                        if (newData.texture) {
+                            s.texture = newData.texture;
+                            s.symbolId = newData.id;
+                            this.applySymbolStyle(s, newData.id);
                         }
-                        this.symbolsRotated++
+
+                        if (this.targetResult && this.symbolsRotated === this.symbolsBeforeStop + this.targetResult.length) {
+                            this.state = "LANDING";
+                            this.triggerLanding();
+                        }
+                        this.symbolsRotated++;
                     }
                 });
             }
         }
     }
 
-
-    realignOnGrid() {
+    realignOnGrid(): void {
         this.symbols.sort((a, b) => a.y - b.y);
 
         const h = this.config.symbolHeight;
         const slotHeight = this.slotHeight;
-
         const firstSymbol = this.symbols[0];
         const currentY = firstSymbol.y;
 
@@ -209,145 +302,153 @@ export class Reel {
         });
     }
 
-    explodeAndCascade(indexExplode, idsReplace, reelData) {
-        indexExplode = indexExplode.sort((a, b) => a - b)
+    explodeAndCascade(indexExplode: number[], idsReplace: number[], reelData: number[]): Promise<number[]> {
+        indexExplode = indexExplode.sort((a, b) => a - b);
+
         return new Promise((resolve) => {
-            this.cascadeResolve = () => resolve([...reelData.filter((symbolId, index) => !indexExplode.includes(index)), ...idsReplace])
-            // resets
+            this.cascadeResolve = () => {
+                resolve([
+                    ...reelData.filter((_, index) => !indexExplode.includes(index)),
+                    ...idsReplace
+                ]);
+            };
+
+            // Resets
             this.symbols.forEach(symbol => {
                 symbol.yToMove = 0;
                 symbol.explode = 0;
-            })
+            });
             this.explodedSymbols = [];
-            this.sort()
+            this.sort();
 
             setTimeout(() => {
-                this.state = "CASCADING"
+                this.state = "CASCADING";
             }, this.config.delayBeforeCascading);
 
             for (let i = 0; i < indexExplode.length; i++) {
-                const symbolToExplode = this.symbols[indexExplode[i] + 1]
+                const symbolToExplode = this.symbols[indexExplode[i] + 1];
                 // remove current one
-                this.explodedSymbols.push(symbolToExplode)
+                this.explodedSymbols.push(symbolToExplode);
 
-                const config = this.config.symbols[symbolToExplode.symbolId];
+                const config = this.config.symbols.find(s => s.id === symbolToExplode.symbolId);
 
                 // Trigger fire/particles/fade
-                const effectName = config.explodeEffect
-                this.game.handleSymbolExplode(effectName, symbolToExplode, this.index);
+                if (config && config.explodeEffect) {
+                    this.game.handleSymbolExplode(config.explodeEffect, symbolToExplode, this.index);
+                }
             }
 
-            // goes through all exploded symbols and sets every symbol above it to move down one
-            this.explodedSymbols.forEach((explodedSymbol, i) => {
-                this.symbols.forEach((symbol, j) => {
+            // Calculate movement needed
+            this.explodedSymbols.forEach((explodedSymbol) => {
+                this.symbols.forEach((symbol) => {
                     if (explodedSymbol.y >= symbol.y) {
-                        symbol.yToMove += this.slotHeight
+                        symbol.yToMove += this.slotHeight;
                     }
-                })
-            })
+                });
+            });
 
             this.explodedSymbols.forEach((explodedSymbol, i) => {
-                this.sort()
+                this.sort();
                 const newId = idsReplace[i];
                 const newData = this.getSymbolDataById(newId);
-                // this.spawnGhost(explodedSymbol)
 
+                // Fill exploded symbol with random buffer data to reuse it
                 const randomFillData = this.getRandomSymbolData();
-                explodedSymbol.texture = randomFillData.texture;
-                explodedSymbol.symbolId = randomFillData.id;       // <--- CRITICAL UPDATE
-                this.applySymbolStyle(explodedSymbol, randomFillData.id);
+                if (randomFillData.texture) {
+                    explodedSymbol.texture = randomFillData.texture;
+                    explodedSymbol.symbolId = randomFillData.id;
+                    this.applySymbolStyle(explodedSymbol, randomFillData.id);
+                }
 
-
+                // Setup the NEW incoming symbol at the top
                 const topSymbol = this.symbols[this.symbols.length - 1];
-                topSymbol.texture = newData.texture;
-                topSymbol.symbolId = newData.id;
-                this.applySymbolStyle(topSymbol, newData.id);      // <--- RE-APPLY SCALE
-                const offset = this.slotHeight / 2 - this.slotHeight * (i + 2)
-                explodedSymbol.y = offset
-                explodedSymbol.yToMove = this.slotHeight * this.explodedSymbols.length
-            })
-        })
+                if (newData.texture) {
+                    topSymbol.texture = newData.texture;
+                    topSymbol.symbolId = newData.id;
+                    this.applySymbolStyle(topSymbol, newData.id);
+                }
+
+                const offset = this.slotHeight / 2 - this.slotHeight * (i + 2);
+                explodedSymbol.y = offset;
+                explodedSymbol.yToMove = this.slotHeight * this.explodedSymbols.length;
+            });
+        });
     }
-    sort() {
+
+    sort(): void {
         this.symbols = this.symbols.sort((a, b) => a.y - b.y).reverse();
     }
 
-    sortReverse() {
-        this.symbols = this.symbols.sort((a, b) => a.y - b.y)
+    sortReverse(): void {
+        this.symbols = this.symbols.sort((a, b) => a.y - b.y);
     }
 
-    getRandomSymbolData(invisibleFlyby) {
+    getRandomSymbolData(invisibleFlyby: boolean = false): SymbolData {
         if (invisibleFlyby && !this.forceVisible) {
             return {
                 id: -1,
                 texture: null
-            }
+            };
         }
-        const id = getRandomSymbolId(this.game.engine, { firstSpin: false, gridToCheck: this.game.initialGrid, coldIndex: this.index, allSymbols: this.game.config.symbols })
+
+        // Ensure you have valid imports for types in Math.ts if needed
+        const id = getRandomSymbolId(this.game.engine, {
+            firstSpin: false,
+            gridToCheck: this.game.initialGrid,
+            colIndex: this.index, // Fixed typo: 'coldIndex' -> 'colIndex'
+            allSymbols: this.config.symbols
+        });
+
+        const symbolDef = this.config.symbols.find(s => s.id === id);
         return {
             id: id,
-            texture: this.config.symbols[id].texture
+            texture: symbolDef ? symbolDef.texture : PIXI.Texture.EMPTY // Fallback
         };
     }
 
-    getSymbolDataById(id) {
+    getSymbolDataById(id: number): SymbolData {
+        const symbolDef = this.config.symbols.find(s => s.id === id);
         return {
             id: id,
-            texture: this.config.symbols[id].texture
+            texture: symbolDef ? symbolDef.texture : PIXI.Texture.EMPTY
         };
     }
 
-    // 1. New Helper: Applies size while respecting aspect ratio + custom scale
-    applySymbolStyle(sprite, symbolId) {
-        // Find the specific config for this symbol ID
-        // (Assuming this.config.symbols corresponds to your SYMBOLS array)
+    applySymbolStyle(sprite: ReelSymbol, symbolId: number): void {
         const symbolConfig = this.config.symbols.find(s => s.id === symbolId);
         const customScale = symbolConfig?.scale || 1;
+
+        if (!sprite.texture) return;
 
         // Reset scale to 1 before measuring
         sprite.scale.set(1);
 
-        // 1. Calculate the ratio to fit the sprite INSIDE the cell box
-        //    (Like CSS 'object-fit: contain')
         const ratioX = this.config.symbolWidth / sprite.texture.width;
         const ratioY = this.config.symbolHeight / sprite.texture.height;
         const baseScale = Math.min(ratioX, ratioY);
 
-        // 2. Apply that base fit * your custom modifier
         const finalScale = baseScale * customScale;
 
         sprite.scale.set(finalScale);
-        sprite.textureScale = finalScale
+        sprite.textureScale = finalScale; // Now valid due to interface
 
-        // 3. Center it
         sprite.anchor.set(0.5);
         sprite.x = this.config.symbolWidth / 2;
     }
 
-    // In Reel.js
-
-    async animateSymbolReplacement(rowIndex, newSymbolId) {
+    async animateSymbolReplacement(rowIndex: number, newSymbolId: number): Promise<void> {
         return new Promise((resolve) => {
-            this.sort()
+            this.sort();
 
-            // 1. Find the correct sprite. 
-            // NOTE: If you have buffer symbols (invisible ones at top), 
-            // you might need to add an offset: this.symbols[rowIndex + 1]
-            const symbolSprite = this.symbols[rowIndex + 1]; // +1 assuming 1 top buffer
+            const symbolSprite = this.symbols[rowIndex + 1];
 
             if (!symbolSprite) {
                 resolve();
                 return;
             }
-            // --- FUTURE ANIMATION START ---
-            // Example: symbolSprite.alpha = 0;
-            // -----------------------------
+
             const newData = this.getSymbolDataById(newSymbolId);
             let targetScale = 1;
-            // --- FUTURE ANIMATION END ---
-            // Example: Tween back to alpha 1, then resolve()
-            // setTimeout(() => { symbolSprite.alpha = 1; resolve() }, 500); 
-            // ---------------------------
 
             const tl = gsap.timeline({
                 onComplete: () => {
@@ -357,62 +458,38 @@ export class Reel {
             tl.to(symbolSprite.scale, {
                 x: 0,
                 y: 0,
-                duration: this.config.replaceTime,    // Adjust speed (0.25 seconds)
-                ease: "back.in(2)" // A little "pull back" anticipation before shrinking
+                duration: this.config.replaceTime,
+                ease: "back.in(2)"
             });
             tl.call(() => {
-                // 2a. Swap Texture and Data
-                symbolSprite.texture = newData.texture;
-                symbolSprite.symbolId = newData.id;
+                if (newData.texture) {
+                    symbolSprite.texture = newData.texture;
+                    symbolSprite.symbolId = newData.id;
 
-                // 2b. Apply style to calculate the correct scale for the NEW symbol.
-                // This sets the scale instantly to the final size.
-                this.applySymbolStyle(symbolSprite, newData.id);
-
-                // 2c. Capture that calculated scale.
-                targetScale = symbolSprite.scale.x;
-
-                // 2d. Reset scale back to 0 instantly so it can grow in the next step.
-                symbolSprite.scale.set(0);
+                    this.applySymbolStyle(symbolSprite, newData.id);
+                    targetScale = symbolSprite.scale.x;
+                    symbolSprite.scale.set(0);
+                }
             });
 
-
-            // --- Sequence Step 3: Expand In ---
-            // Animate from 0 to the target scale we captured
             tl.to(symbolSprite.scale, {
-                x: () => targetScale, // Use a function to ensure it uses the value captured in the previous step
+                x: () => targetScale,
                 y: () => targetScale,
-                duration: 0.35,      // Adjust speed (should be slightly slower than shrink for impact)
-                ease: "back.out(2)"  // A nice bouncy "pop" in
+                duration: 0.35,
+                ease: "back.out(2)"
             });
-            // For now, resolve immediately
-            // resolve();
         });
     }
-    // --------------------------------------------------------
-    // ANTICIPATION VISUALS
-    // --------------------------------------------------------
-    anticipation() {
-        // 1. If SlotsBase didn't flag this reel, do nothing.
-        // (Make sure you updated SlotsBase.js to set this flag!)
-        if (!this.shouldTriggerAnticipation) return;
 
-        // 2. Don't run on the very last reel
+    anticipation(): void {
+        if (!this.shouldTriggerAnticipation) return;
         if (this.index === this.config.cols - 1) return;
 
-        // 3. Loop through ALL reels to update visuals
-        this.game.reels.forEach((reel, index) => {
+        this.game.reels.forEach((reel) => {
             if (reel.state == "IDLE") {
                 reel.symbols.forEach(symbol => {
-
-                    // --- FIX: USE THE ID PASSED FROM SLOTSBASE ---
-                    // Don't check config.anticipation here. 
-                    // Only check if this symbol matches the specific one we are hunting.
                     if (symbol.symbolId === this.anticipationSymbolId) {
-
-                        // A. Make it pop (Bounce effect)
                         if (!gsap.isTweening(symbol.scale)) {
-                            // Reset to clean state
                             this.applySymbolStyle(symbol, symbol.symbolId);
                             const baseScaleX = symbol.scale.x;
                             const baseScaleY = symbol.scale.y;
@@ -427,9 +504,7 @@ export class Reel {
                             });
                         }
                     } else {
-                        // B. Darken everything else
-                        // Only darken if we haven't already (optimization)
-                        if (symbol.alpha !== 0.5) { // Check whatever tint/alpha logic you use
+                        if (symbol.alpha !== 0.5) {
                             gsap.to(symbol, {
                                 pixi: { tint: 0x555555 },
                                 duration: 0.3,
@@ -437,11 +512,9 @@ export class Reel {
                             });
                         }
                     }
-                })
+                });
             }
             else {
-                // C. Slow down the spinning reels
-                // Only if not already slowed
                 if (reel.speed > this.config.spinSpeed / 2) {
                     gsap.to(reel, {
                         speed: this.config.spinSpeed / 2,
@@ -450,67 +523,54 @@ export class Reel {
                     });
                 }
             }
-        })
+        });
     }
 
-    clearAnticipation() {
+    clearAnticipation(): void {
         this.symbols.forEach(symbol => {
-            // 1. Reset Tint to pure white (normal)
-
-            // 2. Kill the pulsing animation
             gsap.killTweensOf(symbol.scale);
             gsap.killTweensOf(symbol);
 
             gsap.to(symbol, {
-                pixi: { tint: 0xFFFFFF }, // Use the 'pixi' wrapper
+                pixi: { tint: 0xFFFFFF },
                 duration: 0.3,
                 ease: "power2.out"
             });
 
-            // 3. Reset the scale back to the correct fit
             if (symbol.symbolId !== undefined) {
                 this.applySymbolStyle(symbol, symbol.symbolId);
             }
         });
     }
 
-    triggerLandingEffects() {
-        const promises = [];
+    triggerLandingEffects(): Promise<any[]> {
+        const promises: Promise<any>[] = [];
 
-        // Loop through visible rows (assuming index 0 is top buffer)
         for (let i = 1; i <= this.config.rows; i++) {
             const symbolSprite = this.symbols[i];
             if (!symbolSprite) continue;
 
-            const symbolConfig = this.config.symbols[symbolSprite.symbolId];
+            const symbolConfig = this.config.symbols.find(s => s.id === symbolSprite.symbolId);
 
             if (symbolConfig && symbolConfig.landingEffect) {
-                // If the game class handles this, it must return a Promise
                 if (this.game.handleSymbolLand) {
                     const p = this.game.handleSymbolLand(symbolConfig.landingEffect, symbolSprite, i);
                     if (p) promises.push(p);
                 }
             }
         }
-
-        // Return a master promise that waits for all effects on this reel
         return Promise.all(promises);
     }
 
-    playMatchEffects(rowIndices) {
-        const promises = [];
+    playMatchEffects(rowIndices: number[]): Promise<any[]> {
+        const promises: Promise<any>[] = [];
 
-        // Robustly map a row index to the visible sprite by comparing Y positions.
-        // This avoids relying on array ordering which can change during cascades.
         rowIndices.forEach(rowIndex => {
-            // Expected Y position for this row (0 = top row).
-            // The grid's row indexing is bottom-up in the game logic, so invert
-            // to match display coordinates (top-down).
             const targetY = ((this.config.rows - 1 - rowIndex) * this.slotHeight) + (this.config.symbolHeight / 2);
 
-            // Find the sprite whose y is closest to targetY
-            let best = null;
+            let best: ReelSymbol | null = null;
             let bestDist = Infinity;
+
             for (let i = 0; i < this.symbols.length; i++) {
                 const s = this.symbols[i];
                 const d = Math.abs(s.y - targetY);
@@ -523,37 +583,32 @@ export class Reel {
             const symbol = best;
 
             if (symbol) {
-                const config = this.config.symbols[symbol.symbolId];
+                const config = this.config.symbols.find(s => s.id === symbol.symbolId);
 
-                // If Game class has the hook, call it
                 if (this.game.handleSymbolMatch) {
-                    const effectName = config.matchEffect
+                    const effectName = config?.matchEffect;
                     const p = this.game.handleSymbolMatch(effectName, symbol);
                     if (p) promises.push(p);
                 }
             }
         });
-
-        // Wait for all symbols in this reel to finish celebrating
         return Promise.all(promises);
     }
 
-    destroy() {
-        // Kill any running GSAP animations on this reel or its container
+    destroy(): void {
         gsap.killTweensOf(this.container);
         gsap.killTweensOf(this);
 
-        // Destroy the PIXI Container and all children (symbols)
+        // Correct destroy call for PIXI v7/v8
         this.container.destroy({ children: true });
 
-        // Clear references
         this.symbols = [];
+        // @ts-ignore
         this.app = null;
     }
 
-    updateCascade(delta) {
-        const speed = 20 * delta;
-
+    updateCascade(delta: number): void {
+        const speed = 20 * delta; // You might want to make '20' a config variable
         let stillMoving = false;
 
         this.symbols.forEach((symbol) => {
@@ -573,38 +628,41 @@ export class Reel {
                 this.cascadeResolve = null;
             }
         }
-        return;
     }
 
-    triggerLanding() {
-        // console.log("trigger", this.index)
-        // symbol.isLanding = true
-        // symbol.y = -100
+    triggerLanding(): void {
         this.symbols.sort((a, b) => a.y - b.y);
+
         this.symbols.forEach((symbol, index) => {
             const destY = ((index - 1) * this.slotHeight) + (this.config.symbolHeight / 2);
+
             gsap.to(symbol, {
                 y: destY,
                 ease: "power1.in(1.7)",
                 duration: 0.01,
                 onStart: () => {
                     if (index === this.config.rows + 1) {
-                        this.state = "IDLE"
+                        this.state = "IDLE";
                     }
                 },
                 onComplete: () => {
                     if (symbol.symbolId === -1) {
-                        return
+                        return;
                     }
-                    const symbolDef = this.config.symbols.find(s => s.id === symbol.symbolId)
-                    this.game.handleSymbolLand(symbolDef.landingEffect, symbol, index)
+                    const symbolDef = this.config.symbols.find(s => s.id === symbol.symbolId);
+
+                    if (symbolDef && this.game.handleSymbolLand) {
+                        this.game.handleSymbolLand(symbolDef.landingEffect, symbol, index);
+                    }
+
                     if (index === this.config.rows - 1) {
-                        // console.log("resolved once on reel", this.index)
-                        this.spinResolve(this.targetResult);
-                        this.spinResolve = null;
+                        if (this.spinResolve) {
+                            this.spinResolve(this.targetResult);
+                            this.spinResolve = null;
+                        }
                     }
                 }
-            }/*(this.config.rows - (index - 1)) * .1*/);
-        })
+            });
+        });
     }
 }

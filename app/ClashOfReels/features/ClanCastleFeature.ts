@@ -1,7 +1,9 @@
-import GameFeature from "../../game-engine/GameFeature.js"
-import { contain } from "../../game-engine/Math.js"
+import GameFeature from "../../game-engine/GameFeature"
+import { contain } from "../../game-engine/Math"
+import SlotsBase from "../../game-engine/SlotsBase"
+import { SymbolDef, Timeline, Grid, FeatureEvent, TimelineEvent } from "../../game-engine/types"
 
-const featureSymbol = {
+const featureSymbol: SymbolDef = {
     name: "clancastle",
     dontCluster: true,
     weight: 100,
@@ -10,11 +12,11 @@ const featureSymbol = {
 }
 
 export class ClanCastleFeature extends GameFeature {
-    constructor(game) {
+    constructor(game: SlotsBase) {
         super(game, "CLAN_CASTLE", featureSymbol)
     }
 
-    onGridPreProcess(grid, timeline) {
+    onGridPreProcess(grid: Grid, timeline: Timeline) {
         const castlePositions = contain(this.id, grid)
         if (castlePositions) {
             const lowTroops = this.config.symbols.filter(s => s.group == "low_troop" && s.weight != 0);
@@ -42,7 +44,7 @@ export class ClanCastleFeature extends GameFeature {
         return false
     }
 
-    async onCustomEvent(event) {
+    async onCustomEvent(event: FeatureEvent): Promise<void> {
         const promises = [];
         event.changes.forEach(change => {
             // We can insert directly because 'change' has {x, y, newId}
