@@ -17,8 +17,12 @@ export class UI {
         this.enableKeyboard()
         // this.createSymbolCheat(s.name, [9999999], 20, 100 + (i * 30));
 
-        this.config.symbols.forEach((s, i) => {
-            this.createSymbolCheat(s.name, [9999999, 9999999, 9999999], 20, 0 + (i * 30));
+        let i = 0
+        this.config.symbols.forEach((s) => {
+            if (s.cheatWeight) {
+                this.createSymbolCheat(s.name, s.cheatWeight, 20, 0 + (i * 30));
+                i++
+            }
         });
     }
 
@@ -352,6 +356,95 @@ export class UI {
          * @param {number} x - X position on screen.
          * @param {number} y - Y position on screen.
          */
+    // createSymbolCheat(inputName, cheatWeight, x, y) {
+    //     // 1. Find the symbol config
+    //     const symbol = this.config.symbols.find(s => s.name === inputName);
+
+    //     if (!symbol) {
+    //         console.warn(`[UI] Cheat Error: Symbol '${inputName}' not found.`);
+    //         return;
+    //     }
+
+    //     // 2. Backup the original weight safely.
+    //     // We check against undefined so we don't overwrite the backup if this function is called twice.
+    //     if (symbol._originalWeight === undefined) {
+    //         symbol._originalWeight = symbol.weight;
+    //     }
+
+    //     // 3. Setup container
+    //     const container = new Container();
+    //     container.x = x;
+    //     container.y = y;
+    //     container.zIndex = 999;
+
+    //     // 4. Graphics for the checkbox
+    //     const checkbox = new Graphics();
+    //     container.addChild(checkbox);
+
+    //     // 5. Label text
+    //     const label = new Text({
+    //         text: inputName.toUpperCase(),
+    //         style: {
+    //             fontFamily: "Arial",
+    //             fontSize: 14,
+    //             fill: "white",
+    //             fontWeight: "bold",
+    //             stroke: { color: "black", width: 3 },
+    //         }
+    //     });
+    //     label.x = 25;
+    //     label.y = 2;
+    //     container.addChild(label);
+
+    //     // 6. State Management
+    //     let isToggled = false;
+
+    //     const draw = () => {
+    //         checkbox.clear();
+    //         checkbox.rect(0, 0, 20, 20);
+
+    //         if (isToggled) {
+    //             // Active: Green
+    //             checkbox.fill({ color: 0x00FF00 });
+    //             checkbox.stroke({ width: 2, color: 0xFFFFFF });
+    //         } else {
+    //             // Inactive: Dark
+    //             checkbox.fill({ color: 0x333333 });
+    //             checkbox.stroke({ width: 1, color: 0x999999 });
+    //         }
+    //     };
+    //     draw(); // Initial draw
+
+    //     // 7. Interaction Logic
+    //     container.eventMode = "static";
+    //     container.cursor = "pointer";
+
+    //     container.on("pointertap", () => {
+    //         isToggled = !isToggled;
+
+    //         if (isToggled) {
+    //             // APPLY CHEAT:
+    //             // We set the weight to whatever structure (Array or Number) you passed in.
+    //             symbol.weight = cheatWeight || 99999;
+    //             symbol.baseWeight = cheatWeight || 99999;
+    //             console.log(`[CHEAT] ${inputName} weight set to:`, cheatWeight);
+    //         } else {
+    //             // RESTORE ORIGINAL:
+    //             // We revert to the backup we made earlier.
+    //             symbol.weight = symbol._originalWeight;
+    //             symbol.baseWeight = symbol._originalWeight;
+    //             console.log(`[CHEAT] ${inputName} reverted to:`, symbol._originalWeight);
+    //         }
+
+    //         draw();
+    //     });
+
+    //     this.stage.addChild(container);
+    // }
+
+    /**
+     * Creates a debug toggle for a symbol with persistent storage.
+     */
     createSymbolCheat(inputName, cheatWeight, x, y) {
         // 1. Find the symbol config
         const symbol = this.config.symbols.find(s => s.name === inputName);
@@ -362,22 +455,37 @@ export class UI {
         }
 
         // 2. Backup the original weight safely.
-        // We check against undefined so we don't overwrite the backup if this function is called twice.
         if (symbol._originalWeight === undefined) {
             symbol._originalWeight = symbol.weight;
         }
 
-        // 3. Setup container
+        // 3. STORAGE SETUP
+        // We create a unique key for this symbol
+        const storageKey = `cheat_active_${inputName}`;
+
+        // Check if we have a saved state. localStorage stores strings, so we check === "true"
+        const savedState = localStorage.getItem(storageKey);
+        let isToggled = savedState === "true";
+
+        // 4. APPLY SAVED STATE IMMEDIATELY
+        // If it was on before reload, apply the weight now
+        if (isToggled) {
+            symbol.weight = cheatWeight || 99999;
+            symbol.baseWeight = cheatWeight || 99999;
+            console.log(`[CHEAT] Restored persistent cheat for ${inputName}`);
+        }
+
+        // 5. Setup container
         const container = new Container();
         container.x = x;
         container.y = y;
         container.zIndex = 999;
 
-        // 4. Graphics for the checkbox
+        // 6. Graphics for the checkbox
         const checkbox = new Graphics();
         container.addChild(checkbox);
 
-        // 5. Label text
+        // 7. Label text
         const label = new Text({
             text: inputName.toUpperCase(),
             style: {
@@ -392,9 +500,7 @@ export class UI {
         label.y = 2;
         container.addChild(label);
 
-        // 6. State Management
-        let isToggled = false;
-
+        // 8. Drawing Logic
         const draw = () => {
             checkbox.clear();
             checkbox.rect(0, 0, 20, 20);
@@ -409,9 +515,9 @@ export class UI {
                 checkbox.stroke({ width: 1, color: 0x999999 });
             }
         };
-        draw(); // Initial draw
+        draw(); // Initial draw checks the loaded `isToggled` state
 
-        // 7. Interaction Logic
+        // 9. Interaction Logic
         container.eventMode = "static";
         container.cursor = "pointer";
 
@@ -419,18 +525,19 @@ export class UI {
             isToggled = !isToggled;
 
             if (isToggled) {
-                // APPLY CHEAT:
-                // We set the weight to whatever structure (Array or Number) you passed in.
-                symbol.weight = cheatWeight;
-                symbol.baseWeight = cheatWeight;
+                // APPLY CHEAT
+                symbol.weight = cheatWeight || 99999;
+                symbol.baseWeight = cheatWeight || 99999;
                 console.log(`[CHEAT] ${inputName} weight set to:`, cheatWeight);
             } else {
-                // RESTORE ORIGINAL:
-                // We revert to the backup we made earlier.
+                // RESTORE ORIGINAL
                 symbol.weight = symbol._originalWeight;
                 symbol.baseWeight = symbol._originalWeight;
                 console.log(`[CHEAT] ${inputName} reverted to:`, symbol._originalWeight);
             }
+
+            // SAVE TO STORAGE
+            localStorage.setItem(storageKey, isToggled);
 
             draw();
         });

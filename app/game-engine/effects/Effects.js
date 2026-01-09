@@ -112,8 +112,38 @@ export function fragmentPopAnimation(sprite) {
     });
 }
 
-
+// Helper function to shake any object (usually the stage or a container)
 export function shake(whatToMove, intensity, duration) {
+    return new Promise(resolve => {
+        const startX = whatToMove.x; // Capture original position
+        const startY = whatToMove.y;
+        const shakes = 15;           // Number of shakes
+        const keyframes = [];
+
+        for (let i = 0; i < shakes; i++) {
+            const decay = 1 - (i / shakes); // Shake gets smaller over time
+            const x = (Math.random() * intensity * 2 - intensity) * decay;
+            const y = (Math.random() * intensity * 2 - intensity) * decay;
+
+            keyframes.push({
+                x: startX + x,
+                y: startY + y,
+                duration: duration / shakes
+            });
+        }
+
+        // Return to exact original position at the end
+        keyframes.push({ x: startX, y: startY, duration: 0.1, ease: "power2.out" });
+
+        // Animate the specific object passed to the function
+        gsap.to(whatToMove, {
+            keyframes: keyframes,
+            onComplete: resolve
+        });
+    });
+}
+
+export function sshake(whatToMove, intensity, duration) {
     return new Promise(resolve => {
         const startX = whatToMove.x
         const startY = whatToMove.y

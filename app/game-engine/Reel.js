@@ -272,6 +272,10 @@ export class Reel {
         this.symbols = this.symbols.sort((a, b) => a.y - b.y).reverse();
     }
 
+    sortReverse() {
+        this.symbols = this.symbols.sort((a, b) => a.y - b.y)
+    }
+
     getRandomSymbolData(invisibleFlyby) {
         if (invisibleFlyby && !this.forceVisible) {
             return {

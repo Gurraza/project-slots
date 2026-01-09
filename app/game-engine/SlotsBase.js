@@ -15,7 +15,6 @@ export default class SlotsBase {
         this.grid = Array.from({ length: this.config.cols }, () =>
             Array.from({ length: this.config.rows }, () => 0)
         );
-        this.state = 'IDLE';
         this.features = [];
 
         if (config.mode !== "simulation") {
@@ -136,7 +135,7 @@ export default class SlotsBase {
 
 
     createGrid() {
-        this.drawBackgroundCells();
+        this.drawBackgroundCells(0x777);
         const totalWidth = (this.config.cols * this.config.symbolWidth) +
             ((this.config.cols - 1) * this.config.gapX);
 

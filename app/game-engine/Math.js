@@ -23,7 +23,6 @@ export class RandomEngine {
 export function calculateMoves(engine, rows, cols, features, allSymbols) {
     const timeline = [];
     let currentGrid = generateRandomResult(engine, rows, cols, allSymbols);
-
     timeline.push({
         type: 'SPIN_START',
         grid: JSON.parse(JSON.stringify(currentGrid)),
