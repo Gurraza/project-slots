@@ -1,9 +1,9 @@
 import { Application, Container, Sprite } from "pixi.js";
-import SlotsBase from "./SlotsBase";
-import { GameConfig, Grid, SymbolDef, Timeline, TimelineEvent } from "./types";
-import { RandomEngine } from "./Math";
-import { UI } from "./UI";
-import { Reel } from "./Reel";
+import SlotsBase from "./SlotsBase.ts";
+import { GameConfig, Grid, SymbolDef, Timeline, TimelineEvent } from "./types.ts";
+import { RandomEngine } from "./Math.ts";
+import { UI } from "./UI.ts";
+import { Reel } from "./Reel.ts";
 
 export default class GameFeature {
     public app: Application
@@ -14,8 +14,11 @@ export default class GameFeature {
     public reels: Reel[]
     public id: number
     public config: GameConfig
+    public game: SlotsBase
+    public type: string
+    public featureSymbol: SymbolDef | null
 
-    constructor(public game: SlotsBase, public type: string, public featureSymbol: SymbolDef | null = null) {
+    constructor(game: SlotsBase, type: string, featureSymbol: SymbolDef | null) {
         this.game = game;
         this.app = game.app
         this.type = type
@@ -25,6 +28,7 @@ export default class GameFeature {
         this.reels = this.game.reels
         this.effects = []
         this.config = game.config
+        this.featureSymbol = featureSymbol
     }
 
     getSymbols() {

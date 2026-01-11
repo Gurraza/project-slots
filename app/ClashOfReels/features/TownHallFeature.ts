@@ -1,8 +1,8 @@
-import GameFeature from "../../game-engine/GameFeature";
+import GameFeature from "../../game-engine/GameFeature.ts";
 import gsap from "gsap";
 import { Text } from "pixi.js";
-import { SymbolDef, Grid, Timeline, FeatureEvent, TimelineEvent } from "../../game-engine/types";
-import SlotsBase from "../../game-engine/SlotsBase";
+import { SymbolDef, Grid, Timeline, FeatureEvent, TimelineEvent } from "../../game-engine/types.ts";
+import SlotsBase from "../../game-engine/SlotsBase.ts";
 
 // 1. Extend the Symbol definition to include the custom 'multiplier' property
 interface TownHallSymbol extends SymbolDef {

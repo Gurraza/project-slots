@@ -1,9 +1,9 @@
-import SlotsBase from '../game-engine/SlotsBase';
+import SlotsBase from '../game-engine/SlotsBase.ts';
 import gsap from "gsap"
-import { Assets, Sprite, Graphics, Text, Container, ColorMatrixFilter, FillGradient, Application } from "pixi.js"
-import { PaylineFeature } from './features/PaylineFeature';
-import { Scatter } from './features/Scatter';
-import { GameConfig, SymbolDef } from '../game-engine/types';
+import { Container, ColorMatrixFilter, Application } from "pixi.js"
+import { PaylineFeature } from './features/PaylineFeature.ts';
+import { Scatter } from './features/Scatter.ts';
+import { GameConfig, SymbolDef } from '../game-engine/types.ts';
 
 const SYMBOLS: SymbolDef[] = [
     // --- SPECIALS ---
@@ -106,6 +106,7 @@ interface clashConf {
     width: number
     height: number
     isMobile: boolean
+    mode?: string
 }
 
 export default class ClashLines extends SlotsBase {

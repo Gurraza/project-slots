@@ -1,9 +1,9 @@
-import ClashLines from "../ClashLines/ClashLines.js"
-import ClashOfReels from "../ClashOfReels/ClashOfReels.js";
+import ClashLines from "../ClashLines/ClashLines.ts"
+import ClashOfReels from "../ClashOfReels/ClashOfReels.ts";
 import { calculateMoves } from "./Math.ts";
 
-const game = new ClashLines(null, null, { mode: 'simulation', });
-// const game = new ClashOfReels(null, null, { mode: 'simulation', });
+// const game = new ClashLines(null, null, { mode: 'simulation', });
+const game = new ClashOfReels(null, null, { mode: 'simulation', });
 async function runSimulation() {
     console.log("Starting Simulation...");
 

@@ -1,7 +1,7 @@
-import { gsap } from "gsap";
+import gsap from "gsap";
 import * as PIXI from "pixi.js"
 
-export function popAnimation(sprite) {
+export function popAnimation(sprite): Promise<void> {
     return new Promise((resolve) => {
         const base = getScale(sprite)
         const tl = gsap.timeline({
@@ -17,7 +17,7 @@ export function popAnimation(sprite) {
     });
 }
 
-export function glowFlashAnimation(sprite) {
+export function glowFlashAnimation(sprite): Promise<void> {
     return new Promise((resolve) => {
         const base = getScale(sprite)
         const tl = gsap.timeline({
@@ -46,7 +46,7 @@ export function glowFlashAnimation(sprite) {
     });
 }
 
-export function implodeAnimation(sprite) {
+export function implodeAnimation(sprite): Promise<void> {
     return new Promise((resolve) => {
         const base = getScale(sprite)
         const tl = gsap.timeline({
@@ -62,7 +62,7 @@ export function implodeAnimation(sprite) {
     });
 }
 
-export function fragmentPopAnimation(sprite) {
+export function fragmentPopAnimation(sprite): Promise<void> {
     return new Promise(resolve => {
         const parent = sprite.parent;
         const { x, y } = sprite;
@@ -232,7 +232,7 @@ export function matchEffectAlternative(sprite) {
     });
 }
 
-export function matchEffect(sprite) {
+export function matchEffect(sprite): Promise<void> {
     return new Promise(resolve => {
 
         const colorMatrix = new PIXI.ColorMatrixFilter();

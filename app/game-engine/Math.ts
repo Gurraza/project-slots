@@ -1,6 +1,6 @@
-import GameFeature from "./GameFeature";
-import SlotsBase from "./SlotsBase";
-import { GameConfig, Grid, SymbolDef, TimelineEvent } from "./types";
+import GameFeature from "./GameFeature.ts";
+import SlotsBase from "./SlotsBase.ts";
+import { GameConfig, Grid, SymbolDef, TimelineEvent } from "./types.ts";
 
 // Helper interface for coordinates
 interface Point {
@@ -14,10 +14,12 @@ interface ClusterNode extends Point {
 
 export class RandomEngine {
     public seed: number;
-
-    constructor(public config: GameConfig, public game: SlotsBase) {
-        // 0xFFFFFFFF is a large number, explicit type helps clarity
+    public config: GameConfig
+    public game: SlotsBase
+    constructor(config: GameConfig, game: SlotsBase) {
         this.seed = Math.floor(Math.random() * 0xFFFFFFFF);
+        this.config = config
+        this.game = game
     }
 
     random(): number {

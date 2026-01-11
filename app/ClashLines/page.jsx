@@ -1,7 +1,7 @@
 'use client';
 import { useState, useRef } from 'react';
 import PixiCanvas from '../components/PixiCanvas';
-import ClashLines from './ClashLines';
+import ClashLines from './ClashLines.ts';
 
 export default function CasinoPage() {
     const [layout, setLayout] = useState(null); // Stores the position/scale of the game

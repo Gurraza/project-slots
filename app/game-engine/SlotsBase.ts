@@ -1,9 +1,9 @@
 import { Assets, Sprite, Container, Graphics, Filter, GlProgram, Application, Texture, TextureSource } from 'pixi.js';
-import { Reel } from './Reel'; // Assumes .ts or .js resolution
-import { UI } from './UI';
-import { RandomEngine, calculateMoves, generateRandomResult } from './Math';
-import { SymbolDef, GameConfig, Grid } from './types';
-import GameFeature from './GameFeature';
+import { Reel } from './Reel.ts'; // Assumes .ts or .js resolution
+import { UI } from './UI.ts';
+import { RandomEngine, calculateMoves, generateRandomResult } from './Math.ts';
+import { SymbolDef, GameConfig, Grid } from './types.ts';
+import GameFeature from './GameFeature.ts';
 
 export interface AnticipationConfig {
     after: number;
@@ -87,18 +87,20 @@ export default class SlotsBase {
     }
 
     registerFeature(feature: GameFeature) {
+        console.log(this.features, this.config.symbols)
         this.features.push(feature);
         const newSymbols = feature.getSymbols ? feature.getSymbols() : null;
         if (newSymbols) {
             this.config.symbols.push(...newSymbols);
         }
+        console.log(this.features, this.config.symbols)
     }
 
     async spin() {
         if (this.processing === true && this.config.mode === "normal") return;
 
         console.log("This game has the seed:", this.engine.seed);
-        // console.log("This game has the symbols:", this.config.symbols);
+        console.log("This game has the symbols:", this.config.symbols);
 
         this.processing = true;
         this.ui.setMultiplier(0);
@@ -106,7 +108,7 @@ export default class SlotsBase {
         const timeline = calculateMoves(this.engine, this.config.rows, this.config.cols, this.features, this.config.symbols);
 
         console.log("PREDICTED PAYOUT:", timeline[timeline.length - 1].totalWin || 0);
-        // console.log("PREDICTED GAME FLOW:", timeline);
+        console.log("PREDICTED GAME FLOW:", timeline);
 
         this.grid = timeline[0].grid;
         await this.spinReels();

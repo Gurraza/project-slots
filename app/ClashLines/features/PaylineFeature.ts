@@ -1,8 +1,8 @@
-import GameFeature from "../../game-engine/GameFeature"//"@/app/game-engine/GameFeature";
+import GameFeature from "../../game-engine/GameFeature.ts"
 import { Graphics, Container } from "pixi.js"
 import gsap from "gsap"
-import SlotsBase from "../../game-engine/SlotsBase"
-import { Grid, Timeline } from "../../game-engine/types"
+import SlotsBase from "../../game-engine/SlotsBase.ts"
+import { Grid, Timeline } from "../../game-engine/types.ts"
 
 interface Payline {
     path: number[]

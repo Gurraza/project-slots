@@ -1,10 +1,11 @@
 import * as PIXI from 'pixi.js';
 import gsap from "gsap";
-import { PixiPlugin } from "gsap/PixiPlugin";
-import { getRandomSymbolId } from "./Math"; // .ts extension is implied in imports
-import { SymbolDef } from "./types"
+import { getRandomSymbolId } from "./Math.ts"; // .ts extension is implied in imports
+import { GameConfig, SymbolDef } from "./types.ts"
 
-// Register Plugins
+import { PixiPlugin } from "gsap/PixiPlugin";
+import SlotsBase from './SlotsBase.ts';
+// // Register Plugins
 gsap.registerPlugin(PixiPlugin);
 PixiPlugin.registerPIXI(PIXI);
 
@@ -15,52 +16,53 @@ interface ReelSymbol extends PIXI.Sprite {
     yToMove: number;
     explode?: number;
     textureScale?: number;
+    speed: number;
 }
 
 // --- 3. Interface for the Reel Configuration ---
-interface ReelConfig {
-    symbolWidth: number;
-    symbolHeight: number;
-    gapX: number;
-    gapY: number;
-    cols: number;
-    rows: number;
-    symbolsBeforeStop: number;
-    reelLandSymbolsDelay: number;
-    spinSpeed: number;
-    spinAcceleration: number;
-    windUp: number; // e.g. -50
-    invisibleFlyby: boolean;
-    motionBlurStrength: number;
-    delayBeforeCascading: number;
-    replaceTime: number;
-    symbols: SymbolDef[]; // Array of symbol definitions
-    [key: string]: any; // Allow loose config props
-}
+// interface ReelConfig {
+//     symbolWidth: number;
+//     symbolHeight: number;
+//     gapX: number;
+//     gapY: number;
+//     cols: number;
+//     rows: number;
+//     symbolsBeforeStop: number;
+//     reelLandSymbolsDelay: number;
+//     spinSpeed: number;
+//     spinAcceleration: number;
+//     windUp: number; // e.g. -50
+//     invisibleFlyby: boolean;
+//     motionBlurStrength: number;
+//     delayBeforeCascading: number;
+//     replaceTime: number;
+//     symbols: SymbolDef[]; // Array of symbol definitions
+//     [key: string]: any; // Allow loose config props
+// }
 
 // --- 4. Interface for the Game Class ---
 // This prevents using 'any' for the game instance
-interface IGame {
-    engine: any;
-    config: ReelConfig;
-    initialGrid: any; // Or Grid type if you have it
-    reels: Reel[];
-    handleSymbolExplode: (effect: string, sprite: ReelSymbol, reelIndex: number) => void;
-    handleSymbolLand: (effect: string | undefined, sprite: ReelSymbol, index: number) => Promise<any> | void;
-    handleSymbolMatch: (effect: string | undefined, sprite: ReelSymbol) => Promise<any> | void;
-}
+// interface IGame {
+//     engine: any;
+//     config: ReelConfig;
+//     initialGrid: any; // Or Grid type if you have it
+//     reels: Reel[];
+//     handleSymbolExplode: (effect: string, sprite: ReelSymbol, reelIndex: number) => void;
+//     handleSymbolLand: (effect: string | undefined, sprite: ReelSymbol, index: number) => Promise<any> | void;
+//     handleSymbolMatch: (effect: string | undefined, sprite: ReelSymbol) => Promise<any> | void;
+// }
 
 // --- 5. Return type for symbol data helpers ---
-interface SymbolData {
-    id: number;
-    texture: PIXI.Texture | null; // Nullable for invisible flyby
-}
+// interface SymbolData {
+//     id: number;
+//     texture: PIXI.Texture | null; // Nullable for invisible flyby
+// }
 
 export class Reel {
     public app: PIXI.Application;
-    public game: IGame;
+    public game: SlotsBase;
     public index: number;
-    public config: ReelConfig;
+    public config: GameConfig;
 
     public container: PIXI.Container;
     public symbols: ReelSymbol[] = [];
@@ -89,7 +91,7 @@ export class Reel {
     public anticipationSymbolId: number = -1;
     public forceVisible: boolean = false; // Added based on usage in getRandomSymbolData
 
-    constructor(app: PIXI.Application, index: number, config: ReelConfig, game: IGame) {
+    constructor(app: PIXI.Application, index: number, config: GameConfig, game: SlotsBase) {
         this.app = app;
         this.game = game;
         this.index = index;
@@ -214,7 +216,7 @@ export class Reel {
                     if (!this.targetResult) return;
 
                     const targetId = this.targetResult[index - 1];
-                    let newData: SymbolData;
+                    let newData: SymbolDef;
 
                     if (targetId !== undefined) {
                         newData = this.getSymbolDataById(targetId);
@@ -254,7 +256,7 @@ export class Reel {
 
                     if (s.y > viewBottom) {
                         s.y -= totalH;
-                        let newData: SymbolData;
+                        let newData: SymbolDef;
 
                         if (this.targetResult && this.symbolsRotated >= this.symbolsBeforeStop) {
                             const targetId = this.targetResult[this.targetsShown];
@@ -334,7 +336,7 @@ export class Reel {
 
                 // Trigger fire/particles/fade
                 if (config && config.explodeEffect) {
-                    this.game.handleSymbolExplode(config.explodeEffect, symbolToExplode, this.index);
+                    this.game.handleSymbolExplode(config.explodeEffect, symbolToExplode);
                 }
             }
 
@@ -383,13 +385,7 @@ export class Reel {
         this.symbols = this.symbols.sort((a, b) => a.y - b.y);
     }
 
-    getRandomSymbolData(invisibleFlyby: boolean = false): SymbolData {
-        if (invisibleFlyby && !this.forceVisible) {
-            return {
-                id: -1,
-                texture: null
-            };
-        }
+    getRandomSymbolData(invisibleFlyby: boolean = false): SymbolDef {
 
         // Ensure you have valid imports for types in Math.ts if needed
         const id = getRandomSymbolId(this.game.engine, {
@@ -398,20 +394,33 @@ export class Reel {
             colIndex: this.index, // Fixed typo: 'coldIndex' -> 'colIndex'
             allSymbols: this.config.symbols
         });
-
         const symbolDef = this.config.symbols.find(s => s.id === id);
-        return {
-            id: id,
-            texture: symbolDef ? symbolDef.texture : PIXI.Texture.EMPTY // Fallback
-        };
+
+        if (invisibleFlyby && !this.forceVisible) {
+            return {
+                id: -1,
+                texture: null,
+                ...symbolDef
+            }
+            // return {
+            //     id: -1,
+            //     texture: null
+            // };
+        }
+        return symbolDef
+        // return {
+        //     id: id,
+        //     texture: symbolDef ? symbolDef.texture : PIXI.Texture.EMPTY // Fallback
+        // };
     }
 
-    getSymbolDataById(id: number): SymbolData {
+    getSymbolDataById(id: number): SymbolDef {
         const symbolDef = this.config.symbols.find(s => s.id === id);
-        return {
-            id: id,
-            texture: symbolDef ? symbolDef.texture : PIXI.Texture.EMPTY
-        };
+        return symbolDef
+        // return {
+        //     id: id,
+        //     texture: symbolDef ? symbolDef.texture : PIXI.Texture.EMPTY
+        // };
     }
 
     applySymbolStyle(sprite: ReelSymbol, symbolId: number): void {

@@ -1,7 +1,7 @@
 import gsap from "gsap";
 import { Assets, Sprite, ColorMatrixFilter, Container, Graphics, Text, Application, FederatedPointerEvent, Texture } from "pixi.js";
-import SlotsBase from "./SlotsBase";
-import { GameConfig, SymbolDef } from "./types"; // Assuming types are exported from SlotsBase or types.ts
+import SlotsBase from "./SlotsBase.ts";
+import { GameConfig, SymbolDef } from "./types.ts"
 
 
 

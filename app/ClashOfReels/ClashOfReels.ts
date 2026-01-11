@@ -1,17 +1,17 @@
-import SlotsBase from '../game-engine/SlotsBase';
+import SlotsBase from '../game-engine/SlotsBase.ts';
 import gsap from "gsap"
 import { Assets, Sprite, Graphics, Text, Container, ColorMatrixFilter, FillGradient, Application } from "pixi.js"
-import { EagleArtilleryFeature } from './features/EagleArtilleryFeature';
-import { ClanCastleFeature } from './features/ClanCastleFeature';
-import { WardenFeature } from './features/WardenFeature';
-import { TownHallFeature } from './features/TownHallFeature';
-import { MinesFeature } from './features/MinesFeature';
-import { TreasureGoblinFeature } from './features/TreasureGoblinFeature';
-import { SuperTroopFeature } from './features/SuperTroopFeature';
-import { BuilderFeature } from './features/BuilderFeature';
-import { ClusterEngineFeature } from './features/ClusterFeature';
-import { shake, popAnimation, glowFlashAnimation, implodeAnimation, fragmentPopAnimation, landingEffect, matchEffect } from '../game-engine/effects/Effects.js';
-import { SymbolDef } from "../game-engine/types"
+import { EagleArtilleryFeature } from './features/EagleArtilleryFeature.ts';
+import { ClanCastleFeature } from './features/ClanCastleFeature.ts';
+import { WardenFeature } from './features/WardenFeature.ts';
+import { TownHallFeature } from './features/TownHallFeature.ts';
+import { MinesFeature } from './features/MinesFeature.ts';
+import { TreasureGoblinFeature } from './features/TreasureGoblinFeature.ts';
+import { SuperTroopFeature } from './features/SuperTroopFeature.ts';
+import { BuilderFeature } from './features/BuilderFeature.ts';
+import { ClusterEngineFeature } from './features/ClusterFeature.ts';
+import { shake, popAnimation, glowFlashAnimation, implodeAnimation, fragmentPopAnimation, landingEffect, matchEffect } from '../game-engine/effects/Effects.ts';
+import { SymbolDef } from "../game-engine/types.ts"
 
 const SYMBOLS: SymbolDef[] = [
     {
@@ -114,6 +114,7 @@ interface clashConf {
     width: number
     height: number
     isMobile: boolean
+    mode: string
 }
 
 export default class ClashOfReels extends SlotsBase {

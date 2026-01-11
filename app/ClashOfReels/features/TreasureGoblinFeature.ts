@@ -1,9 +1,9 @@
-import GameFeature from "../../game-engine/GameFeature"
+import GameFeature from "../../game-engine/GameFeature.ts"
 import gsap from "gsap"
 import { Sprite, Assets, Container, Text, Graphics, FillGradient } from "pixi.js"
-import { contain } from "../../game-engine/Math"
-import { SymbolDef } from "../../game-engine/types"
-import SlotsBase from "../../game-engine/SlotsBase"
+import { contain } from "../../game-engine/Math.ts"
+import { SymbolDef } from "../../game-engine/types.ts"
+import SlotsBase from "../../game-engine/SlotsBase.ts"
 
 const featureSymbol: SymbolDef = {
     name: "treasureGoblin",

@@ -1,4 +1,4 @@
-import GameFeature from "../../game-engine/GameFeature"
+import GameFeature from "../../game-engine/GameFeature.ts"
 import gsap from "gsap"
 
 const featureSymbols = [

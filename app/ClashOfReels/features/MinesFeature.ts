@@ -1,7 +1,7 @@
-import GameFeature from "../../game-engine/GameFeature"
+import GameFeature from "../../game-engine/GameFeature.ts"
 import gsap from "gsap"
-import { MinesGame } from "../MinesGame";
-import { contain } from "../../game-engine/Math"
+import { MinesGame } from "../MinesGame.ts";
+import { contain } from "../../game-engine/Math.ts"
 
 const featureSymbol = {
     name: "treasure",

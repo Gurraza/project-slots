@@ -1,16 +1,16 @@
-import GameFeature from "../../game-engine/GameFeature"
-import { contain, explode } from "../../game-engine/Math"
+import GameFeature from "../../game-engine/GameFeature.ts"
+import { contain, explode } from "../../game-engine/Math.ts"
 import gsap from "gsap"
 import { MotionPathPlugin } from "gsap/MotionPathPlugin";
 import * as PIXI from "pixi.js";
-import { shake } from "../../game-engine/effects/Effects";
-import { SymbolDef } from "../../game-engine/types";
+import { shake } from "../../game-engine/effects/Effects.ts";
+import { SymbolDef } from "../../game-engine/types.ts";
 gsap.registerPlugin(MotionPathPlugin);
 
 const featureSymbol: SymbolDef = {
     name: "eagleartillery",
-    scale: 5,
-    path: "Star.png",
+    scale: 1,
+    path: "Building_HV_Eagle_Artillery_level_2_1.png",
     weight: [5],
     cheatWeight: [999999],
     dontCluster: true,

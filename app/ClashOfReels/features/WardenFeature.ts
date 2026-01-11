@@ -1,11 +1,11 @@
-import GameFeature from "../../game-engine/GameFeature"
+import GameFeature from "../../game-engine/GameFeature.ts"
 import gsap from "gsap";
-import { MotionPathPlugin } from "gsap/MotionPathPlugin"; // Ensure this is installed/registered
-import { contain, explode } from "../../game-engine/Math"
+import { MotionPathPlugin } from "gsap/MotionPathPlugin"
+import { contain, explode } from "../../game-engine/Math.ts"
 import * as PIXI from "pixi.js"
-import { shake } from "../../game-engine/effects/Effects";
-import { SymbolDef, Grid, Timeline, FeatureEvent, TimelineEvent } from "../../game-engine/types";
-import SlotsBase from "../../game-engine/SlotsBase";
+import { shake } from "../../game-engine/effects/Effects.ts";
+import { SymbolDef, Grid, Timeline, FeatureEvent, TimelineEvent } from "../../game-engine/types.ts";
+import SlotsBase from "../../game-engine/SlotsBase.ts";
 
 // Register GSAP Plugin for the arc animation
 gsap.registerPlugin(MotionPathPlugin);

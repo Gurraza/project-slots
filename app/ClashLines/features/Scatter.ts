@@ -1,9 +1,7 @@
-import GameFeature from "../../game-engine/GameFeature"
-import gsap from "gsap"
-import { contain } from "../../game-engine/Math"
-import { SymbolDef } from "../../game-engine/types"
-import { Application } from "pixi.js"
-import SlotsBase from "../../game-engine/SlotsBase"
+import GameFeature from "../../game-engine/GameFeature.ts"
+import { contain } from "../../game-engine/Math.ts"
+import { SymbolDef } from "../../game-engine/types.ts"
+import SlotsBase from "../../game-engine/SlotsBase.ts"
 
 const featureSymbol: SymbolDef = {
     name: "scatter",
