@@ -1,7 +1,7 @@
 import { Assets, Sprite, Container, Graphics, Filter, GlProgram, Application, Texture, TextureSource } from 'pixi.js';
 import { Reel } from './Reel.ts'; // Assumes .ts or .js resolution
 import { UI } from './UI.ts';
-import { RandomEngine, calculateMoves, generateRandomResult } from './Math.ts';
+import { RandomEngine, calculateMoves, contain, generateRandomResult } from './Math.ts';
 import { SymbolDef, GameConfig, Grid } from './types.ts';
 import GameFeature from './GameFeature.ts';
 
@@ -98,7 +98,7 @@ export default class SlotsBase {
 
     async spin() {
         if (this.processing === true && this.config.mode === "normal") return;
-
+        // this.engine.setSeed(313572660444)
         console.log("This game has the seed:", this.engine.seed);
         console.log("This game has the symbols:", this.config.symbols);
 
@@ -146,17 +146,12 @@ export default class SlotsBase {
             throw Error("Wrong structure of result data");
         }
 
-        this.config.symbols.forEach(symbol => {
-            if (symbol.anticipation) {
-                this.applyAnticipation(symbol);
-            }
-        });
-
         const spinPromises = this.reels.map((r, i) => (async () => {
             await new Promise(resolve =>
                 setTimeout(resolve, i * this.config.staggerTime)
             );
             await r.spin(resultData[i]);
+            this.applyAnticipation(i)
             return resultData[i];
         })());
 
@@ -311,7 +306,23 @@ export default class SlotsBase {
         });
     }
 
-    applyAnticipation(symbol: SymbolDef) {
+    applyAnticipation(reelIndex: number) {
+        const symbol: SymbolDef = this.config.symbols.find((s: SymbolDef) => s.anticipation)
+        const positions = contain(symbol.id, this.grid)
+
+        positions.forEach((pos, index) => {
+            if (pos.x > reelIndex) return
+            if (index >= symbol.anticipation.after - 1) {
+                this.reels.forEach((reel: Reel) => {
+                    reel.speedMultiplier = .2
+                    reel.anticipate(symbol)
+                })
+            }
+
+        })
+    }
+
+    aapplyAnticipation(symbol: SymbolDef) {
         if (!symbol.anticipation) return;
 
         let foundCount = 0;

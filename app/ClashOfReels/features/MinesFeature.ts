@@ -2,10 +2,12 @@ import GameFeature from "../../game-engine/GameFeature.ts"
 import gsap from "gsap"
 import { MinesGame } from "../MinesGame.ts";
 import { contain } from "../../game-engine/Math.ts"
+import { SymbolDef } from "../../game-engine/types.ts";
 
-const featureSymbol = {
+const featureSymbol: SymbolDef = {
     name: "treasure",
     weight: [150, 50, 1],
+    cheatWeight: [99999, 99999, 999999],
     scale: 1.4,
     group: "bonus_game",
     onlyAppearOnRoll: true,

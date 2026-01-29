@@ -8,6 +8,7 @@ import SlotsBase from "../../game-engine/SlotsBase.ts"
 const featureSymbol: SymbolDef = {
     name: "treasureGoblin",
     weight: [150, 75, 20],
+    cheatWeight: [99999, 99999, 9999],
     scale: 1.4,
     group: "bonus_game",
     onlyAppearOnRoll: true,

@@ -136,7 +136,7 @@ export default class ClashOfReels extends SlotsBase {
 
             symbolsBeforeStop: 15,
             reelLandSymbolsDelay: 5,
-            invisibleFlyby: true,
+            invisibleFlyby: false,
             motionBlurStrength: .8,
             font: {
                 family: "cocFont",

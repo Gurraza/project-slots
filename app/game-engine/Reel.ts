@@ -1,62 +1,20 @@
 import * as PIXI from 'pixi.js';
 import gsap from "gsap";
-import { getRandomSymbolId } from "./Math.ts"; // .ts extension is implied in imports
+import { getRandomSymbolId } from "./Math.ts";
 import { GameConfig, SymbolDef } from "./types.ts"
-
 import { PixiPlugin } from "gsap/PixiPlugin";
 import SlotsBase from './SlotsBase.ts';
-// // Register Plugins
 gsap.registerPlugin(PixiPlugin);
 PixiPlugin.registerPIXI(PIXI);
 
-// --- 1. Custom Interface for your Symbols ---
-// Since you attach custom data (symbolId, yToMove) to PIXI Sprites, we extend the type.
 interface ReelSymbol extends PIXI.Sprite {
     symbolId: number;
     yToMove: number;
     explode?: number;
     textureScale?: number;
     speed: number;
+    delay: number
 }
-
-// --- 3. Interface for the Reel Configuration ---
-// interface ReelConfig {
-//     symbolWidth: number;
-//     symbolHeight: number;
-//     gapX: number;
-//     gapY: number;
-//     cols: number;
-//     rows: number;
-//     symbolsBeforeStop: number;
-//     reelLandSymbolsDelay: number;
-//     spinSpeed: number;
-//     spinAcceleration: number;
-//     windUp: number; // e.g. -50
-//     invisibleFlyby: boolean;
-//     motionBlurStrength: number;
-//     delayBeforeCascading: number;
-//     replaceTime: number;
-//     symbols: SymbolDef[]; // Array of symbol definitions
-//     [key: string]: any; // Allow loose config props
-// }
-
-// --- 4. Interface for the Game Class ---
-// This prevents using 'any' for the game instance
-// interface IGame {
-//     engine: any;
-//     config: ReelConfig;
-//     initialGrid: any; // Or Grid type if you have it
-//     reels: Reel[];
-//     handleSymbolExplode: (effect: string, sprite: ReelSymbol, reelIndex: number) => void;
-//     handleSymbolLand: (effect: string | undefined, sprite: ReelSymbol, index: number) => Promise<any> | void;
-//     handleSymbolMatch: (effect: string | undefined, sprite: ReelSymbol) => Promise<any> | void;
-// }
-
-// --- 5. Return type for symbol data helpers ---
-// interface SymbolData {
-//     id: number;
-//     texture: PIXI.Texture | null; // Nullable for invisible flyby
-// }
 
 export class Reel {
     public app: PIXI.Application;
@@ -69,7 +27,7 @@ export class Reel {
 
     // State management
     public state: 'IDLE' | 'SPINNING' | 'ACCELERATING' | 'STOPPING' | 'DROPPING' | 'LANDING' | 'CASCADING';
-    public speed: number = 0;
+    // public speed: number = 0;
 
     // Logic vars
     public targetResult: number[] | null = null;
@@ -90,6 +48,7 @@ export class Reel {
     public shouldTriggerAnticipation: boolean = false;
     public anticipationSymbolId: number = -1;
     public forceVisible: boolean = false; // Added based on usage in getRandomSymbolData
+    public speedMultiplier = 1
 
     constructor(app: PIXI.Application, index: number, config: GameConfig, game: SlotsBase) {
         this.app = app;
@@ -101,7 +60,7 @@ export class Reel {
         this.container.x = index * (config.symbolWidth + config.gapX);
         this.container.y = 0;
 
-        this.state = 'IDLE';
+        this.state = "IDLE";
         this.symbolsBeforeStop = this.config.symbolsBeforeStop + (this.config.reelLandSymbolsDelay * index);
 
         this.initSymbols();
@@ -132,6 +91,7 @@ export class Reel {
 
             symbol.symbolId = randomData.id;
             symbol.yToMove = 0; // Init custom prop
+            symbol.speed = 0
 
             this.applySymbolStyle(symbol, randomData.id);
             symbol.y = (i - 1) * this.slotHeight + (this.config.symbolHeight / 2);
@@ -145,39 +105,47 @@ export class Reel {
         this.reset();
         this.state = 'ACCELERATING';
 
-        await new Promise<void>(resolve => {
-            // Move the container UP (negative y)
-            gsap.to(this.container, {
-                y: this.game.config.windUp,
-                duration: 0.25,
-                ease: "back.out(1.5)",
-                onComplete: () => {
-                    // Snap back
-                    gsap.to(this.container, {
-                        y: 0,
-                        duration: 0.15,
-                        ease: "power1.in"
-                    });
-                    resolve();
-                }
-            });
-        });
+        // await new Promise<void>(resolve => {
+        //     // Move the container UP (negative y)
+        //     gsap.to(this.container, {
+        //         y: this.game.config.windUp,
+        //         duration: 0.25,
+        //         ease: "back.out(1.5)",
+        //         onComplete: () => {
+        //             // Snap back
+        //             gsap.to(this.container, {
+        //                 y: 0,
+        //                 duration: 0.15,
+        //                 ease: "power1.in"
+        //             });
+        //             resolve();
+        //         }
+        //     });
+        // });
 
-        gsap.to(this, {
-            speed: this.config.spinSpeed,
-            duration: this.config.spinAcceleration,
-            ease: "power2.out",
-            onStart: () => { this.state = "SPINNING"; }
-        });
+        this.sort()
+        this.symbols.forEach((symbol, index) => {
+            symbol.delay = index * 0.1
+            gsap.to(symbol, {
+                speed: this.config.spinSpeed,
+                duration: this.config.spinAcceleration,
+                ease: "power2.out",
+                delay: index * 0.1,
+                onStart: () => { this.state = "SPINNING"; }
+            })
+        })
+        // gsap.to(this, {
+        //     speed: this.config.spinSpeed,
+        //     duration: this.config.spinAcceleration,
+        //     ease: "power2.out",
+        //     onStart: () => { this.state = "SPINNING"; }
+        // });
 
         this.targetResult = resultData;
 
         return new Promise((resolve) => {
             this.spinResolve = () => {
                 this.blurFilter.strengthY = 0;
-                if (this.index !== this.config.cols - 1) {
-                    this.anticipation();
-                }
                 resolve();
             };
         });
@@ -187,6 +155,7 @@ export class Reel {
         this.state = "IDLE";
         this.targetsShown = 0;
         this.symbolsRotated = 0;
+        this.symbols.forEach(s => s.speed = 0)
     }
 
     update(delta: number): void {
@@ -203,7 +172,12 @@ export class Reel {
         // Apply Blur
         if (this.state === 'SPINNING' || this.state === 'ACCELERATING') {
             if (!this.container.filters) this.container.filters = [this.blurFilter];
-            this.blurFilter.strengthY = Math.abs(this.speed) * this.config.motionBlurStrength;
+            // this.blurFilter.strengthY = Math.abs(this.config.spinSpeed) * this.config.motionBlurStrength;
+            // Calculate the current fastest speed among the visible symbols
+            const currentMaxSpeed = Math.max(...this.symbols.map(s => s.speed));
+
+            // Apply blur based on ACTUAL speed, not CONFIG speed
+            // this.blurFilter.strengthY = currentMaxSpeed * this.config.motionBlurStrength;
         }
 
         if (this.state === "SPINNING" || this.state === "ACCELERATING") {
@@ -252,10 +226,42 @@ export class Reel {
                 const viewBottom = (this.config.rows + 1) * this.slotHeight;
 
                 this.symbols.forEach((s) => {
-                    s.y += this.speed * delta;
+                    s.y += s.speed * delta * this.speedMultiplier //this.speed * delta;
 
                     if (s.y > viewBottom) {
-                        s.y -= totalH;
+                        // 1. Find the Y position of the symbol currently at the very top
+                        //    (We filter out 's' so we don't compare the symbol against itself)
+                        let leader: ReelSymbol | null = null;
+                        let minY = Infinity;
+
+                        this.symbols.forEach(sym => {
+                            if (sym !== s && sym.y < minY) {
+                                minY = sym.y;
+                                leader = sym;
+                            }
+                        });
+
+                        if (leader) {
+                            // 2. Snap Position: Anchor directly above the leader
+                            s.y = leader.y - this.slotHeight;
+
+                            // 3. Sync Speed: Copy the leader's speed immediately
+                            // This prevents the "crash" because they now move at the same rate
+                            s.speed = (leader as ReelSymbol).speed;
+                            // 4. Update Tween:
+                            // The wrapping symbol (s) might still have a delayed/slow tween running.
+                            // We kill it and tell it to accelerate to max speed (just in case it hasn't yet).
+                            gsap.killTweensOf(s);
+                            // setTimeout(() => {
+                            //     s.speed = this.config.spinSpeed
+                            // }, 0.1 * 5 - s.delay)
+                            gsap.to(s, {
+                                speed: this.config.spinSpeed,
+                                duration: 0.01, // Very fast sync to ensure it doesn't lag
+                                delay: 0.1 * 4 - s.delay,
+                                ease: "power1.out"
+                            });
+                        }
                         let newData: SymbolDef;
 
                         if (this.targetResult && this.symbolsRotated >= this.symbolsBeforeStop) {
@@ -386,12 +392,10 @@ export class Reel {
     }
 
     getRandomSymbolData(invisibleFlyby: boolean = false): SymbolDef {
-
-        // Ensure you have valid imports for types in Math.ts if needed
         const id = getRandomSymbolId(this.game.engine, {
             firstSpin: false,
             gridToCheck: this.game.initialGrid,
-            colIndex: this.index, // Fixed typo: 'coldIndex' -> 'colIndex'
+            colIndex: this.index,
             allSymbols: this.config.symbols
         });
         const symbolDef = this.config.symbols.find(s => s.id === id);
@@ -402,25 +406,13 @@ export class Reel {
                 texture: null,
                 ...symbolDef
             }
-            // return {
-            //     id: -1,
-            //     texture: null
-            // };
         }
         return symbolDef
-        // return {
-        //     id: id,
-        //     texture: symbolDef ? symbolDef.texture : PIXI.Texture.EMPTY // Fallback
-        // };
     }
 
     getSymbolDataById(id: number): SymbolDef {
         const symbolDef = this.config.symbols.find(s => s.id === id);
         return symbolDef
-        // return {
-        //     id: id,
-        //     texture: symbolDef ? symbolDef.texture : PIXI.Texture.EMPTY
-        // };
     }
 
     applySymbolStyle(sprite: ReelSymbol, symbolId: number): void {
@@ -493,9 +485,10 @@ export class Reel {
     anticipation(): void {
         if (!this.shouldTriggerAnticipation) return;
         if (this.index === this.config.cols - 1) return;
-
+        console.log("is applying anticipation")
         this.game.reels.forEach((reel) => {
             if (reel.state == "IDLE") {
+                reel.speedMultiplier = 1
                 reel.symbols.forEach(symbol => {
                     if (symbol.symbolId === this.anticipationSymbolId) {
                         if (!gsap.isTweening(symbol.scale)) {
@@ -524,9 +517,10 @@ export class Reel {
                 });
             }
             else {
-                if (reel.speed > this.config.spinSpeed / 2) {
+                // reel.symbolsBeforeStop += 15
+                if (reel.speedMultiplier == 1) {
                     gsap.to(reel, {
-                        speed: this.config.spinSpeed / 2,
+                        speedMultiplier: .5,
                         duration: 1,
                         ease: "power2.out"
                     });
@@ -536,6 +530,10 @@ export class Reel {
     }
 
     clearAnticipation(): void {
+        this.game.reels.forEach((reel: Reel) => {
+            gsap.killTweensOf(reel)
+            reel.speedMultiplier = 1
+        })
         this.symbols.forEach(symbol => {
             gsap.killTweensOf(symbol.scale);
             gsap.killTweensOf(symbol);
@@ -664,7 +662,7 @@ export class Reel {
                         this.game.handleSymbolLand(symbolDef.landingEffect, symbol, index);
                     }
 
-                    if (index === this.config.rows - 1) {
+                    if (index === this.config.rows + 1) {
                         if (this.spinResolve) {
                             this.spinResolve(this.targetResult);
                             this.spinResolve = null;
@@ -673,5 +671,42 @@ export class Reel {
                 }
             });
         });
+    }
+
+    anticipate(anticipateSymbol: SymbolDef) {
+        if (this.state === "IDLE") {
+            // mörklägg alla
+            // gör vår symbol större och inte mörklagd
+            this.symbols.forEach((symbol: ReelSymbol) => {
+                if (symbol.symbolId === anticipateSymbol.id) {
+                    if (!gsap.isTweening(symbol.scale)) {
+                        this.applySymbolStyle(symbol, symbol.symbolId);
+                        const baseScaleX = symbol.scale.x;
+                        const baseScaleY = symbol.scale.y;
+
+                        gsap.to(symbol.scale, {
+                            x: baseScaleX * 1.2,
+                            y: baseScaleY * 1.2,
+                            duration: 0.6,
+                            yoyo: true,
+                            repeat: -1,
+                            ease: "sine.inOut"
+                        });
+                    }
+                } else {
+                    if (symbol.alpha !== 0.5) {
+                        gsap.to(symbol, {
+                            pixi: { tint: 0x555555 },
+                            duration: 0.3,
+                            ease: "power2.out"
+                        });
+                    }
+                }
+            })
+        }
+    }
+
+    onIdle() {
+
     }
 }
