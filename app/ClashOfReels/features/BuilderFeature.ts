@@ -1,12 +1,14 @@
 import GameFeature from "../../game-engine/GameFeature.ts"
 import gsap from "gsap"
 import { Sprite, Assets } from "pixi.js"
+import { SymbolDef } from "../../game-engine/types.ts"
 
-const featureSymbol = {
+const featureSymbol: SymbolDef = {
     name: "builder",
     scale: 1,
     path: "Builder.png",
     weight: [5],
+    cheatWeight: [9999999],
     onlyAppearOnRoll: true,
     matchEffect: "builder_match",
     clusterSize: 1,

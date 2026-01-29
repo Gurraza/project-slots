@@ -98,7 +98,7 @@ export default class SlotsBase {
 
     async spin() {
         if (this.processing === true && this.config.mode === "normal") return;
-        // this.engine.setSeed(313572660444)
+        // this.engine.setSeed(312200775302)
         console.log("This game has the seed:", this.engine.seed);
         console.log("This game has the symbols:", this.config.symbols);
 
@@ -308,6 +308,7 @@ export default class SlotsBase {
 
     applyAnticipation(reelIndex: number) {
         const symbol: SymbolDef = this.config.symbols.find((s: SymbolDef) => s.anticipation)
+        if (!symbol) return
         const positions = contain(symbol.id, this.grid)
 
         positions.forEach((pos, index) => {

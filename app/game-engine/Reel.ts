@@ -125,12 +125,12 @@ export class Reel {
 
         this.sort()
         this.symbols.forEach((symbol, index) => {
-            symbol.delay = index * 0.1
+            symbol.delay = 0//(this.config.invisibleFlyby ? index * 0.1 : 0)
             gsap.to(symbol, {
                 speed: this.config.spinSpeed,
                 duration: this.config.spinAcceleration,
                 ease: "power2.out",
-                delay: index * 0.1,
+                delay: symbol.delay,
                 onStart: () => { this.state = "SPINNING"; }
             })
         })
@@ -229,39 +229,40 @@ export class Reel {
                     s.y += s.speed * delta * this.speedMultiplier //this.speed * delta;
 
                     if (s.y > viewBottom) {
+                        s.y -= totalH;
                         // 1. Find the Y position of the symbol currently at the very top
                         //    (We filter out 's' so we don't compare the symbol against itself)
-                        let leader: ReelSymbol | null = null;
-                        let minY = Infinity;
+                        // let leader: ReelSymbol | null = null;
+                        // let minY = Infinity;
 
-                        this.symbols.forEach(sym => {
-                            if (sym !== s && sym.y < minY) {
-                                minY = sym.y;
-                                leader = sym;
-                            }
-                        });
+                        // this.symbols.forEach(sym => {
+                        //     if (sym !== s && sym.y < minY) {
+                        //         minY = sym.y;
+                        //         leader = sym;
+                        //     }
+                        // });
 
-                        if (leader) {
-                            // 2. Snap Position: Anchor directly above the leader
-                            s.y = leader.y - this.slotHeight;
+                        // if (leader) {
+                        //     // 2. Snap Position: Anchor directly above the leader
+                        //     s.y = leader.y - this.slotHeight;
 
-                            // 3. Sync Speed: Copy the leader's speed immediately
-                            // This prevents the "crash" because they now move at the same rate
-                            s.speed = (leader as ReelSymbol).speed;
-                            // 4. Update Tween:
-                            // The wrapping symbol (s) might still have a delayed/slow tween running.
-                            // We kill it and tell it to accelerate to max speed (just in case it hasn't yet).
-                            gsap.killTweensOf(s);
-                            // setTimeout(() => {
-                            //     s.speed = this.config.spinSpeed
-                            // }, 0.1 * 5 - s.delay)
-                            gsap.to(s, {
-                                speed: this.config.spinSpeed,
-                                duration: 0.01, // Very fast sync to ensure it doesn't lag
-                                delay: 0.1 * 4 - s.delay,
-                                ease: "power1.out"
-                            });
-                        }
+                        //     // 3. Sync Speed: Copy the leader's speed immediately
+                        //     // This prevents the "crash" because they now move at the same rate
+                        //     s.speed = (leader as ReelSymbol).speed;
+                        //     // 4. Update Tween:
+                        //     // The wrapping symbol (s) might still have a delayed/slow tween running.
+                        //     // We kill it and tell it to accelerate to max speed (just in case it hasn't yet).
+                        //     gsap.killTweensOf(s);
+                        //     // setTimeout(() => {
+                        //     //     s.speed = this.config.spinSpeed
+                        //     // }, 0.1 * 5 - s.delay)
+                        //     gsap.to(s, {
+                        //         speed: this.config.spinSpeed,
+                        //         duration: 0.01, // Very fast sync to ensure it doesn't lag
+                        //         delay: 0.1 * 4 - s.delay,
+                        //         ease: "power1.out"
+                        //     });
+                        // }
                         let newData: SymbolDef;
 
                         if (this.targetResult && this.symbolsRotated >= this.symbolsBeforeStop) {
@@ -399,12 +400,11 @@ export class Reel {
             allSymbols: this.config.symbols
         });
         const symbolDef = this.config.symbols.find(s => s.id === id);
-
         if (invisibleFlyby && !this.forceVisible) {
             return {
+                ...symbolDef,
                 id: -1,
-                texture: null,
-                ...symbolDef
+                texture: PIXI.Texture.EMPTY,
             }
         }
         return symbolDef
@@ -662,7 +662,7 @@ export class Reel {
                         this.game.handleSymbolLand(symbolDef.landingEffect, symbol, index);
                     }
 
-                    if (index === this.config.rows + 1) {
+                    if (index === this.config.rows - 1) {
                         if (this.spinResolve) {
                             this.spinResolve(this.targetResult);
                             this.spinResolve = null;
