@@ -12,6 +12,7 @@ import { BuilderFeature } from './features/BuilderFeature.ts';
 import { ClusterEngineFeature } from './features/ClusterFeature.ts';
 import { shake, popAnimation, glowFlashAnimation, implodeAnimation, fragmentPopAnimation, landingEffect, matchEffect } from '../game-engine/effects/Effects.ts';
 import { SymbolDef } from "../game-engine/types.ts"
+import { CellMultiplier } from './features/CellMutliplier.ts';
 
 const SYMBOLS: SymbolDef[] = [
     {
@@ -187,6 +188,7 @@ export default class ClashOfReels extends SlotsBase {
         super(rootContainer, app, myConfig);
 
         this.registerFeature(new ClusterEngineFeature(this))
+        // this.registerFeature(new CellMultiplier(this))
         this.registerFeature(new EagleArtilleryFeature(this))
         this.registerFeature(new ClanCastleFeature(this))
         this.registerFeature(new WardenFeature(this))

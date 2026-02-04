@@ -93,12 +93,11 @@ export default class SlotsBase {
         if (newSymbols) {
             this.config.symbols.push(...newSymbols);
         }
-        console.log(this.features, this.config.symbols)
     }
 
     async spin() {
         if (this.processing === true && this.config.mode === "normal") return;
-        // this.engine.setSeed(312200775302)
+        // this.engine.setSeed(310829654308)
         console.log("This game has the seed:", this.engine.seed);
         console.log("This game has the symbols:", this.config.symbols);
 
@@ -307,7 +306,18 @@ export default class SlotsBase {
     }
 
     applyAnticipation(reelIndex: number) {
-        const symbol: SymbolDef = this.config.symbols.find((s: SymbolDef) => s.anticipation)
+        const symbol = this.config.symbols.find((s: SymbolDef) => {
+            if (!s.anticipation) return false;
+
+            // SAFE CHECK: Handle both Array weights and Number weights
+            if (Array.isArray(s.weight)) {
+                // Check if ANY reel has a weight > 0
+                return s.weight.some(w => w > 0);
+            } else {
+                // Standard number check
+                return s.weight > 0;
+            }
+        });
         if (!symbol) return
         const positions = contain(symbol.id, this.grid)
 

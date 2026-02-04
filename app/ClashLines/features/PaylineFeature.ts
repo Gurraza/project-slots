@@ -15,7 +15,7 @@ export class PaylineFeature extends GameFeature {
     private lineLayer: Container
     private paylines: Payline[]
     constructor(game: SlotsBase, paylines: number[][]) {
-        super(game, "PAYLINES_FEATURE")
+        super(game, "PAYLINES_FEATURE", null)
         this.paylines = paylines.map((path, i) => { return { path, id: i, color: 0x00FF00 } })
         if (game.config.mode !== "simulation") {
             this.lineLayer = new Container()

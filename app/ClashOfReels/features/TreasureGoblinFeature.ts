@@ -49,10 +49,10 @@ interface BonusConfig {
 }
 
 interface ResourceBarData {
-    graphics: Graphics;
-    maxWidth: number;
-    maxVal: number;
-    fillStyle: FillGradient;
+    graphics?: Graphics;
+    maxWidth?: number;
+    maxVal?: number;
+    fillStyle?: FillGradient;
 }
 
 export class TreasureGoblinFeature extends GameFeature {
@@ -200,7 +200,7 @@ export class TreasureGoblinFeature extends GameFeature {
         this.stage.addChild(this.resourceContainer);
 
         this.resourceTexts = {};
-        // this.resourceBars = {};
+        this.resourceBars = {};
 
         // Convert the config object keys into an array to iterate
         const resourceKeys = Object.keys(this.bonusConfig.resources);
