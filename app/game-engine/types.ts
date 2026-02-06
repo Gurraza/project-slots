@@ -59,6 +59,7 @@ export interface GameConfig {
     reelBackgroundImage: string;
     reelBackgroundScale: number;
     reelBackgroundOffset: { x: number; y: number };
+    titleImage: string,
     symbolsBeforeStop: number;
     reelLandSymbolsDelay: number;
     invisibleFlyby: boolean;
@@ -105,20 +106,22 @@ export interface SymbolDef {
     name: string;
     weight: number | number[];
     cheatWeight?: number | number[];
-    scale: number;
-
+    scale?: number;
+    backgroundColor?: any;
     baseWeight?: number | number[];
     group?: string;
     onePerReel?: boolean;
     payouts?: Record<number, number>;
     dontCluster?: boolean
-    matchesWith?: string
+    matchesWith?: string | string[]
     path?: string;
     texture?: any;
     textureAtLevel?: string[];
-
+    sprite_name?: string;
     clusterSize?: number;
     onlyAppearOnRoll?: boolean;
+
+    isEater?: boolean;
 
     anticipation?: {
         after: number;
@@ -159,6 +162,6 @@ export interface SymbolDef {
 // }
 
 export interface Point {
-    col: number,
-    row: number
+    x: number,
+    y: number
 }

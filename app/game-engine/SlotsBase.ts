@@ -72,6 +72,7 @@ export default class SlotsBase {
 
     setBackground(alias?: string) {
         Assets.load(alias || this.config.backgroundImage || "").then((texture) => {
+            console.log("2")
             if (!this.bgSprite) {
                 this.bgSprite = new Sprite();
             }
@@ -97,7 +98,7 @@ export default class SlotsBase {
 
     async spin() {
         if (this.processing === true && this.config.mode === "normal") return;
-        // this.engine.setSeed(310829654308)
+        // this.engine.setSeed(2507743367228)
         console.log("This game has the seed:", this.engine.seed);
         console.log("This game has the symbols:", this.config.symbols);
 
@@ -161,7 +162,7 @@ export default class SlotsBase {
     }
 
     createGrid() {
-        this.drawBackgroundCells(0x777777); // Fixed hex format
+        // this.drawBackgroundCells(0x777777); // Fixed hex format
         const totalWidth = (this.config.cols * this.config.symbolWidth) +
             ((this.config.cols - 1) * this.config.gapX);
 
@@ -197,8 +198,10 @@ export default class SlotsBase {
                 reelBackgroundImage.zIndex = -1;
                 reelBackgroundImage.anchor.set(0);
                 reelBackgroundImage.setSize(
-                    (totalWidth + 300 * this.config.reelBackgroundScale),
-                    (totalHeight + 180) * this.config.reelBackgroundScale
+                    // (totalWidth + 300 * this.config.reelBackgroundScale),
+                    // (totalHeight + 180) * this.config.reelBackgroundScale
+                    (totalWidth + 150 * this.config.reelBackgroundScale),
+                    (totalHeight + 150) * this.config.reelBackgroundScale
                 );
                 reelBackgroundImage.x = this.reelContainer.x - 150 + this.config.reelBackgroundOffset.x;
                 reelBackgroundImage.y = this.reelContainer.y - 90 + this.config.reelBackgroundOffset.y;
@@ -226,15 +229,20 @@ export default class SlotsBase {
             fixedSymbol.landingEffect = symbol.landingEffect ? symbol.landingEffect : this.config.defaultLandingEffect;
             fixedSymbol.matchEffect = symbol.matchEffect ? symbol.matchEffect : this.config.defaultMatchEffect;
             fixedSymbol.explodeEffect = symbol.explodeEffect ? symbol.explodeEffect : this.config.defaultExplodeEffect;
+            fixedSymbol.scale = symbol.scale ? symbol.scale : 1
 
             if (this.config.invisibleFlyby) {
                 fixedSymbol.anticipation = undefined;
             }
+            // if (fixedSymbol.path) {
+            //     return {
+            //         ...fixedSymbol,
+            //         path: (this.config.pathPrefix + fixedSymbol.path)
+            //     };
+            // }
             if (fixedSymbol.path) {
-                return {
-                    ...fixedSymbol,
-                    path: (this.config.pathPrefix + fixedSymbol.path)
-                };
+                // We do NOT add pathPrefix here. We need the raw string to match the JSON keys.
+                return fixedSymbol;
             }
             else return fixedSymbol;
         });
@@ -256,54 +264,145 @@ export default class SlotsBase {
     }
 
     async loadAssets() {
-        // 1. Register all assets with Pixi
-        const aliases: string[] = [];
-        this.config.symbols.forEach(symbol => {
-            if (symbol.textureAtLevel && Array.isArray(symbol.textureAtLevel)) {
-                symbol.textureAtLevel.forEach((path, index) => {
-                    const alias = `${symbol.name}_level_${index + 1}`;
-                    Assets.add({ alias: alias, src: path });
-                    aliases.push(alias);
-                });
-            }
-            else if (symbol.path) {
-                Assets.add({ alias: symbol.name, src: symbol.path });
-                aliases.push(symbol.name);
-            }
-        });
+        // -----------------------------------------------------------------
+        // STEP 1: Load "Container" Assets (Spritesheets, Backgrounds, etc.)
+        // -----------------------------------------------------------------
+        const globalAliases: string[] = [];
 
-        // 2. Load Extra Game Assets
+        // Load Extra Assets (This includes your spritesheet JSON)
         if (this.config.extraAssets) {
             this.config.extraAssets.forEach(asset => {
-                Assets.add({ alias: asset.alias, src: this.config.pathPrefix + asset.src });
-                aliases.push(asset.alias);
+                // Note: If using a spritesheet, pathPrefix is usually applied here
+                const src = this.config.pathPrefix + asset.src;
+                console.log("src", src)
+                Assets.add({ alias: asset.alias, src: src });
+                globalAliases.push(asset.alias);
             });
         }
 
+        // Load Feature Assets
         this.features.forEach(feature => {
             if (feature.getAssets) {
                 const assets = feature.getAssets();
                 if (assets) {
                     assets.forEach(asset => {
-                        Assets.add({ alias: asset.alias, src: this.config.pathPrefix + asset.src });
-                        aliases.push(asset.alias);
+                        const src = this.config.pathPrefix + asset.src;
+                        Assets.add({ alias: asset.alias, src: src });
+                        globalAliases.push(asset.alias);
                     });
                 }
             }
         });
 
-        // 3. WAIT for all assets to finish downloading
-        await Assets.load(aliases);
+        // WAIT for the spritesheet to be parsed and textures created
+        if (globalAliases.length > 0) {
+            await Assets.load(globalAliases);
+        }
 
-        this.config.symbols.forEach(symbol => {
-            if (symbol.path) {
-                symbol.texture = Assets.get(symbol.name);
+        // -----------------------------------------------------------------
+        // STEP 2: Resolve Symbols (Cache vs. Download)
+        // -----------------------------------------------------------------
+        const standaloneAliases: string[] = [];
+
+        this.config.symbols.forEach((symbol: SymbolDef) => {
+            // A. Handle "Texture Levels" (rare case in your logic)
+            // I think i can remove this.
+            if (symbol.textureAtLevel && Array.isArray(symbol.textureAtLevel)) {
+                symbol.textureAtLevel.forEach((path, index) => {
+                    const alias = `${symbol.name}_level_${index + 1}`;
+                    // Check if this level exists in the spritesheet cache
+                    if (Assets.cache.has(path)) {
+                        // It exists in the sheet!
+                    } else {
+                        // Load from file
+                        Assets.add({ alias: alias, src: path });
+                        standaloneAliases.push(alias);
+                    }
+                });
             }
-            else if (symbol.textureAtLevel) {
-                symbol.texture = Assets.get(symbol.name + "_level_1");
+            // B. Handle Standard Paths
+            else if (symbol.path) {
+                // CHECK: Does this frame exist in the cache (from the spritesheet)?
+                if (Assets.cache.has(symbol.path)) {
+                    // Yes: Assign immediately
+                    symbol.texture = Assets.get(symbol.path);
+                } else {
+                    // No: It must be a standalone file. Queue it for download.
+                    Assets.add({ alias: symbol.name, src: this.config.pathPrefix + symbol.path });
+                    standaloneAliases.push(symbol.name);
+                }
             }
         });
+
+        // -----------------------------------------------------------------
+        // STEP 3: Load any remaining Standalone Files
+        // -----------------------------------------------------------------
+        if (standaloneAliases.length > 0) {
+            await Assets.load(standaloneAliases);
+
+            // Assign textures for the newly loaded standalone files
+            this.config.symbols.forEach((symbol: SymbolDef) => {
+                if (!symbol.texture) { // Only if we haven't assigned it from the sheet yet
+                    if (symbol.path) {
+                        symbol.texture = Assets.get(symbol.name);
+                    }
+                    else if (symbol.textureAtLevel) {
+                        symbol.texture = Assets.get(symbol.name + "_level_1");
+                    }
+                }
+            });
+        }
     }
+
+    // async loadAssets() {
+    //     // 1. Register all assets with Pixi
+    //     const aliases: string[] = [];
+    //     this.config.symbols.forEach(symbol => {
+    //         if (symbol.textureAtLevel && Array.isArray(symbol.textureAtLevel)) {
+    //             symbol.textureAtLevel.forEach((path, index) => {
+    //                 const alias = `${symbol.name}_level_${index + 1}`;
+    //                 Assets.add({ alias: alias, src: path });
+    //                 aliases.push(alias);
+    //             });
+    //         }
+    //         else if (symbol.path) {
+    //             Assets.add({ alias: symbol.name, src: symbol.path });
+    //             aliases.push(symbol.name);
+    //         }
+    //     });
+
+    //     // 2. Load Extra Game Assets
+    //     if (this.config.extraAssets) {
+    //         this.config.extraAssets.forEach(asset => {
+    //             Assets.add({ alias: asset.alias, src: this.config.pathPrefix + asset.src });
+    //             aliases.push(asset.alias);
+    //         });
+    //     }
+
+    //     this.features.forEach(feature => {
+    //         if (feature.getAssets) {
+    //             const assets = feature.getAssets();
+    //             if (assets) {
+    //                 assets.forEach(asset => {
+    //                     Assets.add({ alias: asset.alias, src: this.config.pathPrefix + asset.src });
+    //                     aliases.push(asset.alias);
+    //                 });
+    //             }
+    //         }
+    //     });
+
+    //     // 3. WAIT for all assets to finish downloading
+    //     await Assets.load(aliases);
+
+    //     this.config.symbols.forEach(symbol => {
+    //         if (symbol.path) {
+    //             symbol.texture = Assets.get(symbol.name);
+    //         }
+    //         else if (symbol.textureAtLevel) {
+    //             symbol.texture = Assets.get(symbol.name + "_level_1");
+    //         }
+    //     });
+    // }
 
     applyAnticipation(reelIndex: number) {
         const symbol = this.config.symbols.find((s: SymbolDef) => {
@@ -368,7 +467,7 @@ export default class SlotsBase {
     }
 
     applyGroups() {
-        this.config.groups.forEach(group => {
+        this.config.groups?.forEach(group => {
             const groupName = group.name;
             const countToKeep = group.count;
 

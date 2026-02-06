@@ -120,10 +120,10 @@ export default class ClashLines extends SlotsBase {
             gapX: 0,
             gapY: 0,
             borderRadius: 0,
-
+            titleImage: "",
             // Visuals
             backgroundImage: "background",
-            reelBackgroundImage: "/games/ClashOfReels/ClashLineBackgroundBorder.png",
+            reelBackgroundImage: "",//"/games/ClashOfReels/ClashLineBackgroundBorder.png",
             reelBackgroundScale: 1,
             reelBackgroundOffset: { x: 0, y: 0 },
             reelLandSymbolsDelay: 0,

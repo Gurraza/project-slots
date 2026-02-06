@@ -380,6 +380,9 @@ export class Reel {
                 const offset = this.slotHeight / 2 - this.slotHeight * (i + 2);
                 explodedSymbol.y = offset;
                 explodedSymbol.yToMove = this.slotHeight * this.explodedSymbols.length;
+                // if (!this.config.invisibleFlyby) {
+                explodedSymbol.visible = true
+                // }
             });
         });
     }

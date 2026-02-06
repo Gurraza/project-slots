@@ -1,12 +1,7 @@
 import GameFeature from "./GameFeature.ts";
 import SlotsBase from "./SlotsBase.ts";
 import { GameConfig, Grid, SymbolDef, TimelineEvent } from "./types.ts";
-
-// Helper interface for coordinates
-interface Point {
-    x: number;
-    y: number;
-}
+import { Point } from "./types.ts";
 
 interface ClusterNode extends Point {
     value: number;

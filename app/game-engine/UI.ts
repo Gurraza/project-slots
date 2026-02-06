@@ -136,6 +136,7 @@ export class UI {
     }
 
     createTitle(): void {
+        if (!this.config.titleImage) return
         Assets.load('/games/ClashOfReels/title.png').then((texture) => {
             const centerX = this.config.width / 2;
             const posY = (this.config as any).isMobile ? 120 : 30; // Cast config if isMobile isn't on main interface

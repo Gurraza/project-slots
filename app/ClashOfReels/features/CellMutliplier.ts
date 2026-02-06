@@ -102,7 +102,6 @@ export class CellMultiplier extends GameFeature {
         // Iterate through every cluster group found
         clusters.forEach(cluster => {
             cluster.forEach((cell: { x: number, y: number }) => {
-                console.log("asd")
                 const { x, y } = cell;
 
                 // Safety check

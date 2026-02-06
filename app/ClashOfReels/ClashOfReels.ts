@@ -133,8 +133,8 @@ export default class ClashOfReels extends SlotsBase {
             backgroundImage: "background",
             reelBackgroundImage: "/games/ClashOfReels/1034.png",
             reelBackgroundScale: 1,
-            reelBackgroundOffset: { x: 10, y: -30 },
-
+            reelBackgroundOffset: { x: 65, y: -10 },
+            titleImage: "",
             symbolsBeforeStop: 15,
             reelLandSymbolsDelay: 5,
             invisibleFlyby: false,

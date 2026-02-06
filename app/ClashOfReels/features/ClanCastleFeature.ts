@@ -19,7 +19,6 @@ export class ClanCastleFeature extends GameFeature {
     onGridPreProcess(grid: Grid, timeline: Timeline) {
         const castlePositions = contain(this.id, grid)
         if (castlePositions.length > 0) {
-            console.log("ASD")
             const lowTroops = this.config.symbols.filter(s => s.group == "low_troop" && s.weight != 0);
             const randomBaseTroop = lowTroops[Math.floor(this.engine.random() * lowTroops.length)];
             // 2. Find its SUPER version
