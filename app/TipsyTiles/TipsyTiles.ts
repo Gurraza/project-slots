@@ -5,6 +5,7 @@ import { SymbolDef } from "../game-engine/types.ts"
 import { ClusterEngineFeature } from '../ClashOfReels/features/ClusterFeature.ts';
 import { EatEngineFeature } from './features/EatEngine.ts';
 import { ShakerFeature } from './features/Shaker.ts';
+import { DrunkMeterFeature } from './features/DrunkMeter.ts';
 
 // Define the groups so they all link together
 const BEER_GROUP = ['patreon_regular', 'beer_1', 'beer_2', 'beer_3'];
@@ -234,6 +235,7 @@ export default class TipsyTiles extends SlotsBase {
             landingEffect: "shake",
             clusterSize: 1,
         }))
+        this.registerFeature(new DrunkMeterFeature(this))
 
         this.init()
     }

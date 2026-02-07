@@ -98,7 +98,7 @@ export default class SlotsBase {
 
     async spin() {
         if (this.processing === true && this.config.mode === "normal") return;
-        // this.engine.setSeed(2507743367228)
+        // this.engine.setSeed(2438078305942)
         console.log("This game has the seed:", this.engine.seed);
         console.log("This game has the symbols:", this.config.symbols);
 
@@ -267,18 +267,20 @@ export default class SlotsBase {
         // -----------------------------------------------------------------
         // STEP 1: Load "Container" Assets (Spritesheets, Backgrounds, etc.)
         // -----------------------------------------------------------------
-        const globalAliases: string[] = [];
-
+        const extraAssetsAliases: string[] = [];
         // Load Extra Assets (This includes your spritesheet JSON)
         if (this.config.extraAssets) {
             this.config.extraAssets.forEach(asset => {
                 // Note: If using a spritesheet, pathPrefix is usually applied here
                 const src = this.config.pathPrefix + asset.src;
-                console.log("src", src)
                 Assets.add({ alias: asset.alias, src: src });
-                globalAliases.push(asset.alias);
+                extraAssetsAliases.push(asset.alias);
             });
         }
+        if (extraAssetsAliases.length > 0) {
+            await Assets.load(extraAssetsAliases);
+        }
+        const globalAliases: string[] = [];
 
         // Load Feature Assets
         this.features.forEach(feature => {
@@ -286,9 +288,12 @@ export default class SlotsBase {
                 const assets = feature.getAssets();
                 if (assets) {
                     assets.forEach(asset => {
-                        const src = this.config.pathPrefix + asset.src;
-                        Assets.add({ alias: asset.alias, src: src });
-                        globalAliases.push(asset.alias);
+                        if (!Assets.cache.has(asset.src)) {
+                            const src = this.config.pathPrefix + asset.src;
+                            Assets.add({ alias: asset.alias, src: src });
+                            globalAliases.push(asset.alias);
+
+                        }
                     });
                 }
             }
