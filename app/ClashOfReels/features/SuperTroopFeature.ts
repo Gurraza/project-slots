@@ -1,10 +1,11 @@
 import GameFeature from "../../game-engine/GameFeature.ts"
 import gsap from "gsap"
+import { SymbolDef } from "../../game-engine/types.ts";
 
-const featureSymbols = [
+const featureSymbols: SymbolDef[] = [
     {
         name: 'super_barbarian',
-        matchesWith: 'barbarian', // Critical for clustering
+        matchesWith: ['barbarian'], // Critical for clustering
         isSuper: true,
         weight: 0, // 0 weight because they only appear via Clan Castle
         scale: .9,
@@ -16,7 +17,7 @@ const featureSymbols = [
     },
     {
         name: 'super_archer',
-        matchesWith: 'archer',
+        matchesWith: ['archer'],
         isSuper: true,
         weight: 0,
         scale: .9,
@@ -28,7 +29,7 @@ const featureSymbols = [
     },
     {
         name: 'super_goblin',
-        matchesWith: 'goblin',
+        matchesWith: ['goblin'],
         isSuper: true,
         weight: 0,
         scale: .9,
@@ -40,7 +41,7 @@ const featureSymbols = [
     },
     {
         name: 'super_wizard',
-        matchesWith: 'wizard',
+        matchesWith: ['wizard'],
         isSuper: true,
         weight: 0,
         scale: .9,

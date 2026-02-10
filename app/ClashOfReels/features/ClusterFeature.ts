@@ -1,9 +1,10 @@
 import GameFeature from "../../game-engine/GameFeature.ts"
 import { explode } from "../../game-engine/Math.ts"
+import SlotsBase from "../../game-engine/SlotsBase.ts";
 
 export class ClusterEngineFeature extends GameFeature {
-    constructor(game) {
-        super(game, "CLUSTER_ENGINE");
+    constructor(game: SlotsBase) {
+        super(game, "CLUSTER_ENGINE", null);
     }
 
     onClustersFound(clusters, grid, timeline) {

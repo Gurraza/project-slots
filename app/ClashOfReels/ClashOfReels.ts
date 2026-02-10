@@ -11,7 +11,8 @@ import { SuperTroopFeature } from './features/SuperTroopFeature.ts';
 import { BuilderFeature } from './features/BuilderFeature.ts';
 import { ClusterEngineFeature } from './features/ClusterFeature.ts';
 import { shake, popAnimation, glowFlashAnimation, implodeAnimation, fragmentPopAnimation, landingEffect, matchEffect } from '../game-engine/effects/Effects.ts';
-import { SymbolDef } from "../game-engine/types.ts"
+import { GameConfig, SymbolDef } from "../game-engine/types.ts"
+import { CellMultiplier } from './features/CellMutliplier.ts';
 
 const SYMBOLS: SymbolDef[] = [
     {
@@ -46,14 +47,14 @@ const SYMBOLS: SymbolDef[] = [
         payouts: { 4: 0.2, 5: 0.5, 6: 1.0, 7: 1.5, 8: 2.5, 9: 5.0, 10: 6, 11: 10, 12: 15 },
         path: "troops_icons/wizard.png"
     },
-    {
-        name: 'pekka',
-        weight: 800,
-        group: "high_troop",
-        scale: .9,
-        payouts: { 4: 0.2, 5: 0.5, 6: 1.0, 7: 1.5, 8: 2.5, 9: 5.0, 10: 6, 11: 10, 12: 15 },
-        path: "troops_icons/pekka.png"
-    },
+    // {
+    //     name: 'pekka',
+    //     weight: 800,
+    //     group: "high_troop",
+    //     scale: .9,
+    //     payouts: { 4: 0.2, 5: 0.5, 6: 1.0, 7: 1.5, 8: 2.5, 9: 5.0, 10: 6, 11: 10, 12: 15 },
+    //     path: "troops_icons/pekka.png"
+    // },
     {
         name: 'dragon',
         weight: 800,
@@ -106,7 +107,7 @@ const SYMBOLS: SymbolDef[] = [
         weight: 150,
         scale: 1,
         path: "super_icon.png",
-        matchesWith: "*",
+        matchesWith: ["*"],
     }
 ];
 
@@ -119,7 +120,7 @@ interface clashConf {
 
 export default class ClashOfReels extends SlotsBase {
     constructor(rootContainer: Container, app: Application, config: Partial<clashConf> = {}) {
-        const myConfig = {
+        const myConfig: GameConfig = {
             // Layout
             width: 1280,
             height: 720,
@@ -132,8 +133,8 @@ export default class ClashOfReels extends SlotsBase {
             backgroundImage: "background",
             reelBackgroundImage: "/games/ClashOfReels/1034.png",
             reelBackgroundScale: 1,
-            reelBackgroundOffset: { x: 10, y: -30 },
-
+            reelBackgroundOffset: { x: 65, y: -10 },
+            titleImage: "",
             symbolsBeforeStop: 15,
             reelLandSymbolsDelay: 5,
             invisibleFlyby: false,
@@ -152,6 +153,33 @@ export default class ClashOfReels extends SlotsBase {
                 { alias: "rage_spell_background", src: "rage_spell_background.png" },
                 ...Array.from({ length: 10 }).map((_, i) => { return { alias: "num_" + i, src: "font/" + i + ".png" } })
             ],
+
+            ui: {
+                spinButton: {
+                    asset: "spin_button.png",
+                    position: {
+                        right: 150,
+                        bottom: 110
+                    },
+                    scale: 1
+                },
+                freeSpins: {
+                    asset: "free_spins_remaining.png",
+                    scale: .9,
+                    position: {
+                        right: 50,
+                        bottom: 65
+                    }
+                },
+                title: {
+                    asset: "title.png",
+                    position: {
+                        left: 640,
+                        top: 25
+                    },
+                    scale: .3
+                }
+            },
 
             // Speed
             spinSpeed: 35,
@@ -187,6 +215,7 @@ export default class ClashOfReels extends SlotsBase {
         super(rootContainer, app, myConfig);
 
         this.registerFeature(new ClusterEngineFeature(this))
+        // this.registerFeature(new CellMultiplier(this))
         this.registerFeature(new EagleArtilleryFeature(this))
         this.registerFeature(new ClanCastleFeature(this))
         this.registerFeature(new WardenFeature(this))

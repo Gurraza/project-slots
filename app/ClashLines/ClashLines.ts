@@ -4,6 +4,7 @@ import { Container, ColorMatrixFilter, Application } from "pixi.js"
 import { PaylineFeature } from './features/PaylineFeature.ts';
 import { Scatter } from './features/Scatter.ts';
 import { GameConfig, SymbolDef } from '../game-engine/types.ts';
+import { BlurredBackgroundFeature } from '../TipsyTiles/features/BlurredBackground.ts';
 
 const SYMBOLS: SymbolDef[] = [
     // --- SPECIALS ---
@@ -12,7 +13,7 @@ const SYMBOLS: SymbolDef[] = [
         weight: 20, // Rare, but powerful
         scale: .9,
         path: "super_icon.png",
-        matchesWith: "*",
+        matchesWith: ["*"],
         // Payouts: 5-match is now a "Super Win" (1000x)
         payouts: { 3: 5.0, 4: 50.0, 5: 1000.0 }
     },
@@ -120,10 +121,10 @@ export default class ClashLines extends SlotsBase {
             gapX: 0,
             gapY: 0,
             borderRadius: 0,
-
+            titleImage: "",
             // Visuals
             backgroundImage: "background",
-            reelBackgroundImage: "/games/ClashOfReels/ClashLineBackgroundBorder.png",
+            reelBackgroundImage: "",//"/games/ClashOfReels/ClashLineBackgroundBorder.png",
             reelBackgroundScale: 1,
             reelBackgroundOffset: { x: 0, y: 0 },
             reelLandSymbolsDelay: 0,
@@ -144,6 +145,25 @@ export default class ClashLines extends SlotsBase {
                 { alias: "rage_spell_background", src: "rage_spell_background.png" },
                 ...Array.from({ length: 10 }).map((_, i) => { return { alias: "num_" + i, src: "font/" + i + ".png" } })
             ],
+
+            ui: {
+                spinButton: {
+                    asset: "spin_button.png",
+                    position: {
+                        right: 150,
+                        bottom: 110
+                    },
+                    scale: 1
+                },
+                title: {
+                    asset: "title.png",
+                    position: {
+                        left: 640,
+                        top: 25
+                    },
+                    scale: .3
+                }
+            },
 
             // Speed
             spinSpeed: 35,
@@ -211,65 +231,25 @@ export default class ClashLines extends SlotsBase {
 
             // ... (The rest are ignored)
         ]))
-        this.registerFeature(new Scatter(this))
+        this.registerFeature(new Scatter(this, {
+            name: "scatter",
+            weight: [20, 10, 1],
+            cheatWeight: [99999, 99999, 99999],
+            scale: 1,
+            group: "bonus_game",
+            onlyAppearOnRoll: true,
+            path: "Builder.png",
+            anticipation: {
+                after: 2,
+                count: 15,
+            },
+            onePerReel: true,
+            dontCluster: true,
+        }))
+        this.registerFeature(new BlurredBackgroundFeature(this))
 
         this.init()
     }
-    /*
-[
-            // --- BASIC (1-5) ---
-            [1, 1, 1, 1, 1], // Middle
-            [0, 0, 0, 0, 0], // Top
-            [2, 2, 2, 2, 2], // Bottom
-            [0, 1, 2, 1, 0], // V
-            [2, 1, 0, 1, 2], // Inverted V
-
-            // --- ZIG ZAGS (6-10) ---
-            [0, 0, 1, 2, 2],
-            [2, 2, 1, 0, 0],
-            [1, 2, 2, 2, 1],
-            [1, 0, 0, 0, 1],
-            [0, 1, 1, 1, 0],
-
-            // --- SQUIGGLES (11-15) ---
-            [2, 1, 1, 1, 2],
-            [0, 1, 0, 1, 0],
-            [2, 1, 2, 1, 2],
-            [1, 0, 1, 0, 1],
-            [1, 2, 1, 2, 1],
-
-            // --- STEPPERS (16-20) ---
-            [1, 1, 0, 1, 1],
-            [1, 1, 2, 1, 1],
-            [0, 0, 2, 0, 0],
-            [2, 2, 0, 2, 2],
-            [0, 2, 0, 2, 0],
-
-            // --- EXTENDED (21-30) ---
-            [0, 2, 2, 2, 0],
-            [2, 0, 0, 0, 2],
-            [1, 2, 0, 2, 1],
-            [1, 0, 2, 0, 1],
-            [0, 0, 1, 0, 0], // Top Dip
-            [2, 2, 1, 2, 2], // Bottom Bump
-            [0, 2, 1, 2, 0],
-            [2, 0, 1, 0, 2],
-            [0, 1, 2, 2, 2],
-            [2, 1, 0, 0, 0],
-
-            // --- COMPLEX (31-40) ---
-            [0, 0, 1, 2, 1],
-            [2, 2, 1, 0, 1],
-            [1, 2, 1, 0, 1],
-            [1, 0, 1, 2, 1],
-            [0, 1, 1, 1, 2],
-            [2, 1, 1, 1, 0],
-            [0, 1, 0, 1, 2],
-            [2, 1, 2, 1, 0],
-            [1, 0, 0, 1, 0],
-            [1, 2, 2, 1, 2],
-        ]
-    */
 
     async handleSymbolLand(effect, sprite) {
         super.handleSymbolLand(effect, sprite)

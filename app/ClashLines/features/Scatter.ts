@@ -3,30 +3,9 @@ import { contain } from "../../game-engine/Math.ts"
 import { SymbolDef } from "../../game-engine/types.ts"
 import SlotsBase from "../../game-engine/SlotsBase.ts"
 
-const featureSymbol: SymbolDef = {
-    name: "scatter",
-    weight: [20, 10, 1],
-    scale: 1,
-    group: "bonus_game",
-    onlyAppearOnRoll: true,
-    path: "Builder.png",
-    anticipation: {
-        after: 2,
-        count: 15,
-    },
-    onePerReel: true,
-    dontCluster: true,
-}
-
 export class Scatter extends GameFeature {
-    constructor(game: SlotsBase) {
+    constructor(game: SlotsBase, featureSymbol: SymbolDef) {
         super(game, "SCATTER_FEATURE", featureSymbol)
-    }
-
-    getAssets() {
-        return [
-
-        ];
     }
 
     onSpinEnd(grid, timeline) {

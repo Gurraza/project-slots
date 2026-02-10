@@ -59,6 +59,7 @@ export interface GameConfig {
     reelBackgroundImage: string;
     reelBackgroundScale: number;
     reelBackgroundOffset: { x: number; y: number };
+    titleImage: string,
     symbolsBeforeStop: number;
     reelLandSymbolsDelay: number;
     invisibleFlyby: boolean;
@@ -71,6 +72,8 @@ export interface GameConfig {
         stroke: { color: string; width: number };
     };
     extraAssets: Asset[];
+
+    ui: GameUIConfig;
 
     // Speed
     spinSpeed: number;
@@ -86,7 +89,8 @@ export interface GameConfig {
     cols: number;
     rows: number;
     clusterSize: number;
-    groups: Group[];
+    groups?: Group[];
+    freespins?: number;
 
     // Behind The Scenes
     pathPrefix: string;
@@ -105,26 +109,28 @@ export interface SymbolDef {
     name: string;
     weight: number | number[];
     cheatWeight?: number | number[];
-    scale: number;
-
+    scale?: number;
+    backgroundColor?: any;
     baseWeight?: number | number[];
     group?: string;
     onePerReel?: boolean;
     payouts?: Record<number, number>;
     dontCluster?: boolean
-    matchesWith?: string
+    matchesWith?: string[]
     path?: string;
     texture?: any;
     textureAtLevel?: string[];
-
+    sprite_name?: string;
     clusterSize?: number;
     onlyAppearOnRoll?: boolean;
-
+    isSuper?: boolean;
+    isEater?: boolean;
+    superAbility?: string;
     anticipation?: {
         after: number;
         count: number;
     };
-
+    multiplier?: number;
     landingEffect?: string;
     matchEffect?: string;
     explodeEffect?: string;
@@ -134,31 +140,32 @@ export interface SymbolDef {
     prio?: boolean
 }
 
-// export interface Feature {
-//     type: string;
-//     effects: string[];
-
-//     init(): void;
-
-//     getSymbols?(): SymbolDef[];
-//     getAssets?(): { alias: string; src: string }[];
-
-//     onSpinStart?(grid: any): boolean;
-//     onGridPreProcess?(grid: any, timeline: Timeline): boolean;
-//     onClustersFound?(clusters: any[], grid: any, timeline: Timeline): boolean;
-//     onClustersResolve?(clusters: any[], grid: any, timeline: Timeline): boolean;
-//     onGridIdle?(grid: any, timeline: Timeline): boolean;
-//     onSpinEnd?(grid: any, timeline: Timeline): boolean;
-
-//     onCustomEvent?(event: any): Promise<void>;
-//     playEffect?(
-//         effect: string,
-//         sprite: any,
-//         symbol: SymbolDef
-//     ): Promise<any>;
-// }
-
 export interface Point {
-    col: number,
-    row: number
+    x: number,
+    y: number
 }
+
+type VerticalPosition =
+    | { top?: number; bottom?: never }
+    | { bottom?: number; top?: never };
+type HorizontalPosition =
+    | { left?: number; right?: never }
+    | { right?: number; left?: never };
+
+export type PositionConfig = VerticalPosition & HorizontalPosition
+
+export interface GameUIConfig {
+    spinButton: UIElementConfig;
+    title: UIElementConfig;
+    freeSpins?: UIElementConfig;
+    multiplier?: UIElementConfig;
+}
+
+export interface UIElementConfig {
+    position: PositionConfig;
+    visible?: boolean;
+    asset: string;
+    anchor?: { x: number; y: number };
+    scale: number;
+}
+

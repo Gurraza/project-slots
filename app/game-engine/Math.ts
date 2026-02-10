@@ -1,12 +1,7 @@
 import GameFeature from "./GameFeature.ts";
 import SlotsBase from "./SlotsBase.ts";
 import { GameConfig, Grid, SymbolDef, TimelineEvent } from "./types.ts";
-
-// Helper interface for coordinates
-interface Point {
-    x: number;
-    y: number;
-}
+import { Point } from "./types.ts";
 
 interface ClusterNode extends Point {
     value: number;
@@ -56,22 +51,21 @@ export function calculateMoves(
 
     const MAX_CYCLES = 50;
     let cycles = 0;
-
+    let lastGridState = "";
     while (cycles < MAX_CYCLES) {
         cycles++;
         if (cycles === MAX_CYCLES) {
             console.warn("Max cycles reached, breaking loop to save browser.");
             break;
         }
+        const startState = JSON.stringify(currentGrid);
         let actionOccurred = false;
-
         // 2. Hook: Pre-Process
         for (const feature of features) {
             if (feature.onGridPreProcess(currentGrid, timeline)) {
                 actionOccurred = true;
             }
         }
-
         const rawClusters = findClusters(currentGrid, allSymbols);
 
         if (rawClusters.length > 0) {
@@ -88,7 +82,9 @@ export function calculateMoves(
                     actionOccurred = true;
                 }
             });
-        } else {
+        }
+        //else {
+        if (!actionOccurred) {
             // 5. Hook: Grid Idle
             for (const feature of features) {
                 if (feature.onGridIdle(currentGrid, timeline)) {
@@ -96,6 +92,11 @@ export function calculateMoves(
                     break;
                 }
             }
+        }
+        //}
+        const endState = JSON.stringify(currentGrid);
+        if (startState !== endState) {
+            actionOccurred = true;
         }
         if (!actionOccurred) break;
     }
@@ -297,11 +298,11 @@ export function findClusters(grid: Grid, symbols: SymbolDef[]): ClusterNode[][] 
         const s = symbols.find(sym => sym.id === id);
         if (!s) return false;
 
-        return s.name === 'wild' ||
+        return s.name === 'wild'/* ||
             (!!s.matchesWith && (
                 (Array.isArray(s.matchesWith) && (s.matchesWith.includes('*') || s.matchesWith.includes('ALL'))) ||
                 s.matchesWith === '*' || s.matchesWith === 'ALL'
-            ));
+            ));*/
     };
 
     const areCompatible = (targetId: number, neighborId: number): boolean => {
@@ -316,9 +317,10 @@ export function findClusters(grid: Grid, symbols: SymbolDef[]): ClusterNode[][] 
         const checkMatch = (source: SymbolDef, target: SymbolDef): boolean => {
             if (!source.matchesWith) return false;
 
-            const validTargets = Array.isArray(source.matchesWith)
-                ? source.matchesWith
-                : [source.matchesWith];
+            // const validTargets = Array.isArray(source.matchesWith)
+            //     ? source.matchesWith
+            //     : [source.matchesWith];
+            const validTargets = source.matchesWith
 
             if (validTargets.includes('ALL') || validTargets.includes('*')) return true;
             return validTargets.includes(target.name);
@@ -425,7 +427,7 @@ export function simulateChangeSymbols(
 export function explode(
     engine: RandomEngine,
     grid: Grid,
-    where: number[][],
+    where: number[][], // should update to point[]?
     timeline: TimelineEvent[],
     win: number,
     allSymbols: SymbolDef[]

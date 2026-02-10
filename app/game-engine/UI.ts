@@ -1,7 +1,7 @@
 import gsap from "gsap";
 import { Assets, Sprite, ColorMatrixFilter, Container, Graphics, Text, Application, FederatedPointerEvent, Texture } from "pixi.js";
 import SlotsBase from "./SlotsBase.ts";
-import { GameConfig, SymbolDef } from "./types.ts"
+import { GameConfig, SymbolDef, UIElementConfig } from "./types.ts"
 
 
 
@@ -45,10 +45,16 @@ export class UI {
         this.config.symbols.forEach((s: SymbolDef) => {
             if (s.cheatWeight) {
                 // We cast s.name because generic symbols might not strictly enforce unique names in types
-                this.createSymbolCheat(s.name, s.cheatWeight, 20, 0 + (i * 30));
+                this.createSymbolCheat(s.name, s.cheatWeight, 20, 50 + (i * 30));
                 i++;
             }
         });
+    }
+
+    getPos(element: UIElementConfig) {
+        const x = element.position.left ? element.position.left : this.config.width - element.position.right
+        const y = element.position.top ? element.position.top : this.config.height - element.position.bottom
+        return { x, y }
     }
 
     enableKeyboard(): void {
@@ -70,8 +76,12 @@ export class UI {
     }
 
     createFreespins(): void {
+        const conf = this.config.ui.freeSpins
+        if (!conf) {
+            return
+        }
         this.freespinContainer = new Container();
-        this.freespinContainer.visible = true;
+        this.freespinContainer.visible = conf.visible || true
         this.freespinContainerRestingY = 6;
         this.freespinContainerOffsetY = 65;
 
@@ -136,48 +146,37 @@ export class UI {
     }
 
     createTitle(): void {
-        Assets.load('/games/ClashOfReels/title.png').then((texture) => {
-            const centerX = this.config.width / 2;
-            const posY = (this.config as any).isMobile ? 120 : 30; // Cast config if isMobile isn't on main interface
-
-            const shadowOffset = 5;
-            const shadowAlpha = 0.5;
-            const scale = (this.config as any).isMobile ? .8 : .3;
-
-            const shadow = new Sprite(texture);
-            shadow.anchor.set(0.5);
-            shadow.x = centerX + shadowOffset;
-            shadow.y = posY + shadowOffset;
-
-            // Pixi v7+ syntax for tint might vary (number or string), number is safest
-            shadow.tint = 0x000000;
-            shadow.alpha = shadowAlpha;
-            this.stage.addChild(shadow);
-
+        const conf: UIElementConfig = this.config.ui.title
+        if (!conf) {
+            console.error("NO TITLE")
+            return
+        }
+        Assets.load(this.config.pathPrefix + conf.asset).then((texture) => {
+            const { x, y } = this.getPos(conf)
             this.title = new Sprite(texture);
             this.title.anchor.set(0.5);
-            this.title.x = centerX;
-            this.title.y = posY;
-            this.title.scale.set(scale);
-            shadow.scale.set(scale);
+            this.title.position.set(x, y)
+            this.title.scale.set(conf.scale);
             this.stage.addChild(this.title);
         });
     }
 
     createSpinButton(): void {
-        Assets.load('/games/ClashOfReels/spin_button.png').then((texture) => {
+        const conf: UIElementConfig = this.config.ui.spinButton
+        if (!conf) {
+            console.error("NO SPIN BUTTON")
+            return
+        }
+        Assets.load(this.config.pathPrefix + conf.asset).then((texture) => {
+            const { x, y } = this.getPos(conf)
             this.spinButton = new Sprite(texture);
-            const width = 200;
-            const xOffset = 50;
-            const yOffset = 65;
-            this.spinButton.anchor.set(1);
+            this.spinButton.anchor.set(.5);
 
             const ratio = this.spinButton.height / this.spinButton.width;
-            this.spinButton.width = width;
-            this.spinButton.height = width * ratio;
+            this.spinButton.width = 200 * conf.scale;
+            this.spinButton.height = 200 * conf.scale * ratio;
 
-            this.spinButton.x = this.config.width - xOffset;
-            this.spinButton.y = this.config.height - yOffset;
+            this.spinButton.position.set(x, y)
 
             this.spinButton.eventMode = "static";
             this.spinButton.cursor = "pointer";
@@ -187,6 +186,29 @@ export class UI {
             this.spinButton.on("pointertap", () => this.handleSpin());
         });
     }
+    // createSpinButton(): void {
+    //     Assets.load('/games/ClashOfReels/spin_button.png').then((texture) => {
+    //         this.spinButton = new Sprite(texture);
+    //         const width = 200;
+    //         const xOffset = 50;
+    //         const yOffset = 65;
+    //         this.spinButton.anchor.set(1);
+
+    //         const ratio = this.spinButton.height / this.spinButton.width;
+    //         this.spinButton.width = width;
+    //         this.spinButton.height = width * ratio;
+
+    //         this.spinButton.x = this.config.width - xOffset;
+    //         this.spinButton.y = this.config.height - yOffset;
+
+    //         this.spinButton.eventMode = "static";
+    //         this.spinButton.cursor = "pointer";
+
+    //         this.stage.addChild(this.spinButton);
+
+    //         this.spinButton.on("pointertap", () => this.handleSpin());
+    //     });
+    // }
 
     createMultiplier(): void {
         this.multiplierContainer = new Container();

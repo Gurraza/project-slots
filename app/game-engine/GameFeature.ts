@@ -31,8 +31,8 @@ export default class GameFeature {
         this.featureSymbol = featureSymbol
     }
 
-    getSymbols() {
-        if (!this.featureSymbol) return false
+    getSymbols(): SymbolDef[] {
+        if (!this.featureSymbol) return []
         return [
             this.featureSymbol
         ];
@@ -72,6 +72,9 @@ export default class GameFeature {
     // Intercepts the main event loop. 
     // Return true if you handled the animation (preventing default behavior).
     async onCustomEvent(event: TimelineEvent): Promise<void> { }
+
+    onActivateFreespins(): void { }
+    onDeactivateFreespins(): void { }
 
     // Inject own effects into the game.
     async playEffect(effect: string, sprite: Sprite, symbol: SymbolDef) { }

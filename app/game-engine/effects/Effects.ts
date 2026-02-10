@@ -113,7 +113,7 @@ export function fragmentPopAnimation(sprite): Promise<void> {
 }
 
 // Helper function to shake any object (usually the stage or a container)
-export function shake(whatToMove, intensity, duration) {
+export function shake(whatToMove: PIXI.Container, intensity: number, duration: number) {
     return new Promise(resolve => {
         const startX = whatToMove.x; // Capture original position
         const startY = whatToMove.y;

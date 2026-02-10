@@ -1,0 +1,615 @@
+{
+  "frames": {
+    "_0001_BeerTower_beer.png": {
+      "frame": {
+        "x": 0,
+        "y": 0,
+        "w": 231,
+        "h": 594
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 231,
+        "h": 594
+      },
+      "sourceSize": {
+        "w": 231,
+        "h": 594
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "_0002_BeerTower_top.png": {
+      "frame": {
+        "x": 0,
+        "y": 594,
+        "w": 202,
+        "h": 457
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 202,
+        "h": 457
+      },
+      "sourceSize": {
+        "w": 202,
+        "h": 457
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "_0000_BeerTower_bottom.png": {
+      "frame": {
+        "x": 0,
+        "y": 1051,
+        "w": 272,
+        "h": 304
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 272,
+        "h": 304
+      },
+      "sourceSize": {
+        "w": 272,
+        "h": 304
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "_0009_Patreon_regular.png": {
+      "frame": {
+        "x": 202,
+        "y": 594,
+        "w": 179,
+        "h": 240
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 179,
+        "h": 240
+      },
+      "sourceSize": {
+        "w": 179,
+        "h": 240
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "_0020_Bubble_1.png": {
+      "frame": {
+        "x": 202,
+        "y": 834,
+        "w": 160,
+        "h": 216
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 160,
+        "h": 216
+      },
+      "sourceSize": {
+        "w": 160,
+        "h": 216
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "_0011_Patreon_granny.png": {
+      "frame": {
+        "x": 231,
+        "y": 0,
+        "w": 124,
+        "h": 240
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 124,
+        "h": 240
+      },
+      "sourceSize": {
+        "w": 124,
+        "h": 240
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "_0012_Patreon_party.png": {
+      "frame": {
+        "x": 231,
+        "y": 240,
+        "w": 113,
+        "h": 240
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 113,
+        "h": 240
+      },
+      "sourceSize": {
+        "w": 113,
+        "h": 240
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "_0005_Beer_1.png": {
+      "frame": {
+        "x": 231,
+        "y": 480,
+        "w": 107,
+        "h": 210
+      },
+      "rotated": true,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 107,
+        "h": 210
+      },
+      "sourceSize": {
+        "w": 107,
+        "h": 210
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "_0010_Patreon_fancy.png": {
+      "frame": {
+        "x": 344,
+        "y": 240,
+        "w": 100,
+        "h": 240
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 100,
+        "h": 240
+      },
+      "sourceSize": {
+        "w": 100,
+        "h": 240
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "_0013_Bouncer.png": {
+      "frame": {
+        "x": 444,
+        "y": 240,
+        "w": 153,
+        "h": 234
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 153,
+        "h": 234
+      },
+      "sourceSize": {
+        "w": 153,
+        "h": 234
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "_0022_Bubble_3.png": {
+      "frame": {
+        "x": 355,
+        "y": 0,
+        "w": 83,
+        "h": 230
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 83,
+        "h": 230
+      },
+      "sourceSize": {
+        "w": 83,
+        "h": 230
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "_0003_Beer_3.png": {
+      "frame": {
+        "x": 438,
+        "y": 0,
+        "w": 87,
+        "h": 226
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 87,
+        "h": 226
+      },
+      "sourceSize": {
+        "w": 87,
+        "h": 226
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "_0008_Shot_3.png": {
+      "frame": {
+        "x": 525,
+        "y": 0,
+        "w": 224,
+        "h": 93
+      },
+      "rotated": true,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 224,
+        "h": 93
+      },
+      "sourceSize": {
+        "w": 224,
+        "h": 93
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "_0025_Drink_3.png": {
+      "frame": {
+        "x": 0,
+        "y": 1355,
+        "w": 119,
+        "h": 214
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 119,
+        "h": 214
+      },
+      "sourceSize": {
+        "w": 119,
+        "h": 214
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "_0023_Drink_1.png": {
+      "frame": {
+        "x": 0,
+        "y": 1569,
+        "w": 102,
+        "h": 214
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 102,
+        "h": 214
+      },
+      "sourceSize": {
+        "w": 102,
+        "h": 214
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "_0021_Bubble_2.png": {
+      "frame": {
+        "x": 0,
+        "y": 1783,
+        "w": 85,
+        "h": 214
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 85,
+        "h": 214
+      },
+      "sourceSize": {
+        "w": 85,
+        "h": 214
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "_0004_Beer_2.png": {
+      "frame": {
+        "x": 85,
+        "y": 1783,
+        "w": 116,
+        "h": 212
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 116,
+        "h": 212
+      },
+      "sourceSize": {
+        "w": 116,
+        "h": 212
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "_0006_Shot_1.png": {
+      "frame": {
+        "x": 102,
+        "y": 1569,
+        "w": 100,
+        "h": 212
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 100,
+        "h": 212
+      },
+      "sourceSize": {
+        "w": 100,
+        "h": 212
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "_0024_Drink_2.png": {
+      "frame": {
+        "x": 201,
+        "y": 1355,
+        "w": 175,
+        "h": 209
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 175,
+        "h": 209
+      },
+      "sourceSize": {
+        "w": 175,
+        "h": 209
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "_0016_Mat.png": {
+      "frame": {
+        "x": 201,
+        "y": 1781,
+        "w": 200,
+        "h": 198
+      },
+      "rotated": true,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 200,
+        "h": 198
+      },
+      "sourceSize": {
+        "w": 200,
+        "h": 198
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "_0017_Nuts.png": {
+      "frame": {
+        "x": 202,
+        "y": 1564,
+        "w": 200,
+        "h": 151
+      },
+      "rotated": true,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 200,
+        "h": 151
+      },
+      "sourceSize": {
+        "w": 200,
+        "h": 151
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "_0014_Shaker.png": {
+      "frame": {
+        "x": 353,
+        "y": 1564,
+        "w": 98,
+        "h": 200
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 98,
+        "h": 200
+      },
+      "sourceSize": {
+        "w": 98,
+        "h": 200
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "_0018_Disco_scatter.png": {
+      "frame": {
+        "x": 451,
+        "y": 1564,
+        "w": 193,
+        "h": 197
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 193,
+        "h": 197
+      },
+      "sourceSize": {
+        "w": 193,
+        "h": 197
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "_0015_Water_wild.png": {
+      "frame": {
+        "x": 399,
+        "y": 1764,
+        "w": 148,
+        "h": 186
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 148,
+        "h": 186
+      },
+      "sourceSize": {
+        "w": 148,
+        "h": 186
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "_0007_Shot_2.png": {
+      "frame": {
+        "x": 547,
+        "y": 1761,
+        "w": 146,
+        "h": 182
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 146,
+        "h": 182
+      },
+      "sourceSize": {
+        "w": 146,
+        "h": 182
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    }
+  },
+  "meta": {
+    "app": "http://free-tex-packer.com",
+    "version": "0.6.7",
+    "image": "texture.png",
+    "format": "RGBA8888",
+    "size": {
+      "w": 693,
+      "h": 1997
+    },
+    "scale": 1
+  }
+}

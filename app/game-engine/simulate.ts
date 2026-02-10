@@ -1,9 +1,11 @@
 import ClashLines from "../ClashLines/ClashLines.ts"
 import ClashOfReels from "../ClashOfReels/ClashOfReels.ts";
+import TipsyTiles from "../TipsyTiles/TipsyTiles.ts";
 import { calculateMoves } from "./Math.ts";
 
 // const game = new ClashLines(null, null, { mode: 'simulation', });
 const game = new ClashOfReels(null, null, { mode: 'simulation', });
+// const game = new TipsyTiles(null, null, { mode: 'simulation' })
 async function runSimulation() {
     console.log("Starting Simulation...");
 
@@ -27,14 +29,29 @@ async function runSimulation() {
     };
 
     const startTime = performance.now();
-
+    const topWins = [];
+    const topLengths = [];
     for (let i = 0; i < TOTAL_SPINS; i++) {
+        const currentSeed = game.engine.seed;
         // Run the game engine
         const timeline = calculateMoves(game.engine, game.config.rows, game.config.cols, game.features, game.config.symbols);
+        const timelineLength = timeline.length;
 
         const finalEvent = timeline[timeline.length - 1];
         const win = finalEvent.totalWin || 0;
-
+        // --- NEW: UPDATE TOP WINS ---
+        if (topWins.length < 10 || win > topWins[topWins.length - 1].win) {
+            topWins.push({ win, seed: currentSeed });
+            topWins.sort((a, b) => b.win - a.win);
+            if (topWins.length > 10) topWins.pop();
+        }
+        if (topLengths.length < 10 || timelineLength > topLengths[topLengths.length - 1].length) {
+            topLengths.push({ length: timelineLength, win, seed: currentSeed });
+            // Sort descending by length
+            topLengths.sort((a, b) => b.length - a.length);
+            // Keep only top 10
+            if (topLengths.length > 10) topLengths.pop();
+        }
         // 1. Basic Sums
         totalWon += win;
         sumSquaredWins += (win * win);
@@ -104,6 +121,16 @@ async function runSimulation() {
     console.log(`  Big (20-100x):   ${distribution.big} (${(distribution.big / TOTAL_SPINS * 100).toFixed(3)}%)`);
     console.log(`  Huge (100-1k):   ${distribution.huge} (${(distribution.huge / TOTAL_SPINS * 100).toFixed(4)}%)`);
     console.log(`  Mega (1k+):      ${distribution.mega} (${(distribution.mega / TOTAL_SPINS * 100).toFixed(5)}%)`);
+    console.log("----------------------------------------");
+    topWins.forEach((game, index) => {
+        console.log(`${index + 1}    | ${game.win.toFixed(2)}x \t  | ${game.seed}`);
+    });
+    console.log("----------------------------------------");
+    console.log("TOP 10 LONGEST TIMELINES:");
+    console.log("Rank | Events \t| Win \t\t| Seed");
+    topLengths.forEach((entry, index) => {
+        console.log(`${index + 1}`.padEnd(5) + `| ${entry.length} \t| ${entry.win.toFixed(2)}x \t| ${entry.seed}`);
+    });
     console.log("========================================\n");
 }
 async function rrunSimulation() {
