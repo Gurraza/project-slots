@@ -14,7 +14,7 @@ const featureSymbol: SymbolDef = {
     path: "Treasury.png",
     anticipation: {
         after: 2,
-        count: 15,
+        count: 5,
     },
     onePerReel: true,
     dontCluster: true,

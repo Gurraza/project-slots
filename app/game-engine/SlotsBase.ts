@@ -98,7 +98,7 @@ export default class SlotsBase {
     async spin() {
         if (this.processing === true && this.config.mode === "normal") return;
         // this.engine.setSeed(563172570139)
-        this.engine.setSeed(563172570139)
+        // this.engine.setSeed(563172570139)
         console.log("This game has the seed:", this.engine.seed);
         console.log("This game has the symbols:", this.config.symbols);
 

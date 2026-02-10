@@ -5,10 +5,27 @@ import { Grid, Point, SymbolDef, Timeline, TimelineEvent } from "../../game-engi
 import gsap from "gsap";
 import * as PIXI from "pixi.js"
 
+interface EatEngineConfig {
+    dispalyWinUnderEater: boolean;
+}
+
 export class EatEngineFeature extends GameFeature {
-    constructor(game: SlotsBase) {
+    public eatEngineConfig: EatEngineConfig
+    private displayWinText: PIXI.Text
+    constructor(game: SlotsBase, eatEngineConfig: EatEngineConfig) {
         super(game, "EAT_SEQUENCE", null);
+        this.eatEngineConfig = eatEngineConfig
+        this.displayWinText = new PIXI.Text()
+        this.displayWinText.style = {
+            fontFamily: "Arial",
+            fontSize: 36,
+            fontWeight: "bold",
+            fill: "#ffffff",
+            stroke: "#000000",
+            align: "center"
+        }
     }
+
 
     onGridIdle(grid: Grid, timeline: Timeline): boolean {
         let actionHappened = false;
@@ -36,13 +53,40 @@ export class EatEngineFeature extends GameFeature {
 
                     const endPos = walkPath[walkPath.length - 1];
 
+                    let pathWin = 0;
+                    walkPath.forEach((step: any) => {
+                        if (step.action === 'EAT') {
+                            let stepWin = 0
+                            const symbolId = grid[step.x][step.y];
+                            const symbolDef = this.game.config.symbols.find((s: SymbolDef) => s.id === symbolId);
+                            if (symbolDef.name === "wild") {
+                                const firstNonWild = walkPath.find((s) => { // find first that is not a wild and plus its win
+                                    const i = grid[step.x][step.y];
+                                    symbolDef.id != i
+                                })
+                                if (firstNonWild) {
+                                    stepWin += this.config.symbols.find(s => s.id === grid[firstNonWild.x][firstNonWild.y]).payouts[1]
+                                }
+                                else {
+                                    stepWin += .1
+                                }
+                            }
+                            else {
+                                console.log(symbolDef)
+                                stepWin += symbolDef.payouts[1];
+                            }
+                            pathWin = stepWin
+                            step.win = stepWin
+                        }
+                    });
                     // 2. Add to Timeline
                     timeline.push({
                         type: this.type,
                         eaterId: def.id,
                         startPos: pos,
                         path: walkPath, // This is now an ordered list: [Step1, Step2, Step3]
-                        grid: JSON.parse(JSON.stringify(grid)) // Snapshot before mutation
+                        grid: JSON.parse(JSON.stringify(grid)), // Snapshot before mutation
+                        win: pathWin
                     });
 
                     // 3. UPDATE THE GRID (Crucial!)
@@ -98,7 +142,7 @@ export class EatEngineFeature extends GameFeature {
      * 3. Backtracks over empty cells if necessary to reach other branches.
      * 4. Ends at the last collected symbol (doesn't return to start needlessly).
      */
-    calculateWalkPath(grid: number[][], start: Point, eaterSymbol: SymbolDef): Point[] {
+    calculateWalkPath(grid: number[][], start: Point, eaterSymbol: SymbolDef) {
         // Step 1: Survey phase - Identify the entire cluster of targets
         const targets = this.findCluster(grid, start, eaterSymbol);
 
@@ -227,8 +271,20 @@ export class EatEngineFeature extends GameFeature {
         const ghost = this.game.spawnGhost(eaterSprite, 99999);
         eaterSprite.visible = false;
 
-        const targets = Array.from({ length: this.game.config.cols }, () => [] as number[]);
+        this.displayWinText.text = "0.00"; // Start at 0
+        // this.displayWinText.anchor.set(0.5); // Center the text
+        this.displayWinText.visible = this.eatEngineConfig.dispalyWinUnderEater;
 
+        // Add to stage so it sits above the grid/ghost
+        this.stage.addChild(this.displayWinText);
+
+        // Initial position
+        const startGlobal = this.game.getSymbol(startPos.x, startPos.y).getGlobalPosition();
+        const startLocal = this.game.stage.toLocal(startGlobal);
+        this.displayWinText.x = startLocal.x - this.config.symbolWidth / 3;
+        this.displayWinText.y = startLocal.y + this.config.symbolHeight / 2; // Offset above the eater
+
+        const targets = Array.from({ length: this.game.config.cols }, () => [] as number[]);
         path.forEach(p => {
             // Skip start position and duplicates
             if ((p.x === startPos.x && p.y === startPos.y) || targets[p.x].includes(p.y)) return;
@@ -239,28 +295,44 @@ export class EatEngineFeature extends GameFeature {
         // Promise.all waits for all effect promises to resolve in parallel
         await Promise.all(targets.map((rows, col) => rows.length && this.reels[col].playMatchEffects(rows)));
 
+        let currentPathWin = 0
         for await (const step of path) {
             const dest = this.game.stage.toLocal(this.game.getSymbol(step.x, step.y).getGlobalPosition());
 
-            await new Promise<void>(r => gsap.to(ghost, { x: dest.x, y: dest.y, duration: 0.2, ease: "power1.inOut", onComplete: () => r() }));
-
+            await new Promise<void>(r => gsap.to(ghost, {
+                x: dest.x,
+                y: dest.y,
+                duration: 0.2,
+                ease: "power1.inOut",
+                onUpdate: () => {
+                    // Keep text attached to ghost position during tween
+                    if (this.eatEngineConfig.dispalyWinUnderEater) {
+                        this.displayWinText.x = ghost.x - this.config.symbolWidth / 3;
+                        this.displayWinText.y = ghost.y + this.config.symbolHeight / 2;
+                    }
+                },
+                onComplete: () => r()
+            }));
             if (step.action === 'EAT') {
+                currentPathWin += step.win
                 const targetSprite = this.game.getSymbol(step.x, step.y);
                 if (targetSprite) {
                     targetSprite.visible = false;
-                    // ... Add your payout text logic here ...
-                    // await new Promise<void>(r => gsap.to(ghost.scale, { x: ghost.scale.x * 1.3, y: ghost.scale.y * 1.3, duration: 0.08, yoyo: true, repeat: 1, onComplete: () => r() }));
+                    if (this.eatEngineConfig.dispalyWinUnderEater) {
+                        this.displayWinText.text = currentPathWin.toFixed(2)
+                    }
                 }
             }
         }
-
-
-        ghost.destroy();
 
         const end = path[path.length - 1]
         this.game.getSymbol(path[path.length - 1].x, path[path.length - 1].y).visible = true
         this.game.getSymbol(end.x, end.y).texture = eaterSprite.texture
         this.reels[end.x].applySymbolStyle(this.game.getSymbol(end.x, end.y), event.eaterId)
         ghost.destroy();
+        setTimeout(() => {
+            this.displayWinText.visible = false
+
+        }, this.config.delayBeforeCascading);
     }
 }

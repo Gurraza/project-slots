@@ -24,6 +24,7 @@ export class Reel {
 
     public container: PIXI.Container;
     public symbols: ReelSymbol[] = [];
+    public anticipationBorder: PIXI.Graphics;
 
     // State management
     public state: 'IDLE' | 'SPINNING' | 'ACCELERATING' | 'STOPPING' | 'DROPPING' | 'LANDING' | 'CASCADING';
@@ -59,7 +60,9 @@ export class Reel {
         this.container = new PIXI.Container();
         this.container.x = index * (config.symbolWidth + config.gapX);
         this.container.y = 0;
-
+        this.anticipationBorder = new PIXI.Graphics();
+        this.anticipationBorder.zIndex = 1000; // Ensure it sits on top of symbols
+        this.game.stage.addChild(this.anticipationBorder);
         this.state = "IDLE";
         this.symbolsBeforeStop = this.config.symbolsBeforeStop + (this.config.reelLandSymbolsDelay * index);
 
@@ -492,6 +495,7 @@ export class Reel {
         this.game.reels.forEach((reel) => {
             if (reel.state == "IDLE") {
                 reel.speedMultiplier = 1
+                console.log("lmlmlmlmlmlmlmlmlmlm")
                 reel.symbols.forEach(symbol => {
                     if (symbol.symbolId === this.anticipationSymbolId) {
                         if (!gsap.isTweening(symbol.scale)) {
@@ -520,6 +524,13 @@ export class Reel {
                 });
             }
             else {
+                console.log("ASDASDASDADSASDASDASD")
+                const firstSpinningReel = this.game.reels.find(r => r.state !== "IDLE");
+                console.log("first spinning reel", firstSpinningReel.index)
+                // 2. If *I* am that reel, I get the border
+                if (firstSpinningReel === this) {
+                    this.drawAnticipationBorder();
+                }
                 // reel.symbolsBeforeStop += 15
                 if (reel.speedMultiplier == 1) {
                     gsap.to(reel, {
@@ -537,6 +548,7 @@ export class Reel {
             gsap.killTweensOf(reel)
             reel.speedMultiplier = 1
         })
+        this.game.reels.forEach(r => r.anticipationBorder?.clear())
         this.symbols.forEach(symbol => {
             gsap.killTweensOf(symbol.scale);
             gsap.killTweensOf(symbol);
@@ -707,9 +719,29 @@ export class Reel {
                 }
             })
         }
+        else {
+            // 1. Find the first reel that is still spinning
+            const firstSpinningReel = this.game.reels.find(r => r.state !== "IDLE");
+
+            // 2. If *I* am that reel, I get the border
+            if (firstSpinningReel === this) {
+                this.drawAnticipationBorder();
+            }
+        }
     }
 
     onIdle() {
 
+    }
+
+    drawAnticipationBorder() {
+        const width = this.config.symbolWidth + this.config.gapX;
+        const height = (this.config.rows * this.config.symbolHeight) + ((this.config.rows - 1) * (this.config.gapY || 0));
+        const padding = 5;
+        const p = this.game.stage.toLocal(this.container.getGlobalPosition())
+
+        this.game.reels.forEach((reel: Reel) => reel.anticipationBorder?.clear())
+        this.anticipationBorder.rect(p.x - padding, p.y - padding, width + (padding * 2), height + (padding * 2));
+        this.anticipationBorder.stroke({ width: 4, color: 0xFFD700, alpha: 1 });
     }
 }

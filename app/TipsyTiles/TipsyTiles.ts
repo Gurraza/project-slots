@@ -18,7 +18,7 @@ const SYMBOLS: SymbolDef[] = [
     {
         name: 'beer_1',
         weight: 1750,
-        payouts: { 4: 0.2, 5: 0.5, 6: 1.0, 7: 1.5, 8: 2.5, 9: 5.0, 10: 6, 11: 10, 12: 15 },
+        payouts: { 1: 0.1 },
         // path: "Beer_1.png",
         path: "_0005_Beer_1.png",
         matchesWith: BEER_GROUP,
@@ -27,7 +27,7 @@ const SYMBOLS: SymbolDef[] = [
     {
         name: 'beer_2',
         weight: 125,
-        payouts: { 4: 0.2, 5: 0.5, 6: 1.0, 7: 1.5, 8: 2.5, 9: 5.0, 10: 6, 11: 10, 12: 15 },
+        payouts: { 1: 0.25 },
         path: "_0004_Beer_2.png",
         matchesWith: BEER_GROUP,
         scale: .6,
@@ -35,7 +35,7 @@ const SYMBOLS: SymbolDef[] = [
     {
         name: 'beer_3',
         weight: 25,
-        payouts: { 4: 0.2, 5: 0.5, 6: 1.0, 7: 1.5, 8: 2.5, 9: 5.0, 10: 6, 11: 10, 12: 15 },
+        payouts: { 1: 0.4 },
         path: "_0003_Beer_3.png",
         matchesWith: BEER_GROUP,
         scale: .6,
@@ -43,7 +43,7 @@ const SYMBOLS: SymbolDef[] = [
     {
         name: 'bubble_1',
         weight: 1750,
-        payouts: { 4: 0.2, 5: 0.5, 6: 1.0, 7: 1.5, 8: 2.5, 9: 5.0, 10: 6, 11: 10, 12: 15 },
+        payouts: { 1: 0.1 },
         path: "_0020_Bubble_1.png",
         matchesWith: BUBBLE_GROUP,
         scale: .6,
@@ -51,7 +51,7 @@ const SYMBOLS: SymbolDef[] = [
     {
         name: 'bubble_2',
         weight: 125,
-        payouts: { 4: 0.2, 5: 0.5, 6: 1.0, 7: 1.5, 8: 2.5, 9: 5.0, 10: 6, 11: 10, 12: 15 },
+        payouts: { 1: 0.25 },
         path: "_0021_Bubble_2.png",
         matchesWith: BUBBLE_GROUP,
         scale: .6,
@@ -59,7 +59,7 @@ const SYMBOLS: SymbolDef[] = [
     {
         name: 'bubble_3',
         weight: 25,
-        payouts: { 4: 0.2, 5: 0.5, 6: 1.0, 7: 1.5, 8: 2.5, 9: 5.0, 10: 6, 11: 10, 12: 15 },
+        payouts: { 1: 0.4 },
         path: "_0022_Bubble_3.png",
         matchesWith: BUBBLE_GROUP,
         scale: .6,
@@ -67,7 +67,7 @@ const SYMBOLS: SymbolDef[] = [
     {
         name: 'drink_1',
         weight: 1750,
-        payouts: { 4: 0.2, 5: 0.5, 6: 1.0, 7: 1.5, 8: 2.5, 9: 5.0, 10: 6, 11: 10, 12: 15 },
+        payouts: { 1: 0.1 },
         path: "_0023_Drink_1.png",
         matchesWith: DRINK_GROUP,
         scale: .6,
@@ -75,7 +75,7 @@ const SYMBOLS: SymbolDef[] = [
     {
         name: 'drink_2',
         weight: 125,
-        payouts: { 4: 0.2, 5: 0.5, 6: 1.0, 7: 1.5, 8: 2.5, 9: 5.0, 10: 6, 11: 10, 12: 15 },
+        payouts: { 1: 0.25 },
         path: "_0024_Drink_2.png",
         matchesWith: DRINK_GROUP,
         scale: .6,
@@ -83,7 +83,7 @@ const SYMBOLS: SymbolDef[] = [
     {
         name: 'drink_3',
         weight: 25,
-        payouts: { 4: 0.2, 5: 0.5, 6: 1.0, 7: 1.5, 8: 2.5, 9: 5.0, 10: 6, 11: 10, 12: 15 },
+        payouts: { 1: 0.4 },
         path: "_0025_Drink_3.png",
         matchesWith: DRINK_GROUP,
         scale: .6,
@@ -91,7 +91,7 @@ const SYMBOLS: SymbolDef[] = [
     {
         name: 'shot_1',
         weight: 1750,
-        payouts: { 4: 0.2, 5: 0.5, 6: 1.0, 7: 1.5, 8: 2.5, 9: 5.0, 10: 6, 11: 10, 12: 15 },
+        payouts: { 1: 0.1 },
         path: "_0006_Shot_1.png",
         matchesWith: SHOT_GROUP,
         scale: .6,
@@ -99,7 +99,7 @@ const SYMBOLS: SymbolDef[] = [
     {
         name: 'shot_2',
         weight: 125,
-        payouts: { 4: 0.2, 5: 0.5, 6: 1.0, 7: 1.5, 8: 2.5, 9: 5.0, 10: 6, 11: 10, 12: 15 },
+        payouts: { 1: 0.25 },
         path: "_0007_Shot_2.png",
         matchesWith: SHOT_GROUP,
         scale: .6,
@@ -107,7 +107,7 @@ const SYMBOLS: SymbolDef[] = [
     {
         name: 'shot_3',
         weight: 25,
-        payouts: { 4: 0.2, 5: 0.5, 6: 1.0, 7: 1.5, 8: 2.5, 9: 5.0, 10: 6, 11: 10, 12: 15 },
+        payouts: { 1: 0.4 },
         path: "_0008_Shot_3.png",
         matchesWith: SHOT_GROUP,
         scale: .6,
@@ -263,11 +263,13 @@ export default class TipsyTiles extends SlotsBase {
         super(rootContainer, app, myConfig);
 
         // this.registerFeature(new ClusterEngineFeature(this))
-        this.registerFeature(new EatEngineFeature(this))
+        this.registerFeature(new EatEngineFeature(this, {
+            dispalyWinUnderEater: true
+        }))
         this.registerFeature(new ShakerFeature(this, {
             name: "shaker",
             dontCluster: true,
-            weight: [100],
+            weight: [25],
             scale: 1,
             path: "_0014_Shaker.png",
             // landingEffect: "shake",
