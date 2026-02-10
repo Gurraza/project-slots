@@ -9,6 +9,7 @@ export class DrunkMeterFeature extends GameFeature {
     private beerTowerTop: Sprite;
     private beerTowerBottom: Sprite;
     private beerTowerBeer: Sprite;
+    private beerTowerText: Text;
     private readonly EMPTY_Y = 415;
     private readonly MAX_HEIGHT = 450; // How tall the liquid is in pixels
     private currentBeerLevel: number = 0;
@@ -19,7 +20,6 @@ export class DrunkMeterFeature extends GameFeature {
     }
 
     init() {
-        console.log("INIT")
         super.init();
         this.beerTowerContainer = new Container();
         this.stage.addChild(this.beerTowerContainer)
@@ -55,6 +55,18 @@ export class DrunkMeterFeature extends GameFeature {
         this.beerTowerContainer.addChild(beerMask);
         this.beerTowerBeer.mask = beerMask;
         this.setBeerLevel(this.currentBeerLevel)
+
+        this.beerTowerText = new Text()
+        this.beerTowerText.text = "0/100"
+        this.beerTowerText.style = {
+            fontSize: 24,
+            fill: 0xffffff, // Red color
+            fontFamily: 'Arial',
+            align: 'center', // Center alignment
+        }
+        this.beerTowerText.zIndex = 10;
+        this.beerTowerText.position.set(this.config.width - 220, 485)
+        this.beerTowerContainer.addChild(this.beerTowerText)
     }
 
     getAssets() {
@@ -101,7 +113,7 @@ export class DrunkMeterFeature extends GameFeature {
         // If no eater clusters, stop here
         if (filtered.length === 0) return false;
         filtered.forEach(cluster => {
-            this.currentBeerLevel += cluster.length * 2
+            this.currentBeerLevel += cluster.length * 1
         })
         // this.updateBeerLevel(newLevel)
         timeline.push({
@@ -113,8 +125,8 @@ export class DrunkMeterFeature extends GameFeature {
 
 
     async onCustomEvent(event: any): Promise<void> {
-        console.log("YES", event)
         const { newLevel } = event
         this.setBeerLevel(newLevel)
+        this.beerTowerText.text = newLevel + "/100"
     }
 }

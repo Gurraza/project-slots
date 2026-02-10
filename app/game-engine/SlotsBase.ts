@@ -72,7 +72,6 @@ export default class SlotsBase {
 
     setBackground(alias?: string) {
         Assets.load(alias || this.config.backgroundImage || "").then((texture) => {
-            console.log("2")
             if (!this.bgSprite) {
                 this.bgSprite = new Sprite();
             }
@@ -98,10 +97,12 @@ export default class SlotsBase {
 
     async spin() {
         if (this.processing === true && this.config.mode === "normal") return;
-        // this.engine.setSeed(2438078305942)
+        // this.engine.setSeed(563172570139)
+        this.engine.setSeed(563172570139)
         console.log("This game has the seed:", this.engine.seed);
         console.log("This game has the symbols:", this.config.symbols);
 
+        this.onNewSpin()
         this.processing = true;
         this.ui.setMultiplier(0);
 
@@ -735,7 +736,7 @@ export default class SlotsBase {
         });
     }
 
-    spawnGhost(originalSymbol: Sprite): Sprite {
+    spawnGhost(originalSymbol: Sprite, time?: number): Sprite {
         const ghost = new Sprite(originalSymbol.texture);
         ghost.anchor.x = originalSymbol.anchor.x;
         ghost.anchor.y = originalSymbol.anchor.y;
@@ -752,7 +753,7 @@ export default class SlotsBase {
 
         setTimeout(() => {
             if (!ghost.destroyed) ghost.destroy();
-        }, 5000);
+        }, time || 5000);
         return ghost;
     }
 
@@ -816,5 +817,39 @@ export default class SlotsBase {
         this.initialGrid = generateRandomResult(this.engine, this.config.rows, this.config.cols, this.config.symbols);
 
         this.createGrid();
+    }
+
+    onNewSpin() { /* to be overwritten by PixiCanvas.tsx */ }
+
+    setFreespins(to: number): void {
+        if (to < 0) {
+            throw Error("Can't set freespins to negative. Tried to set it to: " + to)
+        }
+
+        if (this.config.freespins === 0 && to > 0) {
+            this.features.forEach((feature: GameFeature) => {
+                feature.onActivateFreespins()
+            })
+        }
+
+        this.config.freespins = to
+
+        if (to === 0) {
+            this.features.forEach((feature: GameFeature) => {
+                feature.onDeactivateFreespins()
+            })
+        }
+    }
+
+    getSymbol(col: number, row: number) {
+        const reel = this.reels[col];
+        // Find the symbol closest to the expected Y position
+        // This assumes row 0 is at y=0, row 1 is at y=slotHeight, etc.
+        // Adjust logic if your grid is centered differently.
+        const targetY = ((this.config.rows - 1 - row) * reel.slotHeight) + (reel.config.symbolHeight / 2);
+
+        // Allow a small margin of error for floating point positions
+        const res = reel.symbols.find(s => Math.abs(s.y - targetY) < 5);
+        return res
     }
 }

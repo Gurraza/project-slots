@@ -1,12 +1,13 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import * as PIXI from 'pixi.js';
 
 export default function PixiCanvas({ gameClass, onGameReady, onResize }) {
     const containerRef = useRef(null);
     const appRef = useRef(null);
     const gameInstanceRef = useRef(null);
+    const [seed, setSeed] = useState(0)
 
     useEffect(() => {
         const initPixi = async () => {
@@ -38,6 +39,10 @@ export default function PixiCanvas({ gameClass, onGameReady, onResize }) {
 
             if (onGameReady) onGameReady(gameInstanceRef.current);
 
+            setSeed(gameInstanceRef.current.engine.seed)
+            gameInstanceRef.current.onNewSpin = () => {
+                setSeed(gameInstanceRef.current.engine.seed)
+            }
 
             // --- SCALING LOGIC ---
             const handleResize = () => {
@@ -106,9 +111,12 @@ export default function PixiCanvas({ gameClass, onGameReady, onResize }) {
     }, []);
 
     return (
-        <div
-            ref={containerRef}
-            style={{ width: '100%', height: '100%', overflow: 'hidden', outline: "none", userSelect: "none" }}
-        />
+        <>
+            <span className='absolute top-4 left-4 text-white'>{seed}</span>
+            <div
+                ref={containerRef}
+                style={{ width: '100%', height: '100%', overflow: 'hidden', outline: "none", userSelect: "none" }}
+            />
+        </>
     );
 };

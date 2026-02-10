@@ -19,7 +19,7 @@ export class ShakerFeature extends GameFeature {
     }
 
     getSymbols() {
-        if (!this.featureSymbol) return false
+        if (!this.featureSymbol) return []
         return [
             this.featureSymbol,
             openedShakerSymbol
@@ -83,7 +83,8 @@ export class ShakerFeature extends GameFeature {
                 timeline.push({
                     type: this.type,
                     changes: moves,
-                    grid: JSON.parse(JSON.stringify(grid))
+                    grid: JSON.parse(JSON.stringify(grid)),
+                    shakerPos: { x: shakerX, y: shakerY }
                 });
                 return true;
             }
@@ -97,7 +98,7 @@ export class ShakerFeature extends GameFeature {
         // Change type from Promise<void>[] to Promise<any>[] 
         // to accept the number returned by insertIntoGrid
         const promises: Promise<any>[] = [];
-
+        await this.reels[event.shakerPos.x].playMatchEffects([event.shakerPos.y])
         event.changes.forEach(change => {
             promises.push(this.game.insertIntoGrid({ x: change.x, y: change.y }, change.newId));
         });

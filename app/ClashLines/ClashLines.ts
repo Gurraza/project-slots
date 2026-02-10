@@ -12,7 +12,7 @@ const SYMBOLS: SymbolDef[] = [
         weight: 20, // Rare, but powerful
         scale: .9,
         path: "super_icon.png",
-        matchesWith: "*",
+        matchesWith: ["*"],
         // Payouts: 5-match is now a "Super Win" (1000x)
         payouts: { 3: 5.0, 4: 50.0, 5: 1000.0 }
     },
@@ -144,6 +144,25 @@ export default class ClashLines extends SlotsBase {
                 { alias: "rage_spell_background", src: "rage_spell_background.png" },
                 ...Array.from({ length: 10 }).map((_, i) => { return { alias: "num_" + i, src: "font/" + i + ".png" } })
             ],
+
+            ui: {
+                spinButton: {
+                    asset: "spin_button.png",
+                    position: {
+                        right: 150,
+                        bottom: 110
+                    },
+                    scale: 1
+                },
+                title: {
+                    asset: "title.png",
+                    position: {
+                        left: 640,
+                        top: 25
+                    },
+                    scale: .3
+                }
+            },
 
             // Speed
             spinSpeed: 35,
