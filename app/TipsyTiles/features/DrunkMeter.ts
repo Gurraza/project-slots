@@ -67,6 +67,10 @@ export class DrunkMeterFeature extends GameFeature {
         this.beerTowerText.zIndex = 10;
         this.beerTowerText.position.set(this.config.width - 220, 485)
         this.beerTowerContainer.addChild(this.beerTowerText)
+        if (this.config.isMobile) {
+            this.beerTowerContainer.scale = .5
+            this.beerTowerContainer.position.set(390, 0)
+        }
     }
 
     getAssets() {

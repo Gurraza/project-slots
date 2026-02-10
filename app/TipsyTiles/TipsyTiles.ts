@@ -1,5 +1,5 @@
 import SlotsBase from '../game-engine/SlotsBase.ts';
-import { Container, Application, Assets, Sprite } from "pixi.js"
+import { Container, Application, Assets, Sprite, isMobile } from "pixi.js"
 import { glowFlashAnimation, landingEffect, matchEffect, shake } from '../game-engine/effects/Effects.ts';
 import { GameConfig, SymbolDef } from "../game-engine/types.ts"
 import { ClusterEngineFeature } from '../ClashOfReels/features/ClusterFeature.ts';
@@ -234,19 +234,25 @@ export default class TipsyTiles extends SlotsBase {
             ui: {
                 title: {
                     asset: "tipsy_title.png",
-                    position: {
+                    position: isMobile ? {
+                        top: 70,
+                        left: 720 / 2
+                    } : {
                         top: 50,
                         left: 640
                     },
-                    scale: .1
+                    scale: isMobile ? .2 : .1
                 },
                 spinButton: {
                     asset: "tipsy_spin.png",
-                    position: {
+                    position: isMobile ? {
+                        bottom: 140,
+                        left: 720 / 2
+                    } : {
                         bottom: 125,
                         right: 190,
                     },
-                    scale: .75
+                    scale: isMobile ? 1.35 : .75
                 }
             },
 
