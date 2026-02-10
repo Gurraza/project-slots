@@ -13,7 +13,7 @@ gsap.registerPlugin(MotionPathPlugin);
 const featureSymbol: SymbolDef = {
     name: "warden",
     scale: 1,
-    path: "Warden.png",
+    path: "warden.png",
     weight: [5],
     cheatWeight: [99999],
     dontCluster: true,
