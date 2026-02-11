@@ -1,6 +1,9 @@
-import { Star, Play, Info } from 'lucide-react';
+import { Star, Play, Info, Layers, Grid, Move } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
+
+// 1. Define valid engine types
+export type EngineType = 'cluster' | 'payline' | 'roaming';
 
 export interface SlotGame {
     id: string;
@@ -10,19 +13,35 @@ export interface SlotGame {
     playUrl: string;
     rtp: number;
     volatility: number; // 0 to 5
+    engineType: EngineType; // 2. Add engine type to interface
 }
 
 interface GameCardProps {
     game: SlotGame;
 }
 
+// 3. Helper for labels and icons
+const getEngineDetails = (type: EngineType) => {
+    switch (type) {
+        case 'cluster':
+            return { label: 'Cluster Pays', icon: Grid };
+        case 'payline':
+            return { label: 'Fixed Paylines', icon: Layers };
+        case 'roaming':
+            return { label: 'Roaming Collector', icon: Move };
+        default:
+            return { label: 'Slot', icon: Grid };
+    }
+};
+
 export default function GameCard({ game }: GameCardProps) {
+    const { label, icon: TypeIcon } = getEngineDetails(game.engineType);
+
     return (
         <div className="group relative overflow-hidden rounded-xl border border-slate-800 bg-slate-900 transition-all duration-300 hover:-translate-y-1 hover:border-amber-500/50 hover:shadow-2xl hover:shadow-amber-500/10">
             {/* Thumbnail */}
             <div className="relative h-48 w-full overflow-hidden bg-slate-950">
                 <div className="absolute inset-0 flex items-center justify-center text-slate-700">
-                    {/* Placeholder for real image */}
                     <Image
                         src={game.thumbnailUrl}
                         alt={game.title}
@@ -31,6 +50,13 @@ export default function GameCard({ game }: GameCardProps) {
                         sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                     />
                 </div>
+
+                {/* Engine Type Badge (Top Left) */}
+                <div className="absolute top-3 left-3 z-10 flex items-center gap-1.5 rounded-md bg-slate-900/90 px-2.5 py-1.5 text-xs font-bold text-slate-200 backdrop-blur-md border border-slate-700/50 shadow-lg">
+                    <TypeIcon size={12} className="text-amber-500" />
+                    {label}
+                </div>
+
                 {/* Overlay on hover */}
                 <div className="absolute inset-0 bg-black/60 opacity-0 transition-opacity duration-300 group-hover:opacity-100 flex items-center justify-center gap-4">
                     <Link href={game.playUrl} className="p-3 bg-amber-500 rounded-full text-black hover:bg-amber-400 transition-colors">
@@ -44,9 +70,9 @@ export default function GameCard({ game }: GameCardProps) {
 
             {/* Content */}
             <div className="p-5">
-                <div className="mb-4 flex items-start justify-between">
-                    <h3 className="text-xl font-bold text-slate-100">{game.title}</h3>
-                    <span className="rounded bg-slate-800 px-2 py-1 text-xs font-medium text-amber-500">
+                <div className="mb-4 flex items-start justify-between gap-2">
+                    <h3 className="text-xl font-bold text-slate-100 leading-tight">{game.title}</h3>
+                    <span className="shrink-0 rounded bg-slate-800 px-2 py-1 text-xs font-medium text-amber-500 border border-slate-700/50">
                         RTP {game.rtp}%
                     </span>
                 </div>

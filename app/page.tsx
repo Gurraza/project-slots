@@ -5,29 +5,32 @@ const SLOT_GAMES: SlotGame[] = [
     {
         id: '1',
         title: 'Clash Of Reels',
-        description: 'Experience the electric pulse of the city with high-speed spins and expanding wilds in our custom cyber-engine.',
-        thumbnailUrl: '/games/ClashOfReels/background.jpg',
+        description: 'A high-energy cluster-pays experience with cascading symbols, expanding wilds, and adaptive volatility for blockbuster wins.',
+        thumbnailUrl: '/games/ClashOfReels/thumbnail.png',
         playUrl: '/play/ClashOfReels',
         rtp: 96.5,
         volatility: 3,
+        engineType: "cluster"
     },
     {
         id: '2',
         title: 'Lines',
-        description: 'Unearth ancient treasures. Features cascading reels and a unique multiplier mechanic powered by our core engine.',
+        description: 'Classic payline action rebuilt: cascading reels, stacked symbols, and a progressive multiplier system that rewards strategic play.',
         thumbnailUrl: '/games/Lines/thumbnail.png',
         playUrl: '/play/Lines',
         rtp: 95.8,
         volatility: 5,
+        engineType: "payline"
     },
     {
         id: '3',
         title: 'Tipsy Tiles',
-        description: 'A classic reimagined. Low volatility fun with sticky symbols and rapid re-spins for extended playtime.',
-        thumbnailUrl: '/games/TipsyTiles/Background.png',
+        description: 'A relaxed, low-volatility tile-slot with sticky symbols and fast re-spins for longer sessions and steady small wins.',
+        thumbnailUrl: '/games/TipsyTiles/thumbnail.png',
         playUrl: '/play/TipsyTiles',
         rtp: 97.2,
         volatility: 2,
+        engineType: "roaming"
     },
 ];
 
@@ -41,10 +44,10 @@ export default function Home() {
 
                 <div className="relative mx-auto max-w-2xl text-center">
                     <h1 className="text-4xl font-bold tracking-tight text-white sm:text-6xl">
-                        Next-Gen Gaming on the <span className="text-transparent bg-clip-text bg-linear-to-r from-amber-400 to-yellow-600">Titan Engine</span>
+                        Next-Gen Gaming on the <span className="text-transparent bg-clip-text bg-linear-to-r from-amber-400 to-yellow-600">Plugin Play Engine</span>
                     </h1>
                     <p className="mt-6 text-lg leading-8 text-slate-400">
-                        High-fidelity slot mechanics, provably fair algorithms, and instant load times. Experience the future of browser-based casino gaming.
+                        Plugin Play is a modular, browser-native slot engine engineered for fairness, performance, and rapid prototyping. It provides deterministic RNG with provable auditability, low-latency client rendering, and a plugin-style feature system (cluster, payline, roaming, etc.) so developers can compose complex features without rewriting core logic.
                     </p>
                     <div className="mt-10 flex items-center justify-center gap-x-6">
                         <a
