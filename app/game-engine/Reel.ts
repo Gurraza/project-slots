@@ -2,8 +2,8 @@ import * as PIXI from 'pixi.js';
 import gsap from "gsap";
 import { getRandomSymbolId } from "./Math.ts";
 import { GameConfig, SymbolDef } from "./types.ts"
-import { PixiPlugin } from "gsap/PixiPlugin";
 import SlotsBase from './SlotsBase.ts';
+import { PixiPlugin } from "gsap/PixiPlugin";
 gsap.registerPlugin(PixiPlugin);
 PixiPlugin.registerPIXI(PIXI);
 

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import * as PIXI from 'pixi.js';
+import Link from 'next/link';
 
 export default function PixiCanvas({ gameClass, onGameReady, onResize }) {
     const containerRef = useRef(null);
@@ -112,6 +113,7 @@ export default function PixiCanvas({ gameClass, onGameReady, onResize }) {
 
     return (
         <>
+            <Link href='/' className='absolute top-4 right-4'>X</Link>
             <span className='absolute top-4 left-4 text-white'>{seed}</span>
             <div
                 ref={containerRef}

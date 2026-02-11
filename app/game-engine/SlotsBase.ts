@@ -1,6 +1,6 @@
 import { Assets, Sprite, Container, Graphics, Filter, GlProgram, Application, Texture, TextureSource } from 'pixi.js';
 import { Reel } from './Reel.ts'; // Assumes .ts or .js resolution
-import { UI } from './UI.ts';
+import { getPos, UI } from './UI.ts';
 import { RandomEngine, calculateMoves, contain, generateRandomResult } from './Math.ts';
 import { SymbolDef, GameConfig, Grid } from './types.ts';
 import GameFeature from './GameFeature.ts';
@@ -76,7 +76,7 @@ export default class SlotsBase {
                 this.bgSprite = new Sprite();
             }
             const bg = this.bgSprite;
-            bg.zIndex = -100;
+            bg.zIndex = -1000;
             bg.texture = texture;
             bg.anchor.set(0.5);
             bg.x = this.config.width / 2;
@@ -98,7 +98,9 @@ export default class SlotsBase {
     async spin() {
         if (this.processing === true && this.config.mode === "normal") return;
         // this.engine.setSeed(563172570139)
+        // this.engine.setSeed(1698311012251)
         // this.engine.setSeed(563172570139)
+        // this.engine.setSeed(697883286926)
         console.log("This game has the seed:", this.engine.seed);
         console.log("This game has the symbols:", this.config.symbols);
 
@@ -170,8 +172,11 @@ export default class SlotsBase {
         const totalHeight = (this.config.rows * this.config.symbolHeight) +
             ((this.config.rows - 1) * this.config.gapY);
 
-        this.reelContainer.x = (this.config.width - totalWidth) / 2;
-        this.reelContainer.y = (this.config.height - totalHeight) / 2;
+        const offset = getPos(this.config.foregroundOffset, this.config)
+        console.log(offset)
+        this.reelContainer.x = (this.config.width - totalWidth) / 2 + offset.x;
+        this.reelContainer.y = (this.config.height - totalHeight) / 2 + offset.y
+        console.log(this.reelContainer.x)
 
         for (let i = 0; i < this.config.cols; i++) {
             const reel = new Reel(this.app, i, this.config, this);
@@ -360,56 +365,6 @@ export default class SlotsBase {
         }
     }
 
-    // async loadAssets() {
-    //     // 1. Register all assets with Pixi
-    //     const aliases: string[] = [];
-    //     this.config.symbols.forEach(symbol => {
-    //         if (symbol.textureAtLevel && Array.isArray(symbol.textureAtLevel)) {
-    //             symbol.textureAtLevel.forEach((path, index) => {
-    //                 const alias = `${symbol.name}_level_${index + 1}`;
-    //                 Assets.add({ alias: alias, src: path });
-    //                 aliases.push(alias);
-    //             });
-    //         }
-    //         else if (symbol.path) {
-    //             Assets.add({ alias: symbol.name, src: symbol.path });
-    //             aliases.push(symbol.name);
-    //         }
-    //     });
-
-    //     // 2. Load Extra Game Assets
-    //     if (this.config.extraAssets) {
-    //         this.config.extraAssets.forEach(asset => {
-    //             Assets.add({ alias: asset.alias, src: this.config.pathPrefix + asset.src });
-    //             aliases.push(asset.alias);
-    //         });
-    //     }
-
-    //     this.features.forEach(feature => {
-    //         if (feature.getAssets) {
-    //             const assets = feature.getAssets();
-    //             if (assets) {
-    //                 assets.forEach(asset => {
-    //                     Assets.add({ alias: asset.alias, src: this.config.pathPrefix + asset.src });
-    //                     aliases.push(asset.alias);
-    //                 });
-    //             }
-    //         }
-    //     });
-
-    //     // 3. WAIT for all assets to finish downloading
-    //     await Assets.load(aliases);
-
-    //     this.config.symbols.forEach(symbol => {
-    //         if (symbol.path) {
-    //             symbol.texture = Assets.get(symbol.name);
-    //         }
-    //         else if (symbol.textureAtLevel) {
-    //             symbol.texture = Assets.get(symbol.name + "_level_1");
-    //         }
-    //     });
-    // }
-
     applyAnticipation(reelIndex: number) {
         const symbol = this.config.symbols.find((s: SymbolDef) => {
             if (!s.anticipation) return false;
@@ -436,40 +391,6 @@ export default class SlotsBase {
             }
 
         })
-    }
-
-    aapplyAnticipation(symbol: SymbolDef) {
-        if (!symbol.anticipation) return;
-
-        let foundCount = 0;
-        const maxHits = Array.isArray(symbol.weight) ? symbol.weight.length : Infinity;
-
-        this.reels.forEach((reel, index) => {
-            const reelHasSymbol = this.grid[index].includes(symbol.id);
-            const standardStop = this.config.symbolsBeforeStop + (this.config.reelLandSymbolsDelay * index);
-
-            // Note: Typescript knows symbol.anticipation is defined here because of the guard clause at top
-            if (foundCount >= symbol.anticipation!.after && foundCount < maxHits) {
-                const extraDelay = (foundCount * symbol.anticipation!.count);
-                reel.symbolsBeforeStop = standardStop + extraDelay;
-                reel.forceVisible = true;
-            } else {
-                reel.symbolsBeforeStop = standardStop;
-                reel.forceVisible = false;
-            }
-
-            if (reelHasSymbol) {
-                foundCount += this.grid[index].filter(id => id === symbol.id).length;
-            }
-
-            if (foundCount >= symbol.anticipation!.after && foundCount < maxHits && index < this.config.cols - 1) {
-                reel.shouldTriggerAnticipation = true;
-                reel.anticipationSymbolId = symbol.id;
-            } else {
-                reel.shouldTriggerAnticipation = false;
-                reel.anticipationSymbolId = -1; // -1 or null
-            }
-        });
     }
 
     applyGroups() {
@@ -846,7 +767,7 @@ export default class SlotsBase {
         // Find the symbol closest to the expected Y position
         // This assumes row 0 is at y=0, row 1 is at y=slotHeight, etc.
         // Adjust logic if your grid is centered differently.
-        const targetY = ((this.config.rows - 1 - row) * reel.slotHeight) + (reel.config.symbolHeight / 2);
+        const targetY = ((this.config.rows - 1 - row) * reel.slotHeight) + (reel.slotHeight / 2);
 
         // Allow a small margin of error for floating point positions
         const res = reel.symbols.find(s => Math.abs(s.y - targetY) < 5);

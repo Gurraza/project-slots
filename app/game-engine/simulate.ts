@@ -1,10 +1,10 @@
-import ClashLines from "../ClashLines/ClashLines.ts"
-import ClashOfReels from "../ClashOfReels/ClashOfReels.ts";
-import TipsyTiles from "../TipsyTiles/TipsyTiles.ts";
+// import ClashOfReels from "../games/ClashOfReels/ClashOfReels.ts";
+// import TipsyTiles from "../../TipsyTiles/TipsyTiles.ts";
+import Lines from "../games/Lines/Lines.ts";
 import { calculateMoves } from "./Math.ts";
 
 // const game = new ClashLines(null, null, { mode: 'simulation', });
-const game = new ClashOfReels(null, null, { mode: 'simulation', });
+const game = new Lines(null, null, { mode: 'simulation', });
 // const game = new TipsyTiles(null, null, { mode: 'simulation' })
 async function runSimulation() {
     console.log("Starting Simulation...");

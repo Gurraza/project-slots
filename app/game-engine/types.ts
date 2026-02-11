@@ -53,13 +53,12 @@ export interface GameConfig {
     gapX: number;
     gapY: number;
     borderRadius: number;
-
+    foregroundOffset?: Position;
     // Visuals
     backgroundImage: string;
     reelBackgroundImage: string;
     reelBackgroundScale: number;
     reelBackgroundOffset: { x: number; y: number };
-    titleImage: string,
     symbolsBeforeStop: number;
     reelLandSymbolsDelay: number;
     invisibleFlyby: boolean;
@@ -152,17 +151,57 @@ type HorizontalPosition =
     | { left?: number; right?: never }
     | { right?: number; left?: never };
 
-export type PositionConfig = VerticalPosition & HorizontalPosition
+export type Position = VerticalPosition & HorizontalPosition
 
+type Scale = {
+    x: number;
+    y: number;
+};
+
+type Size = {
+    width: number;
+    height: number;
+};
+
+export type Transform = {
+    position: Position;
+} & (
+        | { scale: Scale; size?: never }
+        | { size: Size; scale?: never }
+        | { scale?: never; size?: never } // Allows neither to be present
+    );
 export interface GameUIConfig {
     spinButton: UIElementConfig;
-    title: UIElementConfig;
+    title?: UIElementConfig;
     freeSpins?: UIElementConfig;
     multiplier?: UIElementConfig;
+    bet?: Bet;
+}
+
+interface Bet {
+    betSymbol: UIElementConfig;
+    incrementBtn: UIElementConfig;
+    decrementBtn: UIElementConfig;
+    textPos: Position;
+    textStyle: {
+        fontSize: number;
+        fill: number; // Hex color as a number
+        fontFamily: string; // Use lowercase 'string'
+        align?: "left" | "center" | "right"; // Use a union for better Type safety
+        stroke?: {
+            color?: string;
+            width?: number;
+        };
+        dropShadow?: {
+            color?: string;
+            blur?: number;
+            distance?: number;
+        };
+    };
 }
 
 export interface UIElementConfig {
-    position: PositionConfig;
+    position: Position;
     visible?: boolean;
     asset: string;
     anchor?: { x: number; y: number };

@@ -1,7 +1,7 @@
 import gsap from "gsap";
 import { Assets, Sprite, ColorMatrixFilter, Container, Graphics, Text, Application, FederatedPointerEvent, Texture } from "pixi.js";
 import SlotsBase from "./SlotsBase.ts";
-import { GameConfig, SymbolDef, UIElementConfig } from "./types.ts"
+import { GameConfig, Position, SymbolDef, Transform, UIElementConfig } from "./types.ts"
 
 
 
@@ -27,6 +27,11 @@ export class UI {
     public isSpinning: boolean = false;
     private _onKeyDown: ((e: KeyboardEvent) => void) | null = null;
 
+    private betSymbol: Sprite;
+    private betIncrementBtn: Sprite;
+    private betDecrementBtn: Sprite;
+    private betText: Text;
+
     constructor(game: SlotsBase) {
         this.game = game;
         this.app = game.app;
@@ -40,6 +45,7 @@ export class UI {
         this.createSpinButton();
         this.createFreespins();
         this.enableKeyboard();
+        this.createBetButton();
 
         let i = 0;
         this.config.symbols.forEach((s: SymbolDef) => {
@@ -49,12 +55,6 @@ export class UI {
                 i++;
             }
         });
-    }
-
-    getPos(element: UIElementConfig) {
-        const x = element.position.left ? element.position.left : this.config.width - element.position.right
-        const y = element.position.top ? element.position.top : this.config.height - element.position.bottom
-        return { x, y }
     }
 
     enableKeyboard(): void {
@@ -73,6 +73,50 @@ export class UI {
             window.removeEventListener("keydown", this._onKeyDown);
             this._onKeyDown = null;
         }
+    }
+
+    createBetButton(): void {
+        const conf = this.config.ui.bet
+        if (!conf) {
+            return
+        }
+
+        let pos = getPos(conf.betSymbol.position, this.config)
+        pos = getPos(conf.betSymbol.position, this.config)
+        this.betSymbol = new Sprite(Assets.get(conf.betSymbol.asset))
+        this.betSymbol.position.set(pos.x, pos.y)
+        this.betSymbol.scale = conf.betSymbol.scale
+
+        pos = getPos(conf.incrementBtn.position, this.config)
+        this.betIncrementBtn = new Sprite(Assets.get(conf.incrementBtn.asset))
+        this.betIncrementBtn.position.set(pos.x, pos.y)
+        this.betIncrementBtn.scale = conf.incrementBtn.scale
+
+        this.betIncrementBtn.eventMode = "static";
+        this.betIncrementBtn.cursor = "pointer";
+        this.betIncrementBtn.on("pointertap", () => this.handlebetIncrement());
+
+        pos = getPos(conf.decrementBtn.position, this.config)
+        this.betDecrementBtn = new Sprite(Assets.get(conf.decrementBtn.asset))
+        this.betDecrementBtn.position.set(pos.x, pos.y)
+        this.betDecrementBtn.scale = conf.decrementBtn.scale
+
+        this.betDecrementBtn.eventMode = "static";
+        this.betDecrementBtn.cursor = "pointer";
+        this.betDecrementBtn.on("pointertap", () => this.handlebetDecrement());
+
+        pos = getPos(conf.textPos, this.config)
+        this.betText = new Text({
+            text: "10€",
+            style: {
+                ...conf.textStyle
+            }
+        })
+        this.betText.position.set(pos.x, pos.y)
+        this.stage.addChild(this.betSymbol)
+        this.stage.addChild(this.betIncrementBtn)
+        this.stage.addChild(this.betDecrementBtn)
+        this.stage.addChild(this.betText)
     }
 
     createFreespins(): void {
@@ -148,43 +192,59 @@ export class UI {
     createTitle(): void {
         const conf: UIElementConfig = this.config.ui.title
         if (!conf) {
-            console.error("NO TITLE")
             return
         }
-        Assets.load(this.config.pathPrefix + conf.asset).then((texture) => {
-            const { x, y } = this.getPos(conf)
-            this.title = new Sprite(texture);
-            this.title.anchor.set(0.5);
-            this.title.position.set(x, y)
-            this.title.scale.set(conf.scale);
-            this.stage.addChild(this.title);
-        });
+        try {
+            Assets.load(this.config.pathPrefix + conf.asset).then((texture) => {
+                const { x, y } = getPos(conf.position, this.config)
+                this.title = new Sprite(texture);
+                this.title.anchor.set(0.5);
+                this.title.position.set(x, y)
+                this.title.scale.set(conf.scale);
+                this.stage.addChild(this.title);
+            });
+        }
+        catch (e) {
+            Assets.load(conf.asset).then((texture) => {
+                const { x, y } = getPos(conf.position, this.config)
+                this.title = new Sprite(texture);
+                this.title.anchor.set(0.5);
+                this.title.position.set(x, y)
+                this.title.scale.set(conf.scale);
+                this.stage.addChild(this.title);
+            });
+        }
     }
 
-    createSpinButton(): void {
+    async createSpinButton(): Promise<void> {
         const conf: UIElementConfig = this.config.ui.spinButton
         if (!conf) {
             console.error("NO SPIN BUTTON")
             return
         }
-        Assets.load(this.config.pathPrefix + conf.asset).then((texture) => {
-            const { x, y } = this.getPos(conf)
-            this.spinButton = new Sprite(texture);
-            this.spinButton.anchor.set(.5);
+        let texture = Assets.cache.has(conf.asset) ? Assets.get(conf.asset) : undefined
+        console.log(texture)
+        if (!texture) {
+            texture = await Assets.load(this.config.pathPrefix + conf.asset)
+        }
+        // Assets.load(this.config.pathPrefix + conf.asset).then((texture) => {
+        const { x, y } = getPos(conf.position, this.config)
+        this.spinButton = new Sprite(texture);
+        this.spinButton.anchor.set(.5);
 
-            const ratio = this.spinButton.height / this.spinButton.width;
-            this.spinButton.width = 200 * conf.scale;
-            this.spinButton.height = 200 * conf.scale * ratio;
+        const ratio = this.spinButton.height / this.spinButton.width;
+        this.spinButton.width = 200 * conf.scale;
+        this.spinButton.height = 200 * conf.scale * ratio;
 
-            this.spinButton.position.set(x, y)
+        this.spinButton.position.set(x, y)
 
-            this.spinButton.eventMode = "static";
-            this.spinButton.cursor = "pointer";
+        this.spinButton.eventMode = "static";
+        this.spinButton.cursor = "pointer";
+        this.spinButton.on("pointertap", () => this.handleSpin());
 
-            this.stage.addChild(this.spinButton);
+        this.stage.addChild(this.spinButton);
 
-            this.spinButton.on("pointertap", () => this.handleSpin());
-        });
+        // });
     }
     // createSpinButton(): void {
     //     Assets.load('/games/ClashOfReels/spin_button.png').then((texture) => {
@@ -442,4 +502,48 @@ export class UI {
 
         this.stage.addChild(container);
     }
+
+    handlebetIncrement() {
+
+    }
+
+    handlebetDecrement() {
+
+    }
+
+    /**
+     * Places a Pixi Container, Sprite, or Text onto the stage.
+     * Can accept direct X/Y coordinates OR your GameConfig Position object.
+     */
+    place(element: Container, transform: Transform): void {
+        const { x, y: calculatedY } = getPos(transform.position, this.config);
+        element.position.set(x, calculatedY);
+
+        if (transform.scale) {
+            element.scale.set(transform.scale.x, transform.scale.y)
+        }
+        else if (transform.size) {
+            element.setSize(transform.size.width, transform.size.height)
+        }
+
+        this.stage.addChild(element);
+    }
+}
+
+export function getPos(position: Position, config: GameConfig) {
+    let y: number = 0;
+    let x: number = 0;
+    if (position.bottom) {
+        y = config.height - position.bottom
+    }
+    else if (position.top) {
+        y = position.top
+    }
+    if (position.left) {
+        x = position.left
+    }
+    else if (position.right) {
+        x = config.width - position.right
+    }
+    return { x, y }
 }
