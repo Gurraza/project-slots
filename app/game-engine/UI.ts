@@ -533,17 +533,21 @@ export class UI {
 export function getPos(position: Position, config: GameConfig) {
     let y: number = 0;
     let x: number = 0;
-    if (position.bottom) {
-        y = config.height - position.bottom
-    }
-    else if (position.top) {
-        y = position.top
-    }
-    if (position.left) {
-        x = position.left
-    }
-    else if (position.right) {
-        x = config.width - position.right
+    if (position) {
+
+
+        if (position.bottom) {
+            y = config.height - position.bottom
+        }
+        else if (position.top) {
+            y = position.top
+        }
+        if (position.left) {
+            x = position.left
+        }
+        else if (position.right) {
+            x = config.width - position.right
+        }
     }
     return { x, y }
 }
