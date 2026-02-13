@@ -5,12 +5,6 @@ import { RandomEngine, calculateMoves, contain, generateRandomResult } from './M
 import { SymbolDef, GameConfig, Grid } from './types.ts';
 import GameFeature from './GameFeature.ts';
 
-export interface AnticipationConfig {
-    after: number;
-    count: number;
-}
-
-
 const DEFAULT_CONFIG: Partial<GameConfig> = {
     reelLandSymbolsDelay: 0
 }
@@ -38,6 +32,8 @@ export default class SlotsBase {
     public ui!: UI;
 
     public processing: boolean = false;
+
+    public stickyCells = []
 
     constructor(rootContainer: Container, app: Application, config: Partial<GameConfig> = {}) {
         // @ts-ignore - Assuming RandomEngine handles the partial config correctly
@@ -102,21 +98,27 @@ export default class SlotsBase {
         // this.engine.setSeed(563172570139)
         // this.engine.setSeed(697883286926)
         // this.engine.setSeed(99260448843)
+        // this.engine.setSeed(498270901918)
         console.log("This game has the seed:", this.engine.seed);
         console.log("This game has the symbols:", this.config.symbols);
 
         this.onNewSpin()
         this.processing = true;
         this.ui.setMultiplier(0);
-
-        const timeline = calculateMoves(this.engine, this.config.rows, this.config.cols, this.features, this.config.symbols);
+        const timeline = calculateMoves(this.engine, this.config.rows, this.config.cols, this.features, this.config.symbols, this.stickyCells);
 
         console.log("PREDICTED PAYOUT:", timeline[timeline.length - 1].totalWin || 0);
         console.log("PREDICTED GAME FLOW:", timeline);
 
         this.grid = timeline[0].grid;
-        await this.spinReels();
 
+
+        const stickyGhosts = []
+        this.stickyCells.forEach(cell => {
+            stickyGhosts.push(this.createStickyGhosts(cell.col, cell.row))
+        })
+        await this.spinReels();
+        stickyGhosts.forEach(g => g.destroy())
         for (let i = 1; i < timeline.length; i++) {
             await new Promise(r => setTimeout(r, this.config.timeBeforeProcessingGrid));
             const event = timeline[i];
@@ -174,10 +176,8 @@ export default class SlotsBase {
             ((this.config.rows - 1) * this.config.gapY);
 
         const offset = getPos(this.config.foregroundOffset, this.config)
-        console.log(offset)
         this.reelContainer.x = (this.config.width - totalWidth) / 2 + offset.x;
         this.reelContainer.y = (this.config.height - totalHeight) / 2 + offset.y
-        console.log(this.reelContainer.x)
 
         for (let i = 0; i < this.config.cols; i++) {
             const reel = new Reel(this.app, i, this.config, this);
@@ -774,5 +774,23 @@ export default class SlotsBase {
         // Allow a small margin of error for floating point positions
         const res = reel.symbols.find(s => Math.abs(s.y - targetY) < 5);
         return res
+    }
+
+    makeCellSticky(col: number, row: number) {
+        // this.reels[col].sort()
+        // this.getSymbol(col, row).isSticky = true
+        // this.getSymbol(col, row).zIndex = 1
+        const wildAmount = contain(0, this.grid).length
+        const maxSymbols = this.config.cols * (this.config.rows)
+        // console.log("wildamount", wildAmount, "maxSymbols", maxSymbols)
+
+        const symbolHere = wildAmount === maxSymbols ? this.initialGrid[col][row] : this.grid[col][row]
+        // console.log("symbolHere", this.config.symbols.find(s => s.id == symbolHere).name)
+        this.stickyCells.push({ col: col, row: row, id: symbolHere })
+    }
+
+    createStickyGhosts(col, row) {
+        const symb = this.getSymbol(col, row);
+        return this.spawnGhost(symb, 9999)
     }
 }

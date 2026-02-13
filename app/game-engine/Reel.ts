@@ -13,7 +13,8 @@ interface ReelSymbol extends PIXI.Sprite {
     explode?: number;
     textureScale?: number;
     speed: number;
-    delay: number
+    delay: number;
+    isSticky: boolean;
 }
 
 export class Reel {
@@ -67,6 +68,14 @@ export class Reel {
         this.symbolsBeforeStop = this.config.symbolsBeforeStop + (this.config.reelLandSymbolsDelay * index);
 
         this.initSymbols();
+        console.log(this.symbols);
+        // [0, 1, 2, 3, 4].forEach(i => {
+        //     const symbDefHere = this.config.symbols.find(s => s.id == this.getSymbol(i)?.symbolId)
+        //     console.log("index", this.index, "id", symbDefHere?.id, "name", symbDefHere?.name)
+        // })
+        this.symbols.forEach(s => {
+            console.log("reel", this.index, "index", this.getIndex(s))
+        })
 
         this.blurFilter = new PIXI.BlurFilter();
         this.blurFilter.strength = 0;
@@ -85,7 +94,14 @@ export class Reel {
         this.slotHeight = this.config.symbolHeight + (this.config.gapY || 0);
 
         for (let i = 0; i < totalSymbols; i++) {
-            const randomData = this.getRandomSymbolData(false);
+            let randomData
+            if (i > 0 && i < totalSymbols - 1) {
+                randomData = this.config.symbols.find(s => s.id == this.game.initialGrid[this.index][i - 1])
+            }
+            else {
+                randomData = this.getRandomSymbolData(false);
+
+            }
 
             // TS check: ensure texture exists before creating sprite
             if (!randomData.texture) continue;
@@ -228,8 +244,18 @@ export class Reel {
                 const totalH = this.slotHeight * this.symbols.length;
                 const viewBottom = (this.config.rows + 1) * this.slotHeight;
 
-                this.symbols.forEach((s) => {
+                this.symbols.forEach((s, i) => {
+                    // if (s.isSticky) return
+                    // this.sort();
+                    // const thisIndex = this.getIndex(s)
+                    // const nextSymbol = this.getSymbol(thisIndex + 1)
+                    // // console.log("thisIndex", thisIndex, "nextSymbol", nextSymbol)
+                    // if (thisIndex != this.symbols.length - 1 && nextSymbol.isSticky) {
+                    //     s.y += this.slotHeight
+                    // }
+                    // else {
                     s.y += s.speed * delta * this.speedMultiplier //this.speed * delta;
+                    // }
 
                     if (s.y > viewBottom) {
                         s.y -= totalH;
@@ -744,4 +770,53 @@ export class Reel {
         this.anticipationBorder.rect(p.x - padding, p.y - padding, width + (padding * 2), height + (padding * 2));
         this.anticipationBorder.stroke({ width: 4, color: 0xFFD700, alpha: 1 });
     }
+
+
+    // getSymbol(row: number) {
+    //     const targetY = ((row - 1) * this.slotHeight) + (this.slotHeight / 2);
+    //     const res = this.symbols.find(s => Math.abs(s.y - targetY) < 5);
+    //     return res
+    // }
+
+    getSymbol(row: number) {
+        // Sort a copy of the array by Y position (Ascending: Top -> Bottom)
+        const sorted = [...this.symbols].sort((a, b) => a.y - b.y);
+
+        // Return the symbol at that physical rank
+        // row 0 = Top-most symbol (usually top buffer)
+        // row 1 = Second symbol down (usually top visible row)
+        return sorted[row];
+    }
+
+    // getIndex(symbol: ReelSymbol): number {
+    //     // Formula from init: y = (i - 1) * slotHeight + halfHeight
+    //     // Reverse it: i = ((y - halfHeight) / slotHeight) + 1
+
+    //     const halfHeight = this.config.symbolHeight / 2;
+    //     const rawIndex = ((symbol.y - halfHeight) / this.slotHeight) + 1;
+
+    //     // Round to handle minor floating point variances
+    //     return Math.round(rawIndex);
+    // }
+
+    getIndex(symbol: ReelSymbol): number {
+        // 1. Create a shallow copy to avoid mutating the actual update/render order
+        // 2. Sort by Y ascending (Lowest Y is at the top)
+        const sortedByPosition = [...this.symbols].sort((a, b) => a.y - b.y);
+
+        // 3. Return the index in this spatial list
+        return sortedByPosition.indexOf(symbol);
+    }
+    // getSymbol(row: number) {
+    //     // 1. Calculate Y based on the exact same logic as initSymbols
+    //     // Note: We use 'row' directly (0 = top). 
+    //     // We do not subtract 1 from 'row' here because your visible rows start at i=1 in the init loop.
+    //     // However, since 'row' is 0-indexed relative to the VISIBLE area:
+    //     // Visual Row 0 should be at: 0 * slotHeight + offset
+    //     const targetY = (row * this.slotHeight) + (this.config.symbolHeight / 2);
+
+    //     // 2. Find the symbol
+    //     const res = this.symbols.find(s => Math.abs(s.y - targetY) < 5);
+    //     return res;
+    // }
 }

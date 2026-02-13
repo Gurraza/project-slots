@@ -35,11 +35,16 @@ export function calculateMoves(
     rows: number,
     cols: number,
     features: GameFeature[],
-    allSymbols: SymbolDef[]
+    allSymbols: SymbolDef[],
+    stickyCells: { col: number, row: number, id: number }[]
 ): TimelineEvent[] {
     const timeline: TimelineEvent[] = [];
     let currentGrid: Grid = generateRandomResult(engine, rows, cols, allSymbols);
-
+    stickyCells.forEach(cell => {
+        console.log("set a sticky symbol", cell)
+        currentGrid[cell.col][cell.row] = cell.id
+        console.log(currentGrid)
+    })
     timeline.push({
         type: 'SPIN_START',
         grid: JSON.parse(JSON.stringify(currentGrid)), // Deep copy
@@ -118,7 +123,7 @@ export function generateRandomResult(
     engine: RandomEngine,
     rows: number,
     cols: number,
-    allSymbols: SymbolDef[]
+    allSymbols: SymbolDef[],
 ): Grid {
     engine.game.applyGroups();
 

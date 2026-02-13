@@ -309,7 +309,7 @@ export class UI {
             else if (char === 'x') textureAlias = 'num_x';
             else if (!isNaN(Number(char))) textureAlias = `num_${char}`;
 
-            if (textureAlias && Assets.get(textureAlias)) {
+            if (textureAlias && Assets.cache.has(textureAlias)) {
                 const texture = Assets.get(textureAlias) as Texture;
                 const sprite = new Sprite(texture);
 

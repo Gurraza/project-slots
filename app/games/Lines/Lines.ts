@@ -5,6 +5,7 @@ import { PaylineEngine } from './features/PaylineEngine.ts';
 import { Scatter } from './features/Scatter.ts';
 import { GameConfig, SymbolDef } from '../../game-engine/types.ts';
 import { getPos } from '../../game-engine/UI.ts';
+import { ExpandingWildsFeature } from './features/ExpandingWilds.ts';
 // const SYMBOLS: SymbolDef[] = [
 //     {
 //         name: "wild",
@@ -82,6 +83,7 @@ const SYMBOLS: SymbolDef[] = [
     {
         "name": "wild",
         "weight": [15, 15, 15, 10, 5, 2],
+        "cheatWeight": [99999, 99999],
         "path": "_0002_Layer-2.png",
         "matchesWith": ["*"],
         "payouts": { 3: 10.0, "4": 100.0, "5": 2500.0 }
@@ -279,7 +281,19 @@ export default class Lines extends SlotsBase {
         };
 
         super(rootContainer, app, myConfig);
-
+        this.registerFeature(new Scatter(this, {
+            name: "scatter",
+            weight: [50, 30, 5, 2, 1],
+            cheatWeight: [99999, 99999, 99999],
+            onlyAppearOnRoll: true,
+            path: "_0001_Layer-1.png",
+            anticipation: {
+                after: 2,
+                count: 15,
+            },
+            onePerReel: true,
+        }))
+        // this.registerFeature(new ExpandingWildsFeature(this))
         this.registerFeature(new PaylineEngine(this,
             {
                 left: config.width / 2 - 110,
@@ -316,18 +330,7 @@ export default class Lines extends SlotsBase {
 
 
             ]))
-        this.registerFeature(new Scatter(this, {
-            name: "scatter",
-            weight: [50, 30, 5, 2, 1],
-            cheatWeight: [99999, 99999, 99999],
-            onlyAppearOnRoll: true,
-            path: "_0001_Layer-1.png",
-            anticipation: {
-                after: 2,
-                count: 15,
-            },
-            onePerReel: true,
-        }))
+
 
         this.init().then(() => {
             this.ui.place((() => {

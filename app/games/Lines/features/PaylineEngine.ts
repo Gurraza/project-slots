@@ -296,8 +296,6 @@ export class PaylineEngine extends GameFeature {
 
         return { isWin: false, payout: 0 };
     }
-
-
 }
 
 /**
