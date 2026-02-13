@@ -101,6 +101,7 @@ export default class SlotsBase {
         // this.engine.setSeed(1698311012251)
         // this.engine.setSeed(563172570139)
         // this.engine.setSeed(697883286926)
+        // this.engine.setSeed(99260448843)
         console.log("This game has the seed:", this.engine.seed);
         console.log("This game has the symbols:", this.config.symbols);
 
@@ -227,6 +228,7 @@ export default class SlotsBase {
     async init() {
         // Map symbols to ensure runtime properties exist
         this.config.symbols = this.config.symbols.map((symbol, index) => {
+            if (symbol.weight == 0) return symbol
             const fixedSymbol = symbol;
             fixedSymbol.id = index;
             fixedSymbol.onlyAppearOnRoll = Array.isArray(symbol.weight);

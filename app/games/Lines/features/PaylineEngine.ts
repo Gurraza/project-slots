@@ -2,7 +2,7 @@ import GameFeature from "../../../game-engine/GameFeature.ts"
 import { Graphics, Container, Text } from "pixi.js"
 import gsap from "gsap"
 import SlotsBase from "../../../game-engine/SlotsBase.ts"
-import { Grid, Position, Timeline } from "../../../game-engine/types.ts"
+import { Grid, Position, SymbolDef, Timeline } from "../../../game-engine/types.ts"
 import { getPos } from "../../../game-engine/UI.ts"
 
 
@@ -115,7 +115,7 @@ export class PaylineEngine extends GameFeature {
             }))
             aPromise.push(this.drawPayline(line.lineId, line.coords.length))
         }
-        this.bottomText.text = "Total Win: $" + event.totalWin
+        this.bottomText.text = "Total Win: $" + event.totalWin.toFixed(2)
         await Promise.all(aPromise)
         this.graphics.clear();
         if (event.lines.length > 1) {
@@ -125,11 +125,12 @@ export class PaylineEngine extends GameFeature {
                     const sprite = this.game.getSymbol(pos.x, pos.y)
                     return this.game.handleSymbolMatch("DEFAULT_MATCH", sprite);
                 });
-                this.bottomText.text = "Line " + line.lineId + " Wins $" + line.amount
+                this.bottomText.text = "Line " + line.lineId + " Wins $" + line.amount.toFixed(2)
                 await Promise.all(animationPromises)
                 await this.drawPayline(line.lineId, line.coords.length);            // await this.drawLine(fullPathCoords, line.color, line.coords.length);
             }
         }
+        this.bottomText.text = "Total Win: $" + event.totalWin.toFixed(2)
     }
 
     async drawPayline(index: number, len: number): Promise<void> {
@@ -284,15 +285,53 @@ export class PaylineEngine extends GameFeature {
         const payoutSymbol = symbols.find(s => s.id === currentSymbolId);
 
         // IMPORTANT: Your SYMBOLS config needs payouts for 3, 4, and 5.
-        if (matchCount >= 3 && payoutSymbol.payouts && payoutSymbol.payouts[matchCount]) {
+        if (matchCount >= 3) {
             return {
                 isWin: true,
-                payout: payoutSymbol.payouts[matchCount], // Adjust multiplier as needed
+                payout: getCorrectPayout(symbols, this.config.symbols)[matchCount],
                 coords: coords,
                 symbol: payoutSymbol.name
             };
         }
 
         return { isWin: false, payout: 0 };
+    }
+
+
+}
+
+/**
+ * Calculates the correct payout table for a winning line.
+ * @param lineSymbols - Array of SymbolDefs in the winning line
+ * @param allSymbols - The master list of symbols (game.config.symbols)
+ */
+function getCorrectPayout(lineSymbols: SymbolDef[], allSymbols: SymbolDef[]) {
+    // 1. Filter out Wilds to check the actual base symbols
+    const nonWilds = lineSymbols.filter(s => s.name !== "wild");
+
+    // Edge Case: Line is 5 Wilds (usually pays as top symbol or specific wild pay)
+    if (nonWilds.length === 0) {
+        return lineSymbols[0].payouts;
+    }
+
+    const firstSymbol = nonWilds[0];
+
+    // 2. Check Purity: Are all non-wild symbols identical?
+    const isPureMatch = nonWilds.every(s => s.name === firstSymbol.name);
+
+    if (isPureMatch) {
+        // Case: BAR1 + BAR1 + WILD -> Pays as BAR1
+        return firstSymbol.payouts;
+    } else {
+        // Case: BAR1 + BAR2 + WILD -> Mixed Match
+        // Detect if this is a Bar mix or another mix (if you have multiple mix groups)
+        const isBarMix = nonWilds.every(s => ["bar1", "bar2", "bar3"].includes(s.name));
+
+        if (isBarMix) {
+            return allSymbols.find(s => s.name === "mixed_bar")?.payouts;
+        }
+
+        // Fallback for other mixed groups if they exist
+        return firstSymbol.payouts;
     }
 }

@@ -303,7 +303,7 @@ export class EatEngineFeature extends GameFeature {
                 x: dest.x,
                 y: dest.y,
                 duration: 0.2,
-                ease: "power1.inOut",
+                ease: "power4.inOut",
                 onUpdate: () => {
                     // Keep text attached to ghost position during tween
                     if (this.eatEngineConfig.dispalyWinUnderEater) {

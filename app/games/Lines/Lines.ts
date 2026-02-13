@@ -1,6 +1,6 @@
 import SlotsBase from '../../game-engine/SlotsBase.ts';
 import gsap from "gsap"
-import { Container, ColorMatrixFilter, Application, Assets, Sprite, Text } from "pixi.js"
+import { Container, ColorMatrixFilter, Application, Assets, Sprite, Text, Graphics, BlurFilter } from "pixi.js"
 import { PaylineEngine } from './features/PaylineEngine.ts';
 import { Scatter } from './features/Scatter.ts';
 import { GameConfig, SymbolDef } from '../../game-engine/types.ts';
@@ -112,6 +112,12 @@ const SYMBOLS: SymbolDef[] = [
         "path": "_0005_Layer-5.png",
         "matchesWith": ["bar1", "bar2", "bar3"],
         "payouts": { "3": 1.5, "4": 10.0, "5": 150.0 }
+    },
+    {
+        name: "mixed_bar",
+        weight: 0, // Should not appear on reels naturally
+        path: "",  // No texture needed if only used for payout lookup
+        payouts: { 3: 0.5, 4: 2.0, 5: 10.0 } // Your desired lower payout
     },
     {
         "name": "bell",
@@ -325,18 +331,49 @@ export default class Lines extends SlotsBase {
 
         this.init().then(() => {
             this.ui.place((() => {
-                const cont = new Container()
                 const gap = 5
+                const size = 50
+                const gp = 10
+                const scale = .9
+                const cont = new Container()
+                const g = new Graphics()
+                g.rect(-gp, -gp, 125 + gp * 2, (this.config.symbols.length - 1) * (size + gap) + gp * 2).fill("black")
+                g.alpha = .8
+
+                const blurFilter = new BlurFilter();
+                blurFilter.strength = 8;
+                blurFilter.resolution = this.app.renderer ? this.app.renderer.resolution : 1;
+
+                g.filters = [blurFilter];
+                cont.addChild(g)
                 SYMBOLS.forEach((symbol: SymbolDef, index: number) => {
                     if (symbol.payouts) {
-                        const texture = Assets.get(symbol.path)
-                        const size = 50
                         const p = getPos({ right: 0, top: (size + gap) * index }, this.config)
-                        cont.addChild(new Sprite({ texture: texture, x: p.x, y: p.y, width: size, height: size }))
+                        if (symbol.name == "mixed_bar") {
+                            cont.addChild(new Text({ text: "Any\nBar", x: p.x + 7, y: p.y, style: { fontSize: 20, align: "center", fill: 0xffffff } }))
+                        }
+                        else {
+                            const texture = Assets.get(symbol.path)
+                            const ratio = texture.height / texture.width
+
+                            const spriteWidth = size * scale
+                            const spriteHeight = size * ratio * scale
+
+                            // Calculate centered position: Cell Start + (Cell Size - Sprite Size) / 2
+                            const centeredX = p.x + (size - spriteWidth) / 2
+                            const centeredY = p.y + (size - spriteHeight) / 2
+
+                            cont.addChild(new Sprite({
+                                texture: texture,
+                                x: centeredX,
+                                y: centeredY,
+                                width: spriteWidth,
+                                height: spriteHeight
+                            }))
+                        }
                         cont.addChild(new Text({ text: "3: " + symbol.payouts[3], x: p.x + size + gap, y: p.y, style: { fontSize: 18, fill: 0xffffff } }))
                         cont.addChild(new Text({ text: "4: " + symbol.payouts[4], x: p.x + size + gap, y: p.y + size / 3, style: { fontSize: 18, fill: 0xffffff } }))
                         cont.addChild(new Text({ text: "5: " + symbol.payouts[5], x: p.x + size + gap, y: p.y + size / 3 * 2, style: { fontSize: 18, fill: 0xffffff } }))
-
                     }
 
                 })
@@ -344,7 +381,30 @@ export default class Lines extends SlotsBase {
             })(), {
                 position: {
                     right: 175,
-                    top: 50
+                    top: 25
+                }
+            })
+
+            const scatter = new Sprite(this.config.symbols.find(s => s.name == "scatter").texture)
+            const wild = new Sprite(this.config.symbols.find(s => s.name == "wild").texture)
+            this.ui.place(scatter, {
+                position: {
+                    top: 127,
+                    right: 405
+                },
+                scale: {
+                    x: .2,
+                    y: .2
+                }
+            })
+            this.ui.place(wild, {
+                position: {
+                    top: 130,
+                    right: 470
+                },
+                scale: {
+                    x: .25,
+                    y: .25
                 }
             })
         })

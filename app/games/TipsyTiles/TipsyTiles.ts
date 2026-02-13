@@ -217,7 +217,7 @@ export default class TipsyTiles extends SlotsBase {
             delayBeforeCascading: 200,
             replaceTime: .2,
             windUp: -5, // pixels
-            staggerTime: 50,
+            staggerTime: 0,
 
             // Game Logic
             cols: 6,

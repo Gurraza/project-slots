@@ -107,7 +107,7 @@ export class UI {
 
         pos = getPos(conf.textPos, this.config)
         this.betText = new Text({
-            text: "10€",
+            text: "1$",
             style: {
                 ...conf.textStyle
             }
