@@ -105,7 +105,7 @@ export default class SlotsBase {
 
         // 1. Lifecycle Cleanup
         if (feature.cleanup) {
-            feature.cleanup();
+            feature.cleanup(this.grid);
         }
 
         // 2. Remove the feature from execution list
@@ -129,7 +129,6 @@ export default class SlotsBase {
         // this.engine.setSeed(1426657637169)
         console.log("This game has the seed:", this.engine.seed);
         console.log("This game has the symbols:", this.config.symbols);
-
         this.onNewSpin()
         this.processing = true;
         this.ui.setMultiplier(0);
@@ -161,6 +160,7 @@ export default class SlotsBase {
                 for (const feature of this.features) {
                     if (feature.type === event.type) {
                         await feature.onCustomEvent(event);
+                        // this.grid = event.grid
                         break;
                     }
                 }
@@ -808,11 +808,13 @@ export default class SlotsBase {
         // this.reels[col].sort()
         // this.getSymbol(col, row).isSticky = true
         // this.getSymbol(col, row).zIndex = 1
+        /*
         const wildAmount = contain(0, this.grid).length
         const maxSymbols = this.config.cols * (this.config.rows)
-        // console.log("wildamount", wildAmount, "maxSymbols", maxSymbols)
 
         const symbolHere = wildAmount === maxSymbols ? this.initialGrid[col][row] : this.grid[col][row]
+        */
+        const symbolHere = this.grid[col][row]
         // console.log("symbolHere", this.config.symbols.find(s => s.id == symbolHere).name)
         this.stickyCells.push({ col: col, row: row, id: symbolHere })
     }

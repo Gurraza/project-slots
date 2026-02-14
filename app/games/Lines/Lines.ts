@@ -6,6 +6,7 @@ import { Scatter } from './features/Scatter.ts';
 import { GameConfig, SymbolDef } from '../../game-engine/types.ts';
 import { getPos } from '../../game-engine/UI.ts';
 import { ExpandingWildsFeature } from './features/ExpandingWilds.ts';
+import { StickyFeature } from './features/Sticky.ts';
 // const SYMBOLS: SymbolDef[] = [
 //     {
 //         name: "wild",
@@ -331,7 +332,7 @@ export default class Lines extends SlotsBase {
 
 
             ]))
-
+        // this.registerFeature(new StickyFeature(this, this.config.symbols.find(s => s.name == "bell").id))
 
         this.init().then(() => {
             this.ui.place((() => {

@@ -87,7 +87,7 @@ export default class GameFeature {
         }
     }
 
-    cleanup() {
+    cleanup(grid) {
 
     }
 }
