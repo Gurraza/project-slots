@@ -217,12 +217,12 @@ export default class ClashOfReels extends SlotsBase {
         this.registerFeature(new ClusterEngineFeature(this))
         // this.registerFeature(new CellMultiplier(this))
         this.registerFeature(new EagleArtilleryFeature(this))
+        this.registerFeature(new SuperTroopFeature(this))
         this.registerFeature(new ClanCastleFeature(this))
         this.registerFeature(new WardenFeature(this))
         this.registerFeature(new TownHallFeature(this))
         this.registerFeature(new MinesFeature(this))
         this.registerFeature(new TreasureGoblinFeature(this))
-        this.registerFeature(new SuperTroopFeature(this))
         this.registerFeature(new BuilderFeature(this))
 
         this.init()

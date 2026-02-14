@@ -62,12 +62,8 @@ export class SuperTroopFeature extends GameFeature {
     }
 
     getSymbols() {
+        console.log("returned featureSymbols", featureSymbols)
         return featureSymbols;
-    }
-
-
-    async init() {
-
     }
 
     onClustersResolve(clusters, grid, timeline) {

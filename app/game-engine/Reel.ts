@@ -68,14 +68,14 @@ export class Reel {
         this.symbolsBeforeStop = this.config.symbolsBeforeStop + (this.config.reelLandSymbolsDelay * index);
 
         this.initSymbols();
-        console.log(this.symbols);
+        // console.log(this.symbols);
         // [0, 1, 2, 3, 4].forEach(i => {
         //     const symbDefHere = this.config.symbols.find(s => s.id == this.getSymbol(i)?.symbolId)
         //     console.log("index", this.index, "id", symbDefHere?.id, "name", symbDefHere?.name)
         // })
-        this.symbols.forEach(s => {
-            console.log("reel", this.index, "index", this.getIndex(s))
-        })
+        // this.symbols.forEach(s => {
+        //     console.log("reel", this.index, "index", this.getIndex(s))
+        // })
 
         this.blurFilter = new PIXI.BlurFilter();
         this.blurFilter.strength = 0;
@@ -471,14 +471,7 @@ export class Reel {
 
     async animateSymbolReplacement(rowIndex: number, newSymbolId: number): Promise<void> {
         return new Promise((resolve) => {
-            this.sort();
-
-            const symbolSprite = this.symbols[rowIndex + 1];
-
-            if (!symbolSprite) {
-                resolve();
-                return;
-            }
+            const symbolSprite = this.getSymbol(rowIndex + 1)
 
             const newData = this.getSymbolDataById(newSymbolId);
             let targetScale = 1;

@@ -286,7 +286,7 @@ export class PaylineEngine extends GameFeature {
         const payoutSymbol = symbols.find(s => s.id === currentSymbolId);
 
         // IMPORTANT: Your SYMBOLS config needs payouts for 3, 4, and 5.
-        if (matchCount >= 3) {
+        if (matchCount >= 3 && payoutSymbol.payouts) {
             return {
                 isWin: true,
                 payout: getCorrectPayout(symbols, this.config.symbols)[matchCount],

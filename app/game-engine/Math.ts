@@ -174,7 +174,7 @@ export function getRandomSymbolId(
     { firstSpin = false, gridToCheck, selectFrom, colIndex, allSymbols }: RandomSymbolOptions
 ): number {
 
-    let validSymbols = allSymbols;
+    let validSymbols = allSymbols.filter((s: SymbolDef) => !s.hidden);
 
     if (selectFrom && selectFrom.length > 0) {
         validSymbols = validSymbols.filter(s => selectFrom.some(ss => ss.id === s.id));

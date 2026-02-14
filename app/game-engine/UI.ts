@@ -222,7 +222,6 @@ export class UI {
             return
         }
         let texture = Assets.cache.has(conf.asset) ? Assets.get(conf.asset) : undefined
-        console.log(texture)
         if (!texture) {
             texture = await Assets.load(this.config.pathPrefix + conf.asset)
         }

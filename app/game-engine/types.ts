@@ -133,7 +133,7 @@ export interface SymbolDef {
     landingEffect?: string;
     matchEffect?: string;
     explodeEffect?: string;
-
+    hidden?: boolean;
     playbackRate?: number;
     _originalWeight?: number | number[];
     prio?: boolean

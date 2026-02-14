@@ -234,7 +234,8 @@ export default class Lines extends SlotsBase {
                     name: "mixed_bar",
                     weight: 0, // Should not appear on reels naturally
                     path: "",  // No texture needed if only used for payout lookup
-                    payouts: { 3: 0.5, 4: 2.0, 5: 10.0 } // Your desired lower payout
+                    payouts: { 3: 0.5, 4: 2.0, 5: 10.0 }, // Your desired lower payout
+                    hidden: true
                 },
                 {
                     "name": "bell",
@@ -293,7 +294,7 @@ export default class Lines extends SlotsBase {
             },
             onePerReel: true,
         }))
-        this.registerFeature(new ExpandingWildsFeature(this))
+        // this.registerFeature(new ExpandingWildsFeature(this))
         this.registerFeature(new PaylineEngine(this,
             {
                 left: config.width / 2 - 110,

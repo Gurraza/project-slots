@@ -83,7 +83,7 @@ export default class SlotsBase {
     }
 
     registerFeature(feature: GameFeature, first = false) {
-        console.log(this.features, this.config.symbols)
+        // console.log(this.features, this.config.symbols)
         if (first) {
             this.features.unshift(feature)
 
@@ -126,12 +126,7 @@ export default class SlotsBase {
         //     console.log("CCC")
         //     return;
         // }
-        // this.engine.setSeed(563172570139)
-        // this.engine.setSeed(1698311012251)
-        // this.engine.setSeed(563172570139)
-        // this.engine.setSeed(697883286926)
-        // this.engine.setSeed(99260448843)
-        // this.engine.setSeed(498270901918)
+        // this.engine.setSeed(1426657637169)
         console.log("This game has the seed:", this.engine.seed);
         console.log("This game has the symbols:", this.config.symbols);
 
@@ -272,7 +267,7 @@ export default class SlotsBase {
             this.ui.init();
             this.createGrid();
             console.log("CONFIG", this.config);
-            // console.log("SYMBOLS", this.config.symbols);
+            console.log("SYMBOLS", this.config.symbols);
         }
 
         this.features.forEach(f => {
@@ -281,10 +276,9 @@ export default class SlotsBase {
     }
 
     fixSymbols() {
-
         // Map symbols to ensure runtime properties exist
         this.config.symbols = this.config.symbols.map((symbol, index) => {
-            if (symbol.weight == 0) return symbol
+            // if (symbol.weight == 0) return symbol
             const fixedSymbol = symbol;
             fixedSymbol.id = index;
             fixedSymbol.onlyAppearOnRoll = Array.isArray(symbol.weight);
@@ -525,24 +519,17 @@ export default class SlotsBase {
     }
 
     async insertIntoGrid(position: { x: number; y: number }, symbolId: number): Promise<number> {
-        return new Promise(async (resolve) => {
-            const col = position.x;
-            const row = position.y;
+        const col = position.x;
+        const row = position.y;
 
-            // Capture old value
-            const hereBefore = this.grid[col][row];
+        const hereBefore = this.grid[col][row];
 
-            // Update Data Grid
-            this.grid[col][row] = symbolId;
+        this.grid[col][row] = symbolId;
 
-            // Trigger Visual Update
-            const reel = this.reels[col];
-            if (reel) {
-                await reel.animateSymbolReplacement(row, symbolId);
-            }
 
-            resolve(hereBefore);
-        });
+        await this.reels[col].animateSymbolReplacement(row, symbolId);
+
+        return hereBefore
     }
 
     async triggerMatchAnimations(clusters: any[]) {

@@ -5,7 +5,7 @@ import SlotsBase from "../../../game-engine/SlotsBase.ts"
 
 export class ExpandingWildsFeature extends GameFeature {
     private wild: SymbolDef
-    private newWildWeight: number = 50
+    private newWildWeight: number | number[] = [99999, 9999, 9999]
     constructor(game: SlotsBase) {
         super(game, "EXPANDING_WILDS", null)
         this.wild = this.config.symbols.find(s => s.name == "wild")
@@ -42,12 +42,14 @@ export class ExpandingWildsFeature extends GameFeature {
         const promises = []
         event.cols.forEach(col => {
             const reel = this.reels[col]
-            reel.sortReverse()
-
             reel.symbols.forEach((s, i) => {
-                promises.push(this.game.insertIntoGrid({ x: col, y: i }, this.wild.id));
+                if (i > 0 && i < reel.symbols.length - 1) {
+                    const symbolHere = reel.getSymbol(i)
+                    if (symbolHere.symbolId != this.wild.id) {
+                        promises.push(this.game.insertIntoGrid({ x: col, y: i - 1 }, this.wild.id));
+                    }
+                }
             })
-
         })
         await Promise.all(promises)
     }
