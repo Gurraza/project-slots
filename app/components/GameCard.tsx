@@ -59,9 +59,9 @@ export default function GameCard({ game }: GameCardProps) {
 
                 {/* Overlay on hover */}
                 <div className="absolute inset-0 bg-black/60 opacity-0 transition-opacity duration-300 group-hover:opacity-100 flex items-center justify-center gap-4">
-                    <Link href={game.playUrl} className="p-3 bg-amber-500 rounded-full text-black hover:bg-amber-400 transition-colors">
+                    <a href={game.playUrl} className="p-3 bg-amber-500 rounded-full text-black hover:bg-amber-400 transition-colors">
                         <Play size={24} fill="currentColor" />
-                    </Link>
+                    </a>
                     <button className="p-3 bg-slate-800 rounded-full text-white hover:bg-slate-700 transition-colors">
                         <Info size={24} />
                     </button>
@@ -97,12 +97,12 @@ export default function GameCard({ game }: GameCardProps) {
                         </div>
                     </div>
 
-                    <Link
+                    <a
                         href={game.playUrl}
                         className="flex items-center gap-2 rounded-lg bg-amber-500/10 px-4 py-2 text-sm font-semibold text-amber-500 transition-colors hover:bg-amber-500 hover:text-slate-950"
                     >
                         Launch <Play size={14} />
-                    </Link>
+                    </a>
                 </div>
             </div>
         </div>

@@ -112,7 +112,8 @@ export default function PixiCanvas({ gameClass, onGameReady, onResize }) {
 
     return (
         <>
-            <Link href='/' className='absolute top-4 right-4'>X</Link>
+            {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
+            <a href='/' className='absolute top-4 right-4'>X</a>
             <span className='absolute top-4 left-4 text-white'>{seed}</span>
             <div
                 ref={containerRef}

@@ -79,85 +79,7 @@ import { ExpandingWildsFeature } from './features/ExpandingWilds.ts';
 //     }
 // ];
 
-const SYMBOLS: SymbolDef[] = [
-    {
-        "name": "wild",
-        "weight": [15, 15, 15, 10, 5, 2],
-        "cheatWeight": [99999, 99999],
-        "path": "_0002_Layer-2.png",
-        "matchesWith": ["*"],
-        "payouts": { 3: 10.0, "4": 100.0, "5": 2500.0 }
-    },
-    {
-        "name": "strawberry",
-        "weight": 20,
-        "path": "_0007_Layer-7.png",
-        "payouts": { "3": 4.0, "4": 40.0, "5": 800.0 }
-    },
-    {
-        "name": "bar3",
-        "weight": 35,
-        "path": "_0003_Layer-3.png",
-        "matchesWith": ["bar1", "bar2", "bar3"],
-        "payouts": { "3": 2.5, "4": 25.0, "5": 400.0 }
-    },
-    {
-        "name": "bar2",
-        "weight": 40,
-        "path": "_0004_Layer-4.png",
-        "matchesWith": ["bar1", "bar2", "bar3"],
-        "payouts": { "3": 2.0, "4": 15.0, "5": 250.0 }
-    },
-    {
-        "name": "bar1",
-        "weight": 45,
-        "path": "_0005_Layer-5.png",
-        "matchesWith": ["bar1", "bar2", "bar3"],
-        "payouts": { "3": 1.5, "4": 10.0, "5": 150.0 }
-    },
-    {
-        name: "mixed_bar",
-        weight: 0, // Should not appear on reels naturally
-        path: "",  // No texture needed if only used for payout lookup
-        payouts: { 3: 0.5, 4: 2.0, 5: 10.0 } // Your desired lower payout
-    },
-    {
-        "name": "bell",
-        "weight": 60,
-        "path": "_0006_Layer-6.png",
-        "payouts": { "3": 1.0, "4": 8.0, "5": 100.0 }
-    },
-    {
-        "name": "grapes",
-        "weight": 65,
-        "path": "_0009_Layer-9.png",
-        "payouts": { "3": 0.8, "4": 5.0, "5": 60.0 }
-    },
-    {
-        "name": "citrus",
-        "weight": 90,
-        "path": "_0013_Layer-12.png",
-        "payouts": { "3": 0.5, "4": 3.0, "5": 40.0 }
-    },
-    {
-        "name": "orange",
-        "weight": 110,
-        "path": "_0012_Layer-11.png",
-        "payouts": { "3": 0.4, "4": 2.0, "5": 25.0 }
-    },
-    {
-        "name": "plum",
-        "weight": 120,
-        "path": "_0011_Layer-10.png",
-        "payouts": { "3": 0.4, "4": 2.0, "5": 25.0 }
-    },
-    {
-        "name": "cherry",
-        "weight": 140,
-        "path": "_0014_Layer-13.png",
-        "payouts": { "3": 0.2, "4": 1.5, "5": 15.0 }
-    }
-]
+
 
 interface clashConf {
     width: number
@@ -272,7 +194,85 @@ export default class Lines extends SlotsBase {
 
             // Behind The Scenes
             pathPrefix: "/games/Lines/",
-            symbols: SYMBOLS,
+            symbols: [
+                {
+                    "name": "wild",
+                    "weight": [15, 15, 15, 10, 5, 2],
+                    "cheatWeight": [99999, 99999],
+                    "path": "_0002_Layer-2.png",
+                    "matchesWith": ["*"],
+                    "payouts": { 3: 10.0, "4": 100.0, "5": 2500.0 }
+                },
+                {
+                    "name": "strawberry",
+                    "weight": 20,
+                    "path": "_0007_Layer-7.png",
+                    "payouts": { "3": 4.0, "4": 40.0, "5": 800.0 }
+                },
+                {
+                    "name": "bar3",
+                    "weight": 35,
+                    "path": "_0003_Layer-3.png",
+                    "matchesWith": ["bar1", "bar2", "bar3"],
+                    "payouts": { "3": 2.5, "4": 25.0, "5": 400.0 }
+                },
+                {
+                    "name": "bar2",
+                    "weight": 40,
+                    "path": "_0004_Layer-4.png",
+                    "matchesWith": ["bar1", "bar2", "bar3"],
+                    "payouts": { "3": 2.0, "4": 15.0, "5": 250.0 }
+                },
+                {
+                    "name": "bar1",
+                    "weight": 45,
+                    "path": "_0005_Layer-5.png",
+                    "matchesWith": ["bar1", "bar2", "bar3"],
+                    "payouts": { "3": 1.5, "4": 10.0, "5": 150.0 }
+                },
+                {
+                    name: "mixed_bar",
+                    weight: 0, // Should not appear on reels naturally
+                    path: "",  // No texture needed if only used for payout lookup
+                    payouts: { 3: 0.5, 4: 2.0, 5: 10.0 } // Your desired lower payout
+                },
+                {
+                    "name": "bell",
+                    "weight": 60,
+                    "path": "_0006_Layer-6.png",
+                    "payouts": { "3": 1.0, "4": 8.0, "5": 100.0 }
+                },
+                {
+                    "name": "grapes",
+                    "weight": 65,
+                    "path": "_0009_Layer-9.png",
+                    "payouts": { "3": 0.8, "4": 5.0, "5": 60.0 }
+                },
+                {
+                    "name": "citrus",
+                    "weight": 90,
+                    "path": "_0013_Layer-12.png",
+                    "payouts": { "3": 0.5, "4": 3.0, "5": 40.0 }
+                },
+                {
+                    "name": "orange",
+                    "weight": 110,
+                    "path": "_0012_Layer-11.png",
+                    "payouts": { "3": 0.4, "4": 2.0, "5": 25.0 }
+                },
+                {
+                    "name": "plum",
+                    "weight": 120,
+                    "path": "_0011_Layer-10.png",
+                    "payouts": { "3": 0.4, "4": 2.0, "5": 25.0 }
+                },
+                {
+                    "name": "cherry",
+                    "weight": 140,
+                    "path": "_0014_Layer-13.png",
+                    "payouts": { "3": 0.2, "4": 1.5, "5": 15.0 }
+                }
+            ],
             mode: "normal",
             defaultLandingEffect: "DEFAULT_LAND",
             defaultMatchEffect: "DEFAULT_MATCH",
@@ -293,7 +293,7 @@ export default class Lines extends SlotsBase {
             },
             onePerReel: true,
         }))
-        // this.registerFeature(new ExpandingWildsFeature(this))
+        this.registerFeature(new ExpandingWildsFeature(this))
         this.registerFeature(new PaylineEngine(this,
             {
                 left: config.width / 2 - 110,
@@ -349,7 +349,7 @@ export default class Lines extends SlotsBase {
 
                 g.filters = [blurFilter];
                 cont.addChild(g)
-                SYMBOLS.forEach((symbol: SymbolDef, index: number) => {
+                this.config.symbols.forEach((symbol: SymbolDef, index: number) => {
                     if (symbol.payouts) {
                         const p = getPos({ right: 0, top: (size + gap) * index }, this.config)
                         if (symbol.name == "mixed_bar") {

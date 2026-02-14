@@ -14,102 +14,6 @@ import { shake, popAnimation, glowFlashAnimation, implodeAnimation, fragmentPopA
 import { GameConfig, SymbolDef } from "../../game-engine/types.ts"
 import { CellMultiplier } from './features/CellMutliplier.ts';
 
-const SYMBOLS: SymbolDef[] = [
-    {
-        name: 'barbarian',
-        weight: 1000,
-        group: "low_troop",
-        scale: .9,
-        payouts: { 4: 0.2, 5: 0.5, 6: 1.0, 7: 1.5, 8: 2.5, 9: 5.0, 10: 6, 11: 10, 12: 15 },
-        path: "troops_icons/barbarian.png"
-    },
-    {
-        name: 'archer',
-        weight: 1000,
-        group: "low_troop",
-        scale: .9,
-        payouts: { 4: 0.2, 5: 0.5, 6: 1.0, 7: 1.5, 8: 2.5, 9: 5.0, 10: 6, 11: 10, 12: 15 },
-        path: "troops_icons/archer.png"
-    },
-    {
-        name: 'goblin',
-        weight: 1000,
-        group: "low_troop",
-        scale: .9,
-        payouts: { 4: 0.2, 5: 0.5, 6: 1.0, 7: 1.5, 8: 2.5, 9: 5.0, 10: 6, 11: 10, 12: 15 },
-        path: "troops_icons/goblin.png"
-    },
-    {
-        name: 'wizard',
-        weight: 800,
-        group: "high_troop",
-        scale: .9,
-        payouts: { 4: 0.2, 5: 0.5, 6: 1.0, 7: 1.5, 8: 2.5, 9: 5.0, 10: 6, 11: 10, 12: 15 },
-        path: "troops_icons/wizard.png"
-    },
-    // {
-    //     name: 'pekka',
-    //     weight: 800,
-    //     group: "high_troop",
-    //     scale: .9,
-    //     payouts: { 4: 0.2, 5: 0.5, 6: 1.0, 7: 1.5, 8: 2.5, 9: 5.0, 10: 6, 11: 10, 12: 15 },
-    //     path: "troops_icons/pekka.png"
-    // },
-    {
-        name: 'dragon',
-        weight: 800,
-        group: "high_troop",
-        scale: .9,
-        payouts: { 4: 0.2, 5: 0.5, 6: 1.0, 7: 1.5, 8: 2.5, 9: 5.0, 10: 6, 11: 10, 12: 15 },
-        path: "troops_icons/dragon.png"
-    },
-    {
-        name: 'wallbreaker',
-        weight: 0,
-        scale: .9,
-        payouts: { 4: 0.2, 5: 0.5, 6: 1.0, 7: 1.5, 8: 2.5, 9: 5.0, 10: 6, 11: 10, 12: 15 },
-        path: "troops_icons/wallbreaker.png"
-    },
-    {
-        name: 'gold',
-        weight: 1000,
-        group: "low_resource",
-        scale: 1,
-        payouts: { 4: 0.2, 5: 0.5, 6: 1.0, 7: 1.5, 8: 2.5, 9: 5.0, 10: 6, 11: 10, 12: 15 },
-        path: "resource/gold.png"
-    },
-    {
-        name: 'elixir',
-        weight: 1000,
-        group: "low_resource",
-        scale: .8,
-        payouts: { 4: 0.2, 5: 0.5, 6: 1.0, 7: 1.5, 8: 2.5, 9: 5.0, 10: 6, 11: 10, 12: 15 },
-        path: "resource/elixir.png"
-    },
-    {
-        name: 'darkelixir',
-        weight: 1000,
-        group: "low_resource",
-        scale: .8,
-        payouts: { 4: 0.2, 5: 0.5, 6: 1.0, 7: 1.5, 8: 2.5, 9: 5.0, 10: 6, 11: 10, 12: 15 },
-        path: "resource/dark_elixir.png"
-    },
-    {
-        name: 'gem',
-        weight: 800,
-        group: "low_resource",
-        scale: .8,
-        payouts: { 4: 0.2, 5: 0.5, 6: 1.0, 7: 1.5, 8: 2.5, 9: 5.0, 10: 6, 11: 10, 12: 15 },
-        path: "resource/gem.png",
-    },
-    {
-        name: "wild",
-        weight: 150,
-        scale: 1,
-        path: "super_icon.png",
-        matchesWith: ["*"],
-    }
-];
 
 interface clashConf {
     width: number
@@ -119,6 +23,8 @@ interface clashConf {
 }
 
 export default class ClashOfReels extends SlotsBase {
+
+    // private SYMBOLS: SymbolDef[] = 
     constructor(rootContainer: Container, app: Application, config: Partial<clashConf> = {}) {
         const myConfig: GameConfig = {
             // Layout
@@ -203,7 +109,102 @@ export default class ClashOfReels extends SlotsBase {
 
             // Behind The Scenes
             pathPrefix: "/games/ClashOfReels/",
-            symbols: SYMBOLS,
+            symbols: [
+                {
+                    name: 'barbarian',
+                    weight: 1000,
+                    group: "low_troop",
+                    scale: .9,
+                    payouts: { 4: 0.2, 5: 0.5, 6: 1.0, 7: 1.5, 8: 2.5, 9: 5.0, 10: 6, 11: 10, 12: 15 },
+                    path: "troops_icons/barbarian.png"
+                },
+                {
+                    name: 'archer',
+                    weight: 1000,
+                    group: "low_troop",
+                    scale: .9,
+                    payouts: { 4: 0.2, 5: 0.5, 6: 1.0, 7: 1.5, 8: 2.5, 9: 5.0, 10: 6, 11: 10, 12: 15 },
+                    path: "troops_icons/archer.png"
+                },
+                {
+                    name: 'goblin',
+                    weight: 1000,
+                    group: "low_troop",
+                    scale: .9,
+                    payouts: { 4: 0.2, 5: 0.5, 6: 1.0, 7: 1.5, 8: 2.5, 9: 5.0, 10: 6, 11: 10, 12: 15 },
+                    path: "troops_icons/goblin.png"
+                },
+                {
+                    name: 'wizard',
+                    weight: 800,
+                    group: "high_troop",
+                    scale: .9,
+                    payouts: { 4: 0.2, 5: 0.5, 6: 1.0, 7: 1.5, 8: 2.5, 9: 5.0, 10: 6, 11: 10, 12: 15 },
+                    path: "troops_icons/wizard.png"
+                },
+                // {
+                //     name: 'pekka',
+                //     weight: 800,
+                //     group: "high_troop",
+                //     scale: .9,
+                //     payouts: { 4: 0.2, 5: 0.5, 6: 1.0, 7: 1.5, 8: 2.5, 9: 5.0, 10: 6, 11: 10, 12: 15 },
+                //     path: "troops_icons/pekka.png"
+                // },
+                {
+                    name: 'dragon',
+                    weight: 800,
+                    group: "high_troop",
+                    scale: .9,
+                    payouts: { 4: 0.2, 5: 0.5, 6: 1.0, 7: 1.5, 8: 2.5, 9: 5.0, 10: 6, 11: 10, 12: 15 },
+                    path: "troops_icons/dragon.png"
+                },
+                {
+                    name: 'wallbreaker',
+                    weight: 0,
+                    scale: .9,
+                    payouts: { 4: 0.2, 5: 0.5, 6: 1.0, 7: 1.5, 8: 2.5, 9: 5.0, 10: 6, 11: 10, 12: 15 },
+                    path: "troops_icons/wallbreaker.png"
+                },
+                {
+                    name: 'gold',
+                    weight: 1000,
+                    group: "low_resource",
+                    scale: 1,
+                    payouts: { 4: 0.2, 5: 0.5, 6: 1.0, 7: 1.5, 8: 2.5, 9: 5.0, 10: 6, 11: 10, 12: 15 },
+                    path: "resource/gold.png"
+                },
+                {
+                    name: 'elixir',
+                    weight: 1000,
+                    group: "low_resource",
+                    scale: .8,
+                    payouts: { 4: 0.2, 5: 0.5, 6: 1.0, 7: 1.5, 8: 2.5, 9: 5.0, 10: 6, 11: 10, 12: 15 },
+                    path: "resource/elixir.png"
+                },
+                {
+                    name: 'darkelixir',
+                    weight: 1000,
+                    group: "low_resource",
+                    scale: .8,
+                    payouts: { 4: 0.2, 5: 0.5, 6: 1.0, 7: 1.5, 8: 2.5, 9: 5.0, 10: 6, 11: 10, 12: 15 },
+                    path: "resource/dark_elixir.png"
+                },
+                {
+                    name: 'gem',
+                    weight: 800,
+                    group: "low_resource",
+                    scale: .8,
+                    payouts: { 4: 0.2, 5: 0.5, 6: 1.0, 7: 1.5, 8: 2.5, 9: 5.0, 10: 6, 11: 10, 12: 15 },
+                    path: "resource/gem.png",
+                },
+                {
+                    name: "wild",
+                    weight: 150,
+                    scale: 1,
+                    path: "super_icon.png",
+                    matchesWith: ["*"],
+                }
+            ],
             mode: "normal",
             defaultLandingEffect: "DEFAULT_LAND",
             defaultMatchEffect: "DEFAULT_MATCH",

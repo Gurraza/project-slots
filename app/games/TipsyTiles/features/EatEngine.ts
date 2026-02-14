@@ -72,7 +72,6 @@ export class EatEngineFeature extends GameFeature {
                                 }
                             }
                             else {
-                                console.log(symbolDef)
                                 stepWin += symbolDef.payouts[1];
                             }
                             pathWin = stepWin
@@ -130,8 +129,6 @@ export class EatEngineFeature extends GameFeature {
                 );
             }
         }
-
-        console.log("actionHappened", actionHappened)
         return actionHappened;
     }
 
