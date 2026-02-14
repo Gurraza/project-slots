@@ -86,4 +86,8 @@ export default class GameFeature {
             originalGrid[i] = [...newGrid[i]];
         }
     }
+
+    cleanup() {
+
+    }
 }

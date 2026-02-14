@@ -5,13 +5,24 @@ import SlotsBase from "../../../game-engine/SlotsBase.ts"
 
 export class ExpandingWildsFeature extends GameFeature {
     private wild: SymbolDef
+    private newWildWeight: number = 50
     constructor(game: SlotsBase) {
         super(game, "EXPANDING_WILDS", null)
         this.wild = this.config.symbols.find(s => s.name == "wild")
     }
 
+    init() {
+        super.init()
+        this.wild.weight = this.newWildWeight
+        this.wild.baseWeight = this.newWildWeight
+    }
+
+    cleanup(): void {
+        this.wild.weight = this.wild._originalWeight
+        this.wild.baseWeight = this.wild._originalWeight
+    }
+
     onGridIdle(grid, timeline) {
-        console.log("YES YES YES")
         const wilds = contain(this.wild.id, grid)
         const todo = []
         wilds.forEach(wild => {

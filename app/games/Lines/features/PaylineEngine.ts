@@ -17,6 +17,7 @@ export class PaylineEngine extends GameFeature {
     private lineLayer: Container
     private paylines: Payline[]
     private bottomText: Text;
+    public extendedAnimations: boolean = true
     constructor(game: SlotsBase, winningsPosition: Position, paylines: number[][]) {
         super(game, "PAYLINES_FEATURE", null)
         // distinct colors for lines
@@ -118,7 +119,7 @@ export class PaylineEngine extends GameFeature {
         this.bottomText.text = "Total Win: $" + event.totalWin.toFixed(2)
         await Promise.all(aPromise)
         this.graphics.clear();
-        if (event.lines.length > 1) {
+        if (event.lines.length > 1 && this.extendedAnimations) {
             for (const line of event.lines) {
                 const animationPromises = line.coords.map(pos => {
 

@@ -82,17 +82,50 @@ export default class SlotsBase {
         });
     }
 
-    registerFeature(feature: GameFeature) {
+    registerFeature(feature: GameFeature, first = false) {
         console.log(this.features, this.config.symbols)
-        this.features.push(feature);
+        if (first) {
+            this.features.unshift(feature)
+
+        }
+        else {
+            this.features.push(feature);
+
+        }
         const newSymbols = feature.getSymbols ? feature.getSymbols() : null;
         if (newSymbols) {
             this.config.symbols.push(...newSymbols);
         }
+        this.fixSymbols()
+        feature.init()
+    }
+
+    unregisterFeature(featureType: string) {
+        const feature = this.features.find(f => f.type == featureType)
+
+        // 1. Lifecycle Cleanup
+        if (feature.cleanup) {
+            feature.cleanup();
+        }
+
+        // 2. Remove the feature from execution list
+        this.features = this.features.filter(f => f.type != featureType)
+
+        // 3. Remove the feature's symbol
+        this.config.symbols.filter((symbol: SymbolDef) => {
+            !feature.getSymbols().map(s => s.name).includes(symbol.name)
+        })
+
+        this.config.symbols = this.config.symbols.map((symbol: SymbolDef, index: number) => {
+            return { ...symbol, id: index }
+        })
     }
 
     async spin() {
-        if (this.processing === true && this.config.mode === "normal") return;
+        // if (this.processing === true && this.config.mode === "normal") {
+        //     console.log("CCC")
+        //     return;
+        // }
         // this.engine.setSeed(563172570139)
         // this.engine.setSeed(1698311012251)
         // this.engine.setSeed(563172570139)
@@ -143,7 +176,11 @@ export default class SlotsBase {
             this.processing = false;
         }
 
-        return { grid: this.grid, totalWin: this.ui.globalMultiplier };
+        if (this.config.freespins > 0) {
+            this.setFreespins(this.config.freespins - 1)
+            await this.spin()
+        }
+        // return { grid: this.grid, totalWin: this.ui.globalMultiplier };
     }
 
     async spinReels(): Promise<number[][]> {
@@ -225,7 +262,26 @@ export default class SlotsBase {
         this.stage.removeChildren();
     }
 
-    async init() {
+    async init(generateGrid = true) {
+        this.fixSymbols()
+        this.initialGrid = generateRandomResult(this.engine, this.config.rows, this.config.cols, this.config.symbols);
+
+        if (this.config.mode !== "simulation") {
+            await this.loadAssets();
+            this.setBackground(this.config.backgroundImage);
+            this.ui.init();
+            this.createGrid();
+            console.log("CONFIG", this.config);
+            // console.log("SYMBOLS", this.config.symbols);
+        }
+
+        // this.features.forEach(f => {
+        //     if (f.init) f.init();
+        // });
+    }
+
+    fixSymbols() {
+
         // Map symbols to ensure runtime properties exist
         this.config.symbols = this.config.symbols.map((symbol, index) => {
             if (symbol.weight == 0) return symbol
@@ -253,21 +309,6 @@ export default class SlotsBase {
                 return fixedSymbol;
             }
             else return fixedSymbol;
-        });
-
-        this.initialGrid = generateRandomResult(this.engine, this.config.rows, this.config.cols, this.config.symbols);
-
-        if (this.config.mode !== "simulation") {
-            await this.loadAssets();
-            this.setBackground(this.config.backgroundImage);
-            this.ui.init();
-            this.createGrid();
-            console.log("CONFIG", this.config);
-            // console.log("SYMBOLS", this.config.symbols);
-        }
-
-        this.features.forEach(f => {
-            if (f.init) f.init();
         });
     }
 

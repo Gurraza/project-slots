@@ -11,7 +11,6 @@ export class UI {
     public app: Application;
     public config: GameConfig;
     public stage: Container;
-
     public freespinContainer!: Container;
     public freespinSprite!: Sprite;
     public freespinText!: Text;
@@ -499,7 +498,6 @@ export class UI {
             localStorage.setItem(storageKey, isToggled.toString());
             draw();
         });
-
         this.stage.addChild(container);
     }
 
