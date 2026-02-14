@@ -29,6 +29,7 @@ export default class GameFeature {
         this.effects = []
         this.config = game.config
         this.featureSymbol = featureSymbol
+        this.id = this.config.symbols.find(s => s.name === this.featureSymbol?.name)?.id
     }
 
     getSymbols(): SymbolDef[] {
@@ -40,7 +41,6 @@ export default class GameFeature {
     getAssets() { return []; }  // Return list of images/sounds to load
 
     init() {
-        this.id = this.config.symbols.find(s => s.name === this.featureSymbol?.name)?.id
     }
 
     // --- SIMULATION HOOKS (The Math/Logic Loop) ---

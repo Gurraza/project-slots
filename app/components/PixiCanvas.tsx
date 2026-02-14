@@ -108,6 +108,7 @@ export default function PixiCanvas({ gameClass, onGameReady, onResize }) {
                 appRef.current.destroy(true, { children: true });
             }
         };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     return (

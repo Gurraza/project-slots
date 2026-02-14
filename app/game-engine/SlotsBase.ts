@@ -97,7 +97,7 @@ export default class SlotsBase {
             this.config.symbols.push(...newSymbols);
         }
         this.fixSymbols()
-        feature.init()
+        // feature.init()
     }
 
     unregisterFeature(featureType: string) {
@@ -275,9 +275,9 @@ export default class SlotsBase {
             // console.log("SYMBOLS", this.config.symbols);
         }
 
-        // this.features.forEach(f => {
-        //     if (f.init) f.init();
-        // });
+        this.features.forEach(f => {
+            if (f.init) f.init();
+        });
     }
 
     fixSymbols() {

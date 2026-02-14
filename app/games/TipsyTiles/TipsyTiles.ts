@@ -283,7 +283,6 @@ export default class TipsyTiles extends SlotsBase {
         }))
         this.registerFeature(new DrunkMeterFeature(this))
         this.registerFeature(new BlurredBackgroundFeature(this))
-
         this.init()
     }
 
