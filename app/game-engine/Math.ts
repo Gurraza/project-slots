@@ -36,7 +36,7 @@ export function calculateMoves(
     cols: number,
     features: GameFeature[],
     allSymbols: SymbolDef[],
-    stickyCells: { col: number, row: number, id: number }[]
+    stickyCells?: { col: number, row: number, id: number }[]
 ): TimelineEvent[] {
     const timeline: TimelineEvent[] = [];
     let currentGrid: Grid = generateRandomResult(engine, rows, cols, allSymbols);
