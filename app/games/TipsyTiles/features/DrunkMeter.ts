@@ -1,8 +1,10 @@
 import GameFeature from "../../../game-engine/GameFeature.ts";
 import gsap from "gsap";
 import { Assets, Container, Graphics, Sprite, Text } from "pixi.js";
-import { SymbolDef, Grid, Timeline, FeatureEvent, TimelineEvent } from "../../../game-engine/types.ts";
+import { SymbolDef, Grid, Timeline, FeatureEvent, TimelineEvent, Transform } from "../../../game-engine/types.ts";
 import SlotsBase from "../../../game-engine/SlotsBase.ts";
+import { transform } from "typescript";
+import { getPos } from "../../../game-engine/UI.ts";
 
 export class DrunkMeterFeature extends GameFeature {
     private beerTowerContainer: Container;
@@ -14,9 +16,11 @@ export class DrunkMeterFeature extends GameFeature {
     private readonly MAX_HEIGHT = 450; // How tall the liquid is in pixels
     private currentBeerLevel: number = 0;
     // private readonly FULL_Y = 415 - 300; // y = 115
-    constructor(game: SlotsBase) {
+    private transform: Transform
+    constructor(game: SlotsBase, transform: Transform) {
         // Pass null or undefined for the specific symbol if this feature manages multiple symbols
         super(game, "DRUNK_METER", undefined as any);
+        this.transform = transform
     }
 
     init() {
@@ -33,9 +37,9 @@ export class DrunkMeterFeature extends GameFeature {
         this.beerTowerContainer.addChild(this.beerTowerBeer)
 
 
-        this.beerTowerTop.position.set(this.config.width - 300, 0)
-        this.beerTowerBottom.position.set(this.config.width - 325, 380)
-        this.beerTowerBeer.position.set(this.config.width - 315, this.EMPTY_Y)
+        this.beerTowerTop.position.set(0, 0)
+        this.beerTowerBottom.position.set(-25, 380)
+        this.beerTowerBeer.position.set(-15, this.EMPTY_Y)
 
         this.beerTowerTop.zIndex = 1
         this.beerTowerBottom.zIndex = 3
@@ -67,10 +71,12 @@ export class DrunkMeterFeature extends GameFeature {
         this.beerTowerText.zIndex = 10;
         this.beerTowerText.position.set(this.config.width - 220, 485)
         this.beerTowerContainer.addChild(this.beerTowerText)
-        if (this.config.isMobile) {
-            this.beerTowerContainer.scale = .5
-            this.beerTowerContainer.position.set(390, 0)
-        }
+
+        this.beerTowerContainer.scale = this.transform.scale || .5
+        // this.beerTowerContainer.position.set(100, 100)
+        const pos = getPos(this.transform.position, this.config)
+        this.beerTowerContainer.position.set(pos.x, pos.y)
+        console.log(pos)
     }
 
     getAssets() {

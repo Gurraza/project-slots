@@ -28,13 +28,21 @@ export default class TipsyTiles extends SlotsBase {
             // Layout
             width: 1280,
             height: 720,
-            symbolWidth: config.isMobile ? 100 : 80,
-            symbolHeight: config.isMobile ? 100 : 80,
+            symbolWidth: config.isMobile ? 110 : 80,
+            symbolHeight: config.isMobile ? 110 : 80,
             gapX: 0,
             gapY: 0,
             borderRadius: 15,
             titleImage: "",
             // Visuals
+            background: {
+                landscape: {
+                    asset: "background"
+                },
+                portrait: {
+                    asset: "portrait_background"
+                }
+            },
             backgroundImage: "background",
             reelBackgroundImage: "",//"/games/TipsyTiles/ReelBackground.png",
             reelBackgroundScale: .95,
@@ -53,6 +61,7 @@ export default class TipsyTiles extends SlotsBase {
             },
             extraAssets: [
                 { alias: "background", src: "Background.png" },
+                { alias: "portrait_background", src: "portrait_background.png" },
                 { alias: "tipsy_sheet", src: "texture.json" }
             ],
 
@@ -60,8 +69,8 @@ export default class TipsyTiles extends SlotsBase {
             spinSpeed: 35,
             spinAcceleration: .5,
             spinDeacceleration: 0.9,
-            timeBeforeProcessingGrid: 200,
-            delayBeforeCascading: 200,
+            timeBeforeProcessingGrid: 0,
+            delayBeforeCascading: 0,
             replaceTime: .2,
             windUp: -5, // pixels
             staggerTime: 0,
@@ -281,7 +290,13 @@ export default class TipsyTiles extends SlotsBase {
             matchEffect: "shake",
             clusterSize: 1,
         }))
-        this.registerFeature(new DrunkMeterFeature(this))
+        this.registerFeature(new DrunkMeterFeature(this, (config.isMobile ? {
+            position: { right: 150, bottom: 340 },
+            scale: { x: .5, y: .5 }
+        } : {
+            position: { right: 300, top: 20 },
+            scale: { x: 1, y: 1 }
+        })))
         this.registerFeature(new BlurredBackgroundFeature(this))
         this.init()
     }
