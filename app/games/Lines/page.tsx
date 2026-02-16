@@ -9,7 +9,6 @@ export default function CasinoPage() {
 
     return (
         <div className="flex flex-col items-center relative justify-center min-h-screen bg-black">
-            <span style={{ fontFamily: "cocFont", display: "none" }}>Load Font</span>
             {/* 1. The Game Screen */}
             <div className={"w-full h-full inset-0 absolute"}>
                 <PixiCanvas

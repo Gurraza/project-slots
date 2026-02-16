@@ -273,6 +273,8 @@ export default class SlotsBase {
         this.features.forEach(f => {
             if (f.init) f.init();
         });
+
+        // loading is done 
     }
 
     fixSymbols() {

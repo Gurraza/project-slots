@@ -95,8 +95,8 @@ export default class Lines extends SlotsBase {
             // Layout
             width: 1280,
             height: 720,
-            symbolWidth: config.isMobile ? 100 : 110,
-            symbolHeight: config.isMobile ? 100 : 110,
+            symbolWidth: 110,
+            symbolHeight: 110,
             borderRadius: 0,
             titleImage: "",
             gapX: 10,

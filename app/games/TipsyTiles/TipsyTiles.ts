@@ -274,7 +274,7 @@ export default class TipsyTiles extends SlotsBase {
         this.registerFeature(new ShakerFeature(this, {
             name: "shaker",
             dontCluster: true,
-            weight: [25],
+            weight: [100],
             scale: 1,
             path: "_0014_Shaker.png",
             // landingEffect: "shake",
