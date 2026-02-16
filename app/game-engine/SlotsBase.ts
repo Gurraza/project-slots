@@ -66,8 +66,8 @@ export default class SlotsBase {
         }
     }
 
-    setBackground(alias?: string) {
-        Assets.load(alias || this.config.backgroundImage || "").then((texture) => {
+    setBackground(alias = "background") {
+        Assets.load(alias).then((texture) => {
             if (!this.bgSprite) {
                 this.bgSprite = new Sprite();
             }
@@ -263,7 +263,8 @@ export default class SlotsBase {
 
         if (this.config.mode !== "simulation") {
             await this.loadAssets();
-            this.setBackground(this.config.backgroundImage);
+            this.setBackground(this.config.isMobile ? this.config.background.portrait.asset : this.config.backgroundImage);
+            console.log(this.config.isMobile)
             this.ui.init();
             this.createGrid();
             console.log("CONFIG", this.config);

@@ -55,6 +55,10 @@ export interface GameConfig {
     borderRadius: number;
     foregroundOffset?: Position;
     // Visuals
+    background: {
+        portrait: { asset: string },
+        landscape: { asset: string }
+    }
     backgroundImage: string;
     reelBackgroundImage: string;
     reelBackgroundScale: number;
