@@ -453,3 +453,66 @@ export function explode(
         grid[i] = [...newGrid[i]];
     }
 }
+
+export function explodePoints(
+    engine: RandomEngine,
+    grid: Grid,
+    pointsToExplode: Point[], // Changed from number[][] to Point[]
+    timeline: TimelineEvent[],
+    win: number,
+    allSymbols: SymbolDef[]
+): void {
+    // 1. Convert Point[] to the column-major format (number[][]) required by internal helpers
+    // index = col, value = [row, row, row]
+    const colsCount = grid.length;
+    const explodedIndicesByCol: number[][] = Array.from({ length: colsCount }, () => []);
+
+    pointsToExplode.forEach(p => {
+        // Safety check: Ensure point is within bounds
+        if (p.x >= 0 && p.x < colsCount && p.y >= 0 && grid[p.x].length > p.y) {
+            explodedIndicesByCol[p.x].push(p.y);
+        }
+    });
+
+    // 2. Generate new symbols for the gaps
+    const replacements = generateReplacements(engine, explodedIndicesByCol, grid, allSymbols);
+
+    // 3. Create the new grid state (Logic remains using the column indices)
+    const newGrid = simulateCascade(grid, explodedIndicesByCol, replacements);
+
+    // 4. Update Timeline
+    timeline.push({
+        type: 'EXPLODE',
+        clusters: explodedIndicesByCol, // Keeping legacy format for the timeline/frontend
+        replacements: replacements,
+        grid: JSON.parse(JSON.stringify(newGrid)), // See suggestion #1 below
+        win: win
+    });
+
+    // 5. Mutate the original grid to match new state
+    for (let i = 0; i < grid.length; i++) {
+        grid[i] = [...newGrid[i]];
+    }
+}
+
+export function insertPoints(
+    grid: Grid,
+    replacements: { x: number, y: number, symbolId: number }[],
+    timeline: TimelineEvent[]
+): void {
+
+    // 1. Update the logical grid immediately
+    replacements.forEach(rep => {
+        if (grid[rep.x] && grid[rep.x][rep.y] !== undefined) {
+            grid[rep.x][rep.y] = rep.symbolId;
+        }
+    });
+
+    // 2. Push the event to the timeline for the frontend to read later
+    timeline.push({
+        type: 'INSERT',
+        grid: JSON.parse(JSON.stringify(grid)), // Snapshot of new state
+        replacements: replacements,
+        win: 0 // Insertions usually don't calculate win immediately, but you can add logic here if needed
+    });
+}

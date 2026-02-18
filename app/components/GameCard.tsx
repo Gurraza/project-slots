@@ -77,7 +77,7 @@ export default function GameCard({ game }: GameCardProps) {
                     </span>
                 </div>
 
-                <p className="mb-6 line-clamp-2 text-sm text-slate-400">
+                <p className="mb-6 line-clamp-1 text-sm text-slate-400">
                     {game.description}
                 </p>
 
@@ -101,7 +101,7 @@ export default function GameCard({ game }: GameCardProps) {
                         href={game.playUrl}
                         className="flex items-center gap-2 rounded-lg bg-amber-500/10 px-4 py-2 text-sm font-semibold text-amber-500 transition-colors hover:bg-amber-500 hover:text-slate-950"
                     >
-                        Launch <Play size={14} />
+                        Pröva <Play size={14} />
                     </a>
                 </div>
             </div>

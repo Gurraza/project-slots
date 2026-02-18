@@ -76,7 +76,6 @@ export class DrunkMeterFeature extends GameFeature {
         // this.beerTowerContainer.position.set(100, 100)
         const pos = getPos(this.transform.position, this.config)
         this.beerTowerContainer.position.set(pos.x, pos.y)
-        console.log(pos)
     }
 
     getAssets() {

@@ -126,7 +126,7 @@ export default class SlotsBase {
         //     console.log("CCC")
         //     return;
         // }
-        // this.engine.setSeed(1426657637169)
+        this.engine.setSeed(556029317348)
         console.log("This game has the seed:", this.engine.seed);
         console.log("This game has the symbols:", this.config.symbols);
         this.onNewSpin()
@@ -154,6 +154,10 @@ export default class SlotsBase {
                 await this.triggerMatchAnimations(event.clusters);
                 await this.explodeAndCascade(event.clusters, event.replacements);
                 this.ui.setMultiplier(event.totalWin);
+                this.grid = event.grid;
+            }
+            else if (event.type === 'INSERT') {
+                await this.animateInsertions(event.replacements);
                 this.grid = event.grid;
             }
             else {
@@ -264,7 +268,7 @@ export default class SlotsBase {
         if (this.config.mode !== "simulation") {
             await this.loadAssets();
             this.setBackground(this.config.isMobile ? this.config.background.portrait.asset : this.config.backgroundImage);
-            console.log(this.config.isMobile)
+            // console.log(this.config.isMobile)
             this.ui.init();
             this.createGrid();
             console.log("CONFIG", this.config);
@@ -533,6 +537,23 @@ export default class SlotsBase {
         await this.reels[col].animateSymbolReplacement(row, symbolId);
 
         return hereBefore
+    }
+
+    /**
+     * Visuals-only: Plays the animation for symbols being inserted/replaced
+     */
+    async animateInsertions(replacements: { x: number, y: number, symbolId: number }[]) {
+        if (!replacements || !replacements.length) return;
+
+        const promises = replacements.map(rep => {
+            // Ensure the reel exists
+            if (this.reels[rep.x]) {
+                return this.reels[rep.x].animateSymbolReplacement(rep.y, rep.symbolId);
+            }
+            return Promise.resolve();
+        });
+
+        await Promise.all(promises);
     }
 
     async triggerMatchAnimations(clusters: any[]) {
@@ -826,4 +847,6 @@ export default class SlotsBase {
         const symb = this.getSymbol(col, row);
         return this.spawnGhost(symb, 9999)
     }
+
+
 }

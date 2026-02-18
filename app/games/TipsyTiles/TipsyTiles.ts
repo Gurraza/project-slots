@@ -7,6 +7,7 @@ import { EatEngineFeature } from './features/EatEngine.ts';
 import { ShakerFeature } from './features/Shaker.ts';
 import { DrunkMeterFeature } from './features/DrunkMeter.ts';
 import { BlurredBackgroundFeature } from './features/BlurredBackground.ts';
+import { BarFightFeature } from './features/BarFight.ts';
 
 // Define the groups so they all link together
 const BEER_GROUP = ['patreon_regular', 'beer_1', 'beer_2', 'beer_3'];
@@ -276,7 +277,6 @@ export default class TipsyTiles extends SlotsBase {
 
         super(rootContainer, app, myConfig);
 
-        // this.registerFeature(new ClusterEngineFeature(this))
         this.registerFeature(new EatEngineFeature(this, {
             dispalyWinUnderEater: true
         }))
@@ -298,7 +298,9 @@ export default class TipsyTiles extends SlotsBase {
             scale: { x: 1, y: 1 }
         })))
         this.registerFeature(new BlurredBackgroundFeature(this))
+        this.registerFeature(new BarFightFeature(this))
         this.init()
+        console.log(this.initialGrid)
     }
 
     async handleSymbolLand(effect, sprite) {
